@@ -1,56 +1,69 @@
 # import csv
-import requests
 import json
-import os
-# from urllib3.util.util import to_str
+import requests
+import re
+import asyncio
+import websockets
+import datetime
+
 
 # sources
 # https://colab.research.google.com/drive/13mGFq_BqskRUxxIZoimomaD_6cKFfWnF
 # https://colab.research.google.com/drive/13mGFq_BqskRUxxIZoimomaD_6cKFfWnF#scrollTo=9I_zd74ix6Bo
 
 
-# r = requests.get("https://gamma-api.polymarket.com/events?closed=false&tag=politics&limit=100")
-r = requests.get("https://gamma-api.polymarket.com/events?id=903193")
+# Queries
+other_query = "https://gamma-api.polymarket.com/events?closed=false&tag=politics&limit=100"
+popular_vote_query = "https://gamma-api.polymarket.com/markets?id=253706&id=253727"
+election_query = "https://gamma-api.polymarket.com/events/903193"
+
+# Getting response
+r = requests.get(election_query)
 response = r.json()
 
-with open("json_files/full_response.json", 'w', encoding="utf-8") as file:
+# Writing full reponse
+with open("events_markets/full_response.json", 'w', encoding="utf-8") as file:
     json.dump(response, file, ensure_ascii=False, indent=4)
 
-if os.path.exists("json_files/event_titles.json"):
-    os.remove("json_files/event_titles.json")
 
-relevant_events = {}
-for event in response:
-    title = event["title"]
-    print(title)
+markets = response["markets"]
 
-    with open("json_files/event_titles.json", 'a', encoding="utf-8") as file:
-        json.dump(title, file, ensure_ascii=False, indent=4)
-
-    condition1 = "Kamala" in title
-    condition2 = "Trump" in title
-    condition3 = "President" in title
-    if condition1 or condition2 or condition3:
-        with open("json_files/relevant_events.json", 'a', encoding="utf-8") as file:
-            json.dump(event, file, ensure_ascii=False, indent=4)
-    # print(event)
-    # relevant_events[event['id']] = event
-    # 903193
+# Writing markets
+with open("events_markets/raw_election_markets.json", 'w', encoding="utf-8") as file:
+    json.dump(markets, file, ensure_ascii=False, indent=4)
 
 
+relevant_data = []
+for market in markets:
 
-# r = requests.get("https://gamma-api.polymarket.com/events?id=903193")
-# response = r.json()
-#
-# relevant_markets = response["markets"]
-#
-# for market in relevant_markets:
-#   if 'outcomePrices' in market and 'clobTokenIds' in market:
-#     print(market['id'], market['question'], 'outcomePrices' in market and market['outcomePrices'])
-#     print('clobTokenIds' in market and market['clobTokenIds'])
-#     print('=====')
+    # Parsing prices and ids
+    prices = market["outcomePrices"]
+    pricesString = re.findall(r'"(\d+\.\d+)"', prices)
+    yesPrice = float(pricesString[0])
+    noPrice = float(pricesString[1])
 
-# r2 = requests.get("wss://ws-subscriptions-clob.polymarket.com/ws/market")
-# response2 = r2.json()
-# with open("json_files/text.json", 'w', encoding="utf-8") as file:
-#     json.dump(response2, file, ensure_ascii=False, indent=4)
+    clobTokenIds = market["clobTokenIds"]
+    idsString = re.findall(r'"(\d+)"', clobTokenIds)
+    yesId = int(idsString[0])
+    noId = int(idsString[1])
+
+    data = {
+            "id": market["id"],
+            "question": market["question"],
+            "volume": market["volumeNum"],
+            "volume24hrClob": market["volume24hrClob"],
+            "volume24hr": market["volume24hr"],
+            "liquidity": market["liquidityNum"],
+            "liquidityClob": market["liquidityClob"],
+            "yesPrice": yesPrice,
+            "noPrice": noPrice,
+            "yesId": yesId,
+            "noId": noId,
+            "competitive": market["competitive"],
+            "spread": market["spread"]
+            }
+    relevant_data.append(data)
+
+# Dumping relevant market data
+with open("events_markets/election_markets.json", 'w', encoding="utf-8") as file:
+    json.dump(relevant_data, file, ensure_ascii=False, indent=4)
