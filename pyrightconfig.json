@@ -1,0 +1,9 @@
+{
+    "venvPath": ".",
+    "venv": "venv",
+    "include": ["."],
+    "exclude": ["**/__pycache__", "**/.*", "**/*.R", "**/*.csv", "**/*.json",  "**/*.js"],
+    // "ignore": ["**/*.R", "**/*.csv", "**/*.json"],
+    "useLibraryCodeForTypes": true,
+    "typeCheckingMode": "basic"
+}

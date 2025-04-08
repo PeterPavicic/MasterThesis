@@ -29,6 +29,7 @@ TOKEN_DICTIONARY = {
         "GeorgiaRepublicanWin": "10874846387975190407444713373765853114527145924436779240006871443341352408992"}
 
 
+# TODO: Refactor to outside perhaps
 def download_json(url, output_file):
     """
     Downloads a JSON file from the given URL and saves it to the specified output file.
@@ -57,6 +58,7 @@ def download_json(url, output_file):
         print(f"An error occurred: {e}")
 
 
+# TODO: Definitely refactor to outside
 def json_to_csv(json_file, csv_file):
     """
     Converts a JSON file to a CSV file with columns "t" and "p".
@@ -87,6 +89,8 @@ def json_to_csv(json_file, csv_file):
         print(f"An error occurred: {e}")
 
 
+
+
 # Example usage
 if __name__ == "__main__":
 
@@ -94,10 +98,11 @@ if __name__ == "__main__":
 
     urlStart = "https://clob.polymarket.com/prices-history?market="
     urlEnd = "&fidelity=1&startTs=1704373200"
-    outputFileStart = "C:\\Users\\peter\\OneDrive - Wirtschaftsuniversität Wien - IT-SERVICES\\WU\\QFin\\Master Thesis\\Full minute data\\price_data\\"
+    outputFileStart = "./price_data/"
 
     outputFileEnd = "_full_minute_data.json"
 
+    # TODO: Review, finish writing.
     for token in tokens_to_get:
         clob_id = TOKEN_DICTIONARY[token]
         url = urlStart + clob_id + urlEnd
