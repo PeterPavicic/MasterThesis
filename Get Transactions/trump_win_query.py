@@ -1,118 +1,122 @@
 #!./venv/bin/python
-
 import requests
 import json
+import os
+# import time
 
-# Constants for subgraphs
+# SUBGRAPH CONSTANTS
 ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/polymarket-orderbook-resync/prod/gn"
 POSITIONS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/positions-subgraph/0.0.7/gn"
 ACTIVITY_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/activity-subgraph/0.0.4/gn"
 OPEN_INTEREST_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/oi-subgraph/0.0.6/gn"
 PNL_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/pnl-subgraph/0.0.14/gn"
 
-
-def run_graphql_query(query: str, operation_name: str, subGraph: str, timeout: int = 100): 
-    """
-    Sends a GraphQL query to the specified endpoint and returns the JSON response.
-    Includes handling for common API errors.
-    """
-    url = subGraph
-    payload = {
-        "query": query,
-        "operationName": operation_name
+# QUERY CONSTANTS
+PAGE_SIZE = 1000
+OUTPUT_DIR = "/run/media/peter/SanDisk_SSD/Transactions/"
+QUERY_TEMPLATE_MAKER = """
+query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
+    orderFilledEvents(
+        skip: $skip,
+        first: $first,
+        orderBy: timestamp,
+        orderDirection: asc,
+        where: {
+        makerAssetId_in: [
+        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+        ]
     }
-    
-    try:
-        # Send the POST request with a timeout
-        response = requests.post(url, json=payload, timeout=timeout)
-        # Raise HTTPError if the response status code indicates an error (e.g., 4xx, 5xx)
-        response.raise_for_status()
-    except requests.exceptions.Timeout:
-        print("Request timed out. Increase the timeout value or check your network connection.")
-        return None
-    except requests.exceptions.ConnectionError:
-        print("Connection error occurred. Please check your network connectivity.")
-        return None
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-        return None
-    except requests.exceptions.RequestException as req_err:
-        print(f"A network-related error occurred: {req_err}")
-        return None
-
-    try:
-        # Attempt to parse the response as JSON.
-        result = response.json()
-    except json.decoder.JSONDecodeError:
-        print("Error decoding JSON. The response may not be valid JSON.")
-        return None
-    
-    # Check if the GraphQL response includes any errors.
-    if "errors" in result:
-        print("GraphQL errors encountered:")
-        for error in result["errors"]:
-            print(f" - {error.get('message')}")
-        # You might wish to return None or the errors for further handling.
-        return None
-    
-    return result
-
-
-# Example GraphQL query: get the first 100 orderFilledEvents
-query = """
-query TrumpWinsElectionMarket {
-  orderFilledEvents(
-    # skip: 1000,
-    first: 1000, #  Display first # of transactions 
-    orderBy: timestamp, # Change direction for first/last ## orders
-    orderDirection: asc,
-    # orderDirection: desc,
-    where: {
-    # makerAssetId:
-    #   "21742633143463906290569050155826241533067272736897614950488156847949938836455"
-    # EIC2215 token id = clobTokenId from market data
-    makerAssetId_in: [
-    "21742633143463906290569050155826241533067272736897614950488156847949938836455", # Trump Yes token
-    "48331043336612883890938759509493159234755048973500640148014422747788308965732" # Trump No token
-    ] #,
-    # takerAssetId_in: [
-    #  "21742633143463906290569050155826241533067272736897614950488156847949938836455", 
-    #  "48331043336612883890938759509493159234755048973500640148014422747788308965732"
-    # ]
-  }
-    ) {
-    # NOTE: This is very important, with this we can identify the actual transactions which leads us to more information about them
-    transactionHash
-    # id
-    timestamp
-    makerAssetId
-    takerAssetId
-    maker
-    taker
-    makerAmountFilled
-    takerAmountFilled
-    fee
-  }
+        ) {
+        transactionHash
+        timestamp
+        makerAssetId
+        takerAssetId
+        maker
+        taker
+        makerAmountFilled
+        takerAmountFilled
+        fee
+    }
+}
+"""
+QUERY_TEMPLATE_TAKER = """
+query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
+    orderFilledEvents(
+        skip: $skip,
+        first: $first,
+        orderBy: timestamp,
+        orderDirection: asc,
+        where: {
+        takerAssetId_in: [
+            "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+            "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+        ]
+    }
+        ) {
+        transactionHash
+        timestamp
+        makerAssetId
+        takerAssetId
+        maker
+        taker
+        makerAmountFilled
+        takerAmountFilled
+        fee
+    }
 }
 """
 
-operation_name = "GetTrumpWins"
 
-# Run the query and handle common errors
-result = run_graphql_query(query, operation_name, subGraph=ORDERS_SG, timeout=999999)
+def fetch_and_save_pages(api_url: str, query_template: str, startPage: int=0, pageSize: int=PAGE_SIZE, output_dir: str=OUTPUT_DIR, timeout: int=100):
+    """
+    Runs the given query at the given API. Paginates automatically, starting from startPage, writing files to output_dir.
+    """
+    skip = startPage
+    while True:
+        variables = {"skip": skip, "first": pageSize}
+        payload = {
+            "query": query_template,
+            "operationName": "TrumpWinsElectionMarket",
+            "variables": variables
+        }
 
-if result:
-    try:
-        events = result["data"]["orderFilledEvents"]
-        print(f"Retrieved {len(events)} orderFilledEvents:")
-        for event in events:
-            print(event)
-    except KeyError as key_err:
-        print(f"Unexpected response structure, missing key: {key_err}")
-else:
-    print("No valid data returned.")
+        try:
+            resp = requests.post(api_url, json=payload, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+        except requests.RequestException as e:
+            print(f"[skip={skip}] Network/HTTP error: {e}")
+            break
+        except json.JSONDecodeError:
+            print(f"[skip={skip}] Failed to parse JSON response.")
+            break
+
+        if "errors" in data:
+            print(f"[skip={skip}] GraphQL errors:", data["errors"])
+            break
+
+        events = data.get("data", {}).get("orderFilledEvents", [])
+        if not events:
+            print(f"[skip={skip}] No more events. Stopping.")
+            break
+
+        # Write this page to its own JSON file
+        filename = os.path.join(output_dir, f"TrumpWins{skip}.json")
+        with open(filename, "w") as f:
+            json.dump(events, f, indent=2)
+        print(f"[skip={skip}] Saved {len(events)} events to {filename}")
+
+        # If fewer than pageSize, we're done
+        if len(events) < pageSize:
+            print("Last page reached.")
+            break
+
+        skip += pageSize 
+        # time.sleep(0.2)  # optional back‑off
 
 
-with open("./output.json", "w") as file:
-    file.write(str(result))
+
+if __name__ == "__main__":
+    fetch_and_save_pages(ORDERS_SG, QUERY_TEMPLATE_MAKER)
 
