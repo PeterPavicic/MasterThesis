@@ -62,8 +62,8 @@ def run_graphql_query(query: str, operation_name: str, subGraph: str, timeout: i
 query = """
 query TrumpWinsElectionMarket {
   orderFilledEvents(
-    first: 10, #  Display first # of transactions 
-    # first: 100,
+    # skip: 1000,
+    first: 1000, #  Display first # of transactions 
     orderBy: timestamp, # Change direction for first/last ## orders
     orderDirection: asc,
     # orderDirection: desc,
@@ -96,10 +96,10 @@ query TrumpWinsElectionMarket {
 }
 """
 
-operation_name = "pls"
+operation_name = "GetTrumpWins"
 
 # Run the query and handle common errors
-result = run_graphql_query(query, operation_name, subGraph=ORDERS_SG)
+result = run_graphql_query(query, operation_name, subGraph=ORDERS_SG, timeout=999999)
 
 if result:
     try:
