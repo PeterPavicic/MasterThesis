@@ -1,3 +1,5 @@
+#!./venv/bin/python
+
 import requests
 import json
 
@@ -9,7 +11,7 @@ OPEN_INTEREST_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201
 PNL_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/pnl-subgraph/0.0.14/gn"
 
 
-def run_graphql_query(query: str, operation_name: str, subGraph: str, timeout: int = 10): 
+def run_graphql_query(query: str, operation_name: str, subGraph: str, timeout: int = 100): 
     """
     Sends a GraphQL query to the specified endpoint and returns the JSON response.
     Includes handling for common API errors.
@@ -55,39 +57,50 @@ def run_graphql_query(query: str, operation_name: str, subGraph: str, timeout: i
     
     return result
 
+
 # Example GraphQL query: get the first 100 orderFilledEvents
 query = """
-query GetOrderFills {
+query TrumpWinsElectionMarket {
   orderFilledEvents(
-    first: 100,
-    orderBy: timestamp,
+    first: 10, #  Display first # of transactions 
+    # first: 100,
+    orderBy: timestamp, # Change direction for first/last ## orders
     orderDirection: asc,
+    # orderDirection: desc,
     where: {
-      makerAssetId_in: [
-        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
-        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
-      ],
-      takerAssetId_in: [
-        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
-        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
-      ]
-    }
-  ) {
-    id
+    # makerAssetId:
+    #   "21742633143463906290569050155826241533067272736897614950488156847949938836455"
+    # EIC2215 token id = clobTokenId from market data
+    makerAssetId_in: [
+    "21742633143463906290569050155826241533067272736897614950488156847949938836455", # Trump Yes token
+    "48331043336612883890938759509493159234755048973500640148014422747788308965732" # Trump No token
+    ] #,
+    # takerAssetId_in: [
+    #  "21742633143463906290569050155826241533067272736897614950488156847949938836455", 
+    #  "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+    # ]
+  }
+    ) {
+    # NOTE: This is very important, with this we can identify the actual transactions which leads us to more information about them
+    transactionHash
+    # id
     timestamp
+    makerAssetId
+    takerAssetId
     maker
     taker
     makerAmountFilled
     takerAmountFilled
-    transactionHash
+    fee
   }
 }
 """
 
-operation_name = "GetOrderFills"
+operation_name = "pls"
 
 # Run the query and handle common errors
-result = run_graphql_query(query, operation_name, "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/prod/gn")
+result = run_graphql_query(query, operation_name, subGraph=ORDERS_SG)
+
 if result:
     try:
         events = result["data"]["orderFilledEvents"]
@@ -98,3 +111,8 @@ if result:
         print(f"Unexpected response structure, missing key: {key_err}")
 else:
     print("No valid data returned.")
+
+
+with open("./output.json", "w") as file:
+    file.write(str(result))
+
