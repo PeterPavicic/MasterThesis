@@ -2,7 +2,7 @@
 import requests
 import json
 import os
-# import time
+import time
 
 # SUBGRAPH CONSTANTS
 ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/polymarket-orderbook-resync/prod/gn"
@@ -13,7 +13,7 @@ PNL_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/s
 
 # QUERY CONSTANTS
 PAGE_SIZE = 1000
-OUTPUT_DIR = "/run/media/peter/SanDisk_SSD/Transactions/"
+OUTPUT_DIR = "./Transactions"
 QUERY_TEMPLATE_MAKER = """
 query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
     orderFilledEvents(
@@ -29,11 +29,16 @@ query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
     }
         ) {
         transactionHash
+        orderHash
         timestamp
         makerAssetId
         takerAssetId
-        maker
-        taker
+        maker {
+            id
+        }
+        taker {
+            id
+        }
         makerAmountFilled
         takerAmountFilled
         fee
@@ -49,17 +54,22 @@ query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
         orderDirection: asc,
         where: {
         takerAssetId_in: [
-            "21742633143463906290569050155826241533067272736897614950488156847949938836455",
-            "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
         ]
     }
         ) {
         transactionHash
+        orderHash
         timestamp
         makerAssetId
         takerAssetId
-        maker
-        taker
+        maker {
+            id
+        }
+        taker {
+            id
+        }
         makerAmountFilled
         takerAmountFilled
         fee
@@ -68,7 +78,7 @@ query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
 """
 
 
-def fetch_and_save_pages(api_url: str, query_template: str, startPage: int=0, pageSize: int=PAGE_SIZE, output_dir: str=OUTPUT_DIR, timeout: int=100):
+def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, startPage: int=0, pageSize: int=PAGE_SIZE, output_dir: str=OUTPUT_DIR, timeout: int=100):
     """
     Runs the given query at the given API. Paginates automatically, starting from startPage, writing files to output_dir.
     """
@@ -77,7 +87,7 @@ def fetch_and_save_pages(api_url: str, query_template: str, startPage: int=0, pa
         variables = {"skip": skip, "first": pageSize}
         payload = {
             "query": query_template,
-            "operationName": "TrumpWinsElectionMarket",
+            "operationName": operationName,
             "variables": variables
         }
 
@@ -102,7 +112,7 @@ def fetch_and_save_pages(api_url: str, query_template: str, startPage: int=0, pa
             break
 
         # Write this page to its own JSON file
-        filename = os.path.join(output_dir, f"TrumpWins{skip}.json")
+        filename = os.path.join(output_dir, f"{operationName}{skip}.json")
         with open(filename, "w") as f:
             json.dump(events, f, indent=2)
         print(f"[skip={skip}] Saved {len(events)} events to {filename}")
@@ -118,5 +128,5 @@ def fetch_and_save_pages(api_url: str, query_template: str, startPage: int=0, pa
 
 
 if __name__ == "__main__":
-    fetch_and_save_pages(ORDERS_SG, QUERY_TEMPLATE_MAKER)
-
+    fetch_and_save_pages(ORDERS_SG, "TrumpElection_maker", QUERY_TEMPLATE_MAKER)
+    fetch_and_save_pages(ORDERS_SG, "TrumpElection_taker", QUERY_TEMPLATE_TAKER)
