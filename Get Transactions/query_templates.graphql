@@ -1,38 +1,90 @@
 # NOTE: First ### transactions for Trump winning or losing election
 query TrumpWinsElectionMarket {
   orderFilledEvents(
-    first: 10, #  Display first # of transactions 
-    # first: 100,
-    orderBy: timestamp, # Change direction for first/last ## orders
+    skip: $skip,
+    first: $first,
+    orderBy: timestamp,
     orderDirection: asc,
-    # orderDirection: desc,
     where: {
-    # makerAssetId:
-    #   "21742633143463906290569050155826241533067272736897614950488156847949938836455"
-    # EIC2215 token id = clobTokenId from market data
     makerAssetId_in: [
-    "21742633143463906290569050155826241533067272736897614950488156847949938836455", # Trump Yes token
-    "48331043336612883890938759509493159234755048973500640148014422747788308965732" # Trump No token
-    ],
-    # takerAssetId_in: [
-    #  "21742633143463906290569050155826241533067272736897614950488156847949938836455", 
-    #  "48331043336612883890938759509493159234755048973500640148014422747788308965732"
-    # ]
+    "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+    "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+    ]
   }
     ) {
-    # NOTE: This is very important, with this we can identify the actual transactions which leads us to more information about them
     transactionHash
-    # id
+    orderHash
     timestamp
     makerAssetId
     takerAssetId
-    maker
-    taker
+    maker {
+      id
+    }
+    taker {
+      id
+    }
     makerAmountFilled
     takerAmountFilled
     fee
   }
 }
+
+
+# NOTE: Parameterised template for the same thing
+query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
+  orderFilledEvents(
+    skip: $skip,
+    first: $first,
+    orderBy: timestamp,
+    orderDirection: asc,
+    where: {
+    takerAssetId_in: [
+    "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+    "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+    ]
+  }
+    ) {
+    transactionHash
+    orderHash
+    timestamp
+    makerAssetId
+    takerAssetId
+    maker {
+      id
+    }
+    taker {
+      id
+    }
+    makerAmountFilled
+    takerAmountFilled
+    fee
+  }
+}
+
+
+# NOTE: First ### orders matched for market of Trump winning or losing
+query findTrumpMatchedOrders {
+  ordersMatchedEvents (
+    first: 1000
+    orderBy: timestamp
+    orderDirection: asc
+    where:{
+      makerAssetID_in: [
+        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+      ]
+    }
+  )
+  {
+    id    
+    makerAssetID
+    takerAssetID
+    timestamp
+    makerAmountFilled
+    takerAmountFilled
+    }
+}
+
 
 # NOTE: Example Response
 {
@@ -152,24 +204,21 @@ query TrumpWinsElectionMarket {
   }
 }
 
+
 # NOTE: Getting market size information
 query getMarketSizeData {
-  orderbook(
-    id:
-        # "21742633143463906290569050155826241533067272736897614950488156847949938836455",
-        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
-  ) {
-    tradesQuantity
-    buysQuantity
-    sellsQuantity
-    collateralVolume
-    scaledCollateralVolume
-  }
+orderbook(
+  id:
+      # "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+      "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+) {
+  tradesQuantity
+  buysQuantity
+  sellsQuantity
+  collateralVolume
+  scaledCollateralVolume
 }
-
-
-
-# NOTE: Details of transaction
+}
 
 
 
@@ -180,7 +229,7 @@ query getMarketSizeData {
 # TODO: Write query for transactions: 
 # Getting transaction amount, volume, etc. to infer token price and volume
 
-# NOTE: What is direction order?
+# NOTE: What is order direction?
 
 
 
