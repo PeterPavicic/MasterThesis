@@ -26,6 +26,13 @@ print(paste(collapse = ", ", colnames(maker_transactions)))
 summary(maker_transactions)
 summary(taker_transactions)
 
+hist(maker_transactions$fee)
+
+min(maker_transactions$takerAmountFilled)
+
+hist(maker_transactions$takerAmountFilled)
+
+
 summary(maker_transactions$timestamp)
 summary(taker_transactions$timestamp)
 
