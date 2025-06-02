@@ -1,3 +1,5 @@
+def get_wealth_network(gamma: float):
+
     """
     Creates a model wealth network for the specific trading cost multiplier gamma given as an argument
     Returns the model wealth network
@@ -78,4 +80,9 @@
     # print("\n\nNetwork for terminal wealth:") # it is large and one shouldn't look at it!
     # model_wealth.summary()
     return wealth
+
+
+# NOTE: This is a test line
+
+
 
