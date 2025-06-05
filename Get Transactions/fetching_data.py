@@ -8,14 +8,15 @@ from datetime import datetime
 from pathlib import Path
 
 ##### SUBGRAPH CONSTANTS #####
-ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/polymarket-orderbook-resync/prod/gn"
+# ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/polymarket-orderbook-resync/prod/gn"
+ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/0.0.1/gn"
 POSITIONS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/positions-subgraph/0.0.7/gn"
 ACTIVITY_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/activity-subgraph/0.0.4/gn"
 OPEN_INTEREST_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/oi-subgraph/0.0.6/gn"
 PNL_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/pnl-subgraph/0.0.14/gn"
 
 # QUERY CONSTANTS
-PAGE_SIZE = 1000
+MAX_PAGE_SIZE = 1000
 OUTPUT_DIR = "./Data Transactions/"
 QUERY_TEMPLATE_MAKER = """
 query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
@@ -130,13 +131,15 @@ query TrumpWinsMatchedOrders ($skip: Int!, $first: Int!) {
 }
 """
 
-def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, startPage: int=0, pageSize: int=PAGE_SIZE, output_dir: str=OUTPUT_DIR, timeout: int=100, max_entries = None):
+def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, startPage: int=0, pageSize: int=MAX_PAGE_SIZE, output_dir: str=OUTPUT_DIR, timeout: int=100, max_entries = None):
     """
     Runs the given query at the given API. Paginates automatically, starting from startPage, writing files to output_dir.
     """
     output_dir = os.path.join(output_dir, operationName)
     os.makedirs(output_dir, exist_ok=True)
     skip = startPage
+    pageSize = max(MAX_PAGE_SIZE, pageSize)
+
     while True:
         if max_entries is not None and max_entries <= skip :
                     print(f"[skip={skip}] [time={datetime.now()}] Reached max_entries={max_entries}, stopping.")

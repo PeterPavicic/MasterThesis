@@ -4,15 +4,10 @@ maker_transactions <- read.csv("./Transactions/TrumpElection_maker.csv")
 taker_transactions <- read.csv("./Transactions/TrumpElection_taker.csv")
 
 
+
 # NOTE: AssetIDs here are either:
 # TrumpYes: "21742633143463906290569050155826241533067272736897614950488156847949938836455"
 # TrumpNo:  "48331043336612883890938759509493159234755048973500640148014422747788308965732"
-
-
-
-
-
-
 
 
 # TODO: Figure out what all of these are

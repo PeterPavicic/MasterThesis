@@ -1,4 +1,5 @@
 Data*/*
 Transactions/*.csv
 notes.txt
-test*
+# test*
+# Test*/*

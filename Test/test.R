@@ -1,5 +1,5 @@
 
-chooseCRANmirror("cran.wu.ac.at")
+# chooseCRANmirror("cran.wu.ac.at")
 
 
 prices  <- c(
@@ -17,4 +17,4 @@ matrix(1:12, nrow = 3)
 
 
 
-# this is a test line
+
