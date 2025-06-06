@@ -142,8 +142,8 @@ def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, 
 
     while True:
         if max_entries is not None and max_entries <= skip :
-                    print(f"[skip={skip}] [time={datetime.now()}] Reached max_entries={max_entries}, stopping.")
-                    break
+            print(f"[skip={skip}] [time={datetime.now()}] Reached max_entries={max_entries}, stopping.")
+            break
 
         variables = {"skip": skip, "first": pageSize}
         payload = {
@@ -232,11 +232,11 @@ def jsons_to_csv(input_dir, output_csv_path):
 if __name__ == "__main__":
     fetch_and_save_pages(ORDERS_SG, "findTrumpMatchedOrdersMaker", QUERY_TEMPLATE_MATCHED_MAKER, max_entries=100000)
     fetch_and_save_pages(ORDERS_SG, "findTrumpMatchedOrdersTaker", QUERY_TEMPLATE_MATCHED_MAKER, max_entries=100000)
-    
+
     # jsons_to_csv(input_dir="./Data Transactions/TrumpElectionMaker/", 
     #              output_csv_path="./Transactions/TrumpElection_maker.csv")
     # jsons_to_csv(input_dir="./Data Transactions/TrumpElectionTaker/", 
     #              output_csv_path="./Transactions/TrumpElection_taker.csv")
-    
+
 
 

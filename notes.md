@@ -1,4 +1,11 @@
 
+
+# Questions:
+
+- What is the difference between `userPosition` in P\&L subgraph and `netUserBalances` in positions subgraph??
+
+
+
 # TODO:
 - [ ] Price volume, liquidity measure (spreads)
 - [ ] Bid ask spread? How to get it?
@@ -20,4 +27,7 @@
 - [ ] PnL distribution
 - [ ] Algo trader?
 - [ ] (Traders across markets?)
+
+
+
 
