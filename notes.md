@@ -21,6 +21,3 @@
 - [ ] Algo trader?
 - [ ] (Traders across markets?)
 
-
-
-
