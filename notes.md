@@ -30,4 +30,22 @@
 
 
 
+Important vim macros:
 
+r macro:
+vip:s/.*"\(.*\)"/\1vip:norm A vipgJ$x
+g macro:
+/=yi[}Op@rdd?"""PiReturns: >>
+
+### NegRiskEvent
+Neg Risk Events/Markets
+- id
+- questionCount
+### Condition
+id
+positionIds
+payoutNumerators
+payoutDenominator
+### FPMM
+id
+conditionId

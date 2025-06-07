@@ -1,5 +1,5 @@
-
 # chooseCRANmirror("cran.wu.ac.at")
+install.packages("python")
 
 
 prices  <- c(
@@ -14,7 +14,3 @@ returns <- 1 / prices
 returns
 
 matrix(1:12, nrow = 3)
-
-
-
-
