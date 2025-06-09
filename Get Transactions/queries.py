@@ -1,3 +1,6 @@
+import re
+import itertools
+import requests
 from enum import EnumDict, StrEnum
 
 # Subgraphs
@@ -257,7 +260,7 @@ class SQ(EnumDict):
         ]
     }
     """
-    FPMM's IDs
+    FPMM'text IDs
     Input: Filtering
     Returns: id
     """
@@ -291,7 +294,6 @@ class SQ(EnumDict):
     # from Open Interest subgraph
     # Conditions
     # NegRiskEvents
-     
     MarketOpenInterest = {
         "name": "marketOpenInterests",
         "returnVariables": [
@@ -338,56 +340,124 @@ class SQ(EnumDict):
     """
 
 
+# Class for subqueries, which are the payload of the queries sent to the API
+class Subquery:
+    """
+    Creates subqueries which are building blocks of queries
+    """
+    def __init__(self, subqueryType: SQ, filterText: str | None = None):
+        self.SQType = subqueryType
+        self.Filter = filterText
+        self.QueryText = self.buildSubQuery()
+
+
+    def buildSubQuery(self) -> str:
+        text = f"""
+    {self.SQType["name"]} (
+        skip: VAR_SKIP
+        first: VAR_FIRST
+        orderBy: timestamp
+        orderDirection: asc"""
+
+        if self.Filter is not None:
+            text += f"""
+        where: {{
+            {self.Filter}
+        }}"""
+
+        text += f"""
+    ) {{
+        {"\n".join(self.SQType["returnVariables"])}
+    }}"""
+        return text
+
+
+    """
+query asdasd ($skip1: Int, $first1: Int, $skip2: Int, $first2: Int) {
+    orderFilledEvents (
+        skip: $skip1
+        first: $first1
+        orderBy: timestamp
+        orderDirection: asc
+        where: {
+            maker: "akjndkjandjkanskd"
+        }
+    ) {
+        id
+        transactionHash
+        timestamp
+    }
+}
+"""
+
+
+
+
+
+    def __str__(self) -> str:
+        return(self.QueryText)
+
+
 class Query:
     """
-    Creates a query consisting of subqueries which can be sent to the GoldSky API
+    Either runs a query if `queryText` is passed or
+    creates a query consisting of subqueries which can be sent to the GoldSky API
     """
-    def __init__(self, queryName, endPoint):
+
+    def __init__(self, queryName: str, endPoint: SG, 
+                 subqueries: list[Subquery] | Subquery | None = None, queryText: str | None = None):
+
+        # XOR(subqeries is not None, queryText is not None)
+        assert (subqueries is not None) ^ (queryText is not None)
+
         self.name = queryName
-        self.subqueries = []
         self.APILink = endPoint
-        # self.queryText = None
+        if isinstance(subqueries, Subquery):
+            self.subqueries = [subqueries]
+        else:
+            self.subqueries = subqueries
+
+        if queryText is not None:
+            self.queryText = queryText
+        else:
+            self.queryText = self.buildQuery()
 
 
-    # TODO: rewrite this into buildQuery function which builds query from subqueries
-    def buildQuery(self):
-        s = f"""
-        query {self.name}($skip: Int!, $first: Int!) {{
-        }}
+    # Builds query from subqueries
+    def buildQuery(self) -> str:
+        assert self.subqueries is not None
+        subqueryCount = len(self.subqueries)
+
+        # Create query arguments, a.k.a. skip and first variables
+        paginationVariables = [f"$skip{i}: Int, $first{i}: Int" for i in range(subqueryCount)]
+        queryArguments = f"({", ".join(paginationVariables)})"
+
+        # Builds full query text from subqueries, with given operation name
+        text = f"""
+query {self.name} {queryArguments} {{
+    {"\n".join([subquery.QueryText for subquery in self.subqueries])}
+}}
         """
-        self.queryText = s
 
-    def printQuery(self):
-        if self.queryText is None:
-            self.buildQuery()
-        print(self.queryText)
+        # Replace each VAR_SKIP and VAR_FIRST with corresponding $skip and $first values
+        counter = itertools.count(0)
+        re.sub(r"VAR_SKIP", lambda _: f"$skip{next(counter)}", text)
+        re.sub(r"VAR_FIRST", lambda _: f"$first{next(counter)}", text)
 
+        return(text)
+        
+
+    def run_query(self):
+    # TODO: Implement function
+        pass
+    
 
     def add_query(self, subquery):
+        assert self.subqueries is not None
         self.subqueries.append(subquery)
 
-class Subqueries:
-    """Creates subqueries which are building blocks of queries"""
-
-
-def queryOrdersFilled(operationName: str, type: str):
-    assert (type == "maker" or type == "taker")
-
-def queryMatchedOrders(operationName: str, type: str):
-    assert (type == "maker" or type == "taker")
-        
-def queryTransactions():
-    pass
-
-def queryUserBalances():
-    pass
-
-
-def queryNetUserBalances():
-    pass
-
-
-
+    def __str__(self):
+        return self.queryText
 
 
 QUERY_TEMPLATE_MAKER = """
