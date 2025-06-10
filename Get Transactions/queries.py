@@ -1,7 +1,9 @@
+import os
 import re
 import itertools
 import requests
 from enum import EnumDict, StrEnum
+from datetime import datetime
 
 # Subgraphs
 class SG(StrEnum):
@@ -345,13 +347,15 @@ class Subquery:
     """
     Creates subqueries which are building blocks of queries
     """
-    def __init__(self, subqueryType: SQ, filterText: str | None = None):
+
+    def __init__(self, subqueryType: SQ, filterText: str | None = None, startPage: int = 0):
         self.SQType = subqueryType
         self.Filter = filterText
-        self.QueryText = self.buildSubQuery()
+        self.StartPage = startPage
+        self.__buildSubQuery()
 
 
-    def buildSubQuery(self) -> str:
+    def __buildSubQuery(self) -> None:
         text = f"""
     {self.SQType["name"]} (
         skip: VAR_SKIP
@@ -369,29 +373,7 @@ class Subquery:
     ) {{
         {"\n".join(self.SQType["returnVariables"])}
     }}"""
-        return text
-
-
-    """
-query asdasd ($skip1: Int, $first1: Int, $skip2: Int, $first2: Int) {
-    orderFilledEvents (
-        skip: $skip1
-        first: $first1
-        orderBy: timestamp
-        orderDirection: asc
-        where: {
-            maker: "akjndkjandjkanskd"
-        }
-    ) {
-        id
-        transactionHash
-        timestamp
-    }
-}
-"""
-
-
-
+        self.QueryText = text
 
 
     def __str__(self) -> str:
@@ -400,33 +382,36 @@ query asdasd ($skip1: Int, $first1: Int, $skip2: Int, $first2: Int) {
 
 class Query:
     """
-    Either runs a query if `queryText` is passed or
+    Either runs a query if `customQuery` is passed or
     creates a query consisting of subqueries which can be sent to the GoldSky API
     """
 
-    def __init__(self, queryName: str, endPoint: SG, 
-                 subqueries: list[Subquery] | Subquery | None = None, queryText: str | None = None):
+    def __init__(self, operationName: str, endPoint: SG, 
+                 subqueries: list[Subquery] | Subquery | None = None, customQuery: dict | None = None):
 
-        # XOR(subqeries is not None, queryText is not None)
-        assert (subqueries is not None) ^ (queryText is not None)
+        # XOR(subqeries is not None, customQuery is not None)
+        assert (subqueries is not None) ^ (customQuery is not None)
 
-        self.name = queryName
+        self.Name = operationName
         self.APILink = endPoint
-        if isinstance(subqueries, Subquery):
-            self.subqueries = [subqueries]
-        else:
-            self.subqueries = subqueries
 
-        if queryText is not None:
-            self.queryText = queryText
+        if isinstance(subqueries, Subquery):
+            self.Subqueries = [subqueries]
         else:
-            self.queryText = self.buildQuery()
+            self.Subqueries = subqueries
+
+        self.UseCustomQuery = self.Subqueries is None
+
+        if self.UseCustomQuery:
+            self.CustomQuery = customQuery
+        else:
+            self.__buildQuery()
 
 
     # Builds query from subqueries
-    def buildQuery(self) -> str:
-        assert self.subqueries is not None
-        subqueryCount = len(self.subqueries)
+    def __buildQuery(self) -> None:
+        assert self.Subqueries is not None
+        subqueryCount = len(self.Subqueries)
 
         # Create query arguments, a.k.a. skip and first variables
         paginationVariables = [f"$skip{i}: Int, $first{i}: Int" for i in range(subqueryCount)]
@@ -434,8 +419,8 @@ class Query:
 
         # Builds full query text from subqueries, with given operation name
         text = f"""
-query {self.name} {queryArguments} {{
-    {"\n".join([subquery.QueryText for subquery in self.subqueries])}
+query {self.Name} {queryArguments} {{
+    {"\n".join([subquery.QueryText for subquery in self.Subqueries])}
 }}
         """
 
@@ -444,17 +429,56 @@ query {self.name} {queryArguments} {{
         re.sub(r"VAR_SKIP", lambda _: f"$skip{next(counter)}", text)
         re.sub(r"VAR_FIRST", lambda _: f"$first{next(counter)}", text)
 
-        return(text)
+        self.QueryText = text
         
 
     def run_query(self):
     # TODO: Implement function
-        pass
+
+
+        TEMP_OUTPUT_DIR_START = "../Data Transactions/"
+        TIMEOUT = 100
+        PAGESIZE = 1000
+
+        
+        if self.UseCustomQuery:
+            assert self.QueryText is not None
+
+            # Find queryNames from given query text
+            queryNamePattern = re.compile(r'\bquery\s+(\w+)', re.IGNORECASE)
+            queryNames = queryNamePattern.findall(self.QueryText)
+            startPages = 0
+
+        else:
+            assert self.Subqueries is not None
+            # Get queryNames from subqueries
+            queryNames = [sq.SQType["name"] for sq in self.Subqueries]
+            startPages = [sq.StartPage for sq in self.Subqueries]
+
+        output_dirs = [os.path.join(TEMP_OUTPUT_DIR_START, qn) for qn in queryNames]
+
+        for od in output_dirs:
+            os.makedirs(od, exist_ok=True)
+
+        while True:
+            if not self.UseCustomQuery and (len(self.Subqueries) == 0):
+                    break
+
+
+            variables = {"skip": skip, "first": pageSize}
+            payload = {
+                "query": query_template,
+                "operationName": operationName,
+                "variables": variables
+            }
     
 
     def add_query(self, subquery):
-        assert self.subqueries is not None
-        self.subqueries.append(subquery)
+        assert self.Subqueries is not None
+        self.Subqueries.append(subquery)
+
+    def rebuildQuery(self):
+        self.queryText = self.__buildQuery()
 
     def __str__(self):
         return self.queryText
