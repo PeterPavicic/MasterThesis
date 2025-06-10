@@ -550,14 +550,14 @@ Query: {self.QueryText}"""
         return s
 
 
-def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, output_path: str, 
-                         startPage: int=0, pageSize: int=1000, timeout: int=100, max_entries = None):
+def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, output_dir: str, max_entries = None,
+                         startPage: int=0, pageSize: int=1000, timeout: int=100):
     """
-    Deprecated version
-    Runs the given query at the given API. Paginates automatically, starting from startPage, writing files to output_path.
+    Runs given query at the given API. Paginates automatically, starting from startPage, writing files to output_dir.
+    Code also works if no pagination necessary.
     """
-    output_path = os.path.join(output_path, operationName)
-    os.makedirs(output_path, exist_ok=True)
+    output_dir = os.path.join(output_dir, operationName)
+    os.makedirs(output_dir, exist_ok=True)
     skip = startPage
     pageSize = pageSize
 
@@ -568,7 +568,7 @@ def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, 
 
         variables = {"skip": skip, "first": pageSize}
         payload = {
-            "query": query_template,
+            "query": queryText,
             "operationName": operationName,
             "variables": variables
         }
@@ -596,7 +596,7 @@ def fetch_and_save_pages(api_url: str, operationName: str, query_template: str, 
             break
 
         # Write this page to its own JSON file
-        filename = os.path.join(output_path, f"./{operationName}{skip}.json")
+        filename = os.path.join(output_dir, f"./{operationName}{skip}.json")
         with open(filename, "w") as f:
             json.dump(events, f, indent=2)
         print(f"[skip={skip}] Saved {len(events)} events to {filename}")
