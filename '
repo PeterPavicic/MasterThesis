@@ -1,11 +1,9 @@
-import itertools
-import json
 import os
 import re
+import itertools
 import requests
-from datetime import datetime
 from enum import EnumDict, StrEnum
-
+from datetime import datetime
 
 # Subgraphs
 class SG(StrEnum):
@@ -351,8 +349,7 @@ class Subquery:
     """
 
     def __init__(self, subqueryType: SQ, filterText: str | None = None, startPage: int = 0):
-        self.Type = subqueryType
-        self.Name = subqueryType["name"]
+        self.SQType = subqueryType
         self.Filter = filterText
         self.StartPage = startPage
         self.__buildSubQuery()
@@ -360,7 +357,7 @@ class Subquery:
 
     def __buildSubQuery(self) -> None:
         text = f"""
-    {self.Name} (
+    {self.SQType["name"]} (
         skip: VAR_SKIP
         first: VAR_FIRST
         orderBy: timestamp
@@ -374,7 +371,7 @@ class Subquery:
 
         text += f"""
     ) {{
-        {"\n".join(self.Type["returnVariables"])}
+        {"\n".join(self.SQType["returnVariables"])}
     }}"""
         self.QueryText = text
 
@@ -393,11 +390,10 @@ class Query:
         self.Name = operationName
         self.APILink = endPoint
 
-        # Ensure subqueries are a list
-        if isinstance(subqueries, list):
-            self.Subqueries = subqueries
-        else:
+        if isinstance(subqueries, Subquery):
             self.Subqueries = [subqueries]
+        else:
+            self.Subqueries = subqueries
 
         self.__buildQuery()
 
@@ -426,13 +422,14 @@ query {self.Name} {queryArguments} {{
         
 
     def run_query(self):
+
         # WARNING: Code assumes it is being run from root directory of project
-        TEMP_OUTPUT_DIR_START = f"../Data Transactions/{self.Name}/"
+        TEMP_OUTPUT_DIR_START = "../Data Transactions/"
         TIMEOUT = 100
         PAGESIZE = 1000
 
-        # Get queryNames for subqueries
-        queryNames = [sq.Name for sq in self.Subqueries]
+        # Get queryNames from subqueries
+        queryNames = [sq.SQType["name"] for sq in self.Subqueries]
         startPages = [sq.StartPage for sq in self.Subqueries]
 
         output_dirs = [os.path.join(TEMP_OUTPUT_DIR_START, qn) for qn in queryNames]
@@ -440,9 +437,9 @@ query {self.Name} {queryArguments} {{
         for od in output_dirs:
             os.makedirs(od, exist_ok=True)
 
-        self.OutputDirectories = output_dirs
-
         while True:
+            if len(self.Subqueries) == 0:
+                    break
 
             # Add variables used to pagination
             subqueryCount = len(self.Subqueries)
@@ -458,11 +455,10 @@ query {self.Name} {queryArguments} {{
                 "variables": paginationVariables
             }
 
-            # Catch potential errors
             try:
                 response = requests.post(self.APILink, json=payload, timeout=TIMEOUT)
                 response.raise_for_status()
-                response_json = response.json()
+                data = response.json()
             except requests.RequestException as e:
                 print(f"[variables={paginationVariables}] [time={datetime.now()}] Network/HTTP error: {e}")
                 break
@@ -470,60 +466,134 @@ query {self.Name} {queryArguments} {{
                 print(f"[variables={paginationVariables}] [time={datetime.now()}] Failed to parse JSON response.")
                 break
 
-            # Catch GraphQL errors
-            if "errors" in response_json:
-                print(f"[variables={paginationVariables}] [time={datetime.now()}] GraphQL errors:\n", json.dumps(response_json["errors"]))
+            if "errors" in data:
+                print(f"[skip={skip}] [time={datetime.now()}] GraphQL errors:", data["errors"])
                 break
 
-            # Data should be error-free here and start with key `data`
-            if "data" not in response_json:
-                print(f"[variables={paginationVariables}] [time={datetime.now()}] Unknown response:\n", json.dumps(response_json))
+            
 
-            data = response_json.get("data")
-
-
-            stopSQ = []
-
-            # Parsing each subquery
-            for i, sq in enumerate(self.Subqueries):
-                sqKey = sq.Name
-                output_dir = output_dirs[i]
-
-                sqResult = data.get(sqKey)
-
-                with open(output_dir, "w") as file:
-                    json.dump(sqResult, file)
-
-                if len(sqResult) < PAGESIZE:
-                    print(f"[time={datetime.now()}] Last page reached for {sqKey}.")
-                    stopSQ.append(i)
-                else:
-                    startPages[i] += PAGESIZE
-
-
-            # If any SQs have reached the end
-            if len(stopSQ) != 0:
-                for i in stopSQ:
-                    self.Subqueries.pop(i) 
-                if len(self.Subqueries) == 0:
-                        break
-                else:
-                    queryNames = [sq.Name for sq in self.Subqueries]
-                    output_dirs = [os.path.join(TEMP_OUTPUT_DIR_START, qn) for qn in queryNames]
-                    self.__buildQuery()
-
+    
 
     def add_query(self, subquery):
+        assert self.Subqueries is not None
         self.Subqueries.append(subquery)
 
-    def getOutputDirectories(self):
-        return(self.OutputDirectories)
-        
-    def __str__(self):
-        s = f"""operationName: {self.Name}
-API: {self.APILink}
-Subqueries: {self.Subqueries}
-OutputDirectories: {self.OutputDirectories}
-Query: {self.QueryText}"""
-        return s
+    def rebuildQuery(self):
+        self.queryText = self.__buildQuery()
 
+    def __str__(self):
+        return self.queryText
+
+
+QUERY_TEMPLATE_MAKER = """
+query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
+    orderFilledEvents(
+        skip: $skip,
+        first: $first,
+        orderBy: timestamp,
+        orderDirection: asc,
+        where: {
+        makerAssetId_in: [
+        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+        ]
+    }
+        ) {
+        transactionHash
+        orderHash
+        timestamp
+        makerAssetId
+        takerAssetId
+        maker {
+            id
+        }
+        taker {
+            id
+        }
+        makerAmountFilled
+        takerAmountFilled
+        fee
+    }
+}
+"""
+
+QUERY_TEMPLATE_TAKER = """
+query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
+    orderFilledEvents(
+        skip: $skip,
+        first: $first,
+        orderBy: timestamp,
+        orderDirection: asc,
+        where: {
+        takerAssetId_in: [
+        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+        ]
+    }
+        ) {
+        transactionHash
+        orderHash
+        timestamp
+        makerAssetId
+        takerAssetId
+        maker {
+            id
+        }
+        taker {
+            id
+        }
+        makerAmountFilled
+        takerAmountFilled
+        fee
+    }
+}
+"""
+
+QUERY_TEMPLATE_MATCHED_MAKER = """
+query findTrumpMatchedOrders($skip: Int!, $first: Int!) {
+    ordersMatchedEvents (
+        skip: $skip,
+        first: $first,
+        orderBy: timestamp
+        orderDirection: asc
+        where:{
+        makerAssetID_in: [
+        "21742633143463906290569050155826241533067272736897614950488156847949938836455",
+        "48331043336612883890938759509493159234755048973500640148014422747788308965732"
+        ]
+    }
+        )
+    {
+        id    
+        timestamp
+        makerAssetID
+        takerAssetID
+        makerAmountFilled
+        takerAmountFilled
+    }
+}
+"""
+
+QUERY_TEMPLATE_MATCHED_TAKER = """
+query TrumpWinsMatchedOrders ($skip: Int!, $first: Int!) {
+    ordersMatchedEvents (
+        skip: $skip,
+        first: $first,
+        orderBy: timestamp,
+        orderDirection: asc,
+        where: {
+        takerAssetId_in: [
+        21742633143463906290569050155826241533067272736897614950488156847949938836455,
+        48331043336612883890938759509493159234755048973500640148014422747788308965732
+        ]
+    }
+        ) {
+        id    
+        timestamp
+        makerAssetID
+        takerAssetID
+        makerAmountFilled
+        takerAmountFilled
+    }
+}
+"""
