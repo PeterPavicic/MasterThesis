@@ -1,6 +1,8 @@
+import glob
 import itertools
 import json
 import os
+import pandas as pd
 import re
 import requests
 from datetime import datetime
@@ -351,9 +353,10 @@ class Subquery:
     Creates subqueries which are building blocks of queries
     """
 
-    def __init__(self, subqueryType: SQ, filterText: str | None = None, startPage: int = 0):
+    def __init__(self, subqueryType: SQ, name: str, filterText: str | None = None, startPage: int = 0):
         self.Type = subqueryType
-        self.Name = subqueryType["name"]
+        self.SubQueryName = subqueryType["name"]
+        self.Name = f"{subqueryType["name"]}_{name}"
         self.Filter = filterText
         self.StartPage = startPage
         self.__buildSubQuery()
@@ -361,7 +364,7 @@ class Subquery:
 
     def __buildSubQuery(self) -> None:
         text = f"""
-    {self.Name} (
+    {self.SubQueryName} (
         skip: VAR_SKIP
         first: VAR_FIRST
         orderBy: timestamp
@@ -400,21 +403,21 @@ class Query:
         else:
             self.Subqueries = [subqueries]
 
-        self.__buildQuery()
+        self.__buildQuery(self.Subqueries)
 
 
-    # Builds query from subqueries
-    def __buildQuery(self) -> None:
-        subqueryCount = len(self.Subqueries)
+    # Builds query from subqueries still in queue
+    def __buildQuery(self, sqQueue) -> None:
+        sqCount = len(sqQueue)
 
         # Create query arguments, a.k.a. skip and first variables
-        paginationVariables = [f"$skip{i}: Int, $first{i}: Int" for i in range(subqueryCount)]
+        paginationVariables = [f"$skip{i}: Int, $first{i}: Int" for i in range(sqCount)]
         queryArguments = f"({", ".join(paginationVariables)})"
 
         # Builds full query text from subqueries, with given operation name
         text = f"""
 query {self.Name} {queryArguments} {{
-    {"\n".join([subquery.QueryText for subquery in self.Subqueries])}
+    {"\n".join([sq.QueryText for sq in sqQueue])}
 }}
         """
 
@@ -426,24 +429,22 @@ query {self.Name} {queryArguments} {{
         self.QueryText = text
         
 
-    def run_query(self):
+    def run_query(self, create_csvs: bool):
         OUTPUT_DIR_START = f"{Path(__file__).parent.parent}/Data Transactions/{self.Name}/"
         TIMEOUT = 100
         PAGESIZE = 1000
-        SQ_QUEUE = self.Subqueries
+        SQ_Queue = self.Subqueries
 
-        # FIX: File writing
-        queryNames = []
         skipPages = []
         output_paths = []
 
-        for sq in SQ_QUEUE:
+        for sq in SQ_Queue:
             # Get queryNames for subqueries
-            queryNames.append(sq.Name)
             skipPages.append(sq.StartPage)
             fileName = f"{self.Name}_{sq.Name}_{sq.StartPage}.json"
             output_paths.append(os.path.join(OUTPUT_DIR_START, sq.Name, fileName))
 
+        # Create output paths
         for p in output_paths:
             parent_dir = Path(p).parent
             os.makedirs(parent_dir, exist_ok=True)
@@ -451,8 +452,8 @@ query {self.Name} {queryArguments} {{
         self.OutputDirectories = [Path(p).parent for p in output_paths]
 
         while True:
-            # Add variables used to pagination
-            subqueryCount = len(SQ_QUEUE)
+            # Add variables used for pagination
+            subqueryCount = len(SQ_Queue)
             paginationVariables = {}
             for i in range(subqueryCount):
                 paginationVariables[f"skip{i}"] = skipPages[i]
@@ -492,15 +493,15 @@ query {self.Name} {queryArguments} {{
             stopSQ = []
 
             # Parsing each subquery
-            for i, sq in enumerate(SQ_QUEUE):
-                sqKey = sq.Name
+            for i, sq in enumerate(SQ_Queue):
+                sqKey = sq.SubQueryName
                 output_path = output_paths[i]
 
                 sqResult = data.get(sqKey)
 
                 with open(output_path, "w") as file:
                     json.dump(sqResult, file)
-                    print(f"Successfully saved {len(sqResult)} outputs to {output_path}.")
+                    print(f"[skip={skipPages[i]}] Saved {len(sqResult)} outputs to {output_path}.")
 
                 if len(sqResult) < PAGESIZE:
                     print(f"[time={datetime.now()}] Last page reached for {sqKey}.")
@@ -514,32 +515,26 @@ query {self.Name} {queryArguments} {{
             # If any SQs have reached the end
             if len(stopSQ) != 0:
                 for i in stopSQ:
-                    SQ_QUEUE.pop(i)
-                if len(SQ_QUEUE) == 0:
-                        print("Running queries exited successfully.")
-                        break
+                    SQ_Queue.pop(i)
+                    skipPages.pop(i)
+                    output_paths.pop(i)
+                if len(SQ_Queue) == 0:
+                    print("Running queries exited successfully.")
+                    break
                 else:
-                    queryNames = [sq.Name for sq in SQ_QUEUE]
-                    output_paths = [os.path.join(OUTPUT_DIR_START, qn) for qn in queryNames]
-                    output_paths[i] = (os.path.join(OUTPUT_DIR_START, sq.Name, fileName))
-                    fileName = f"{self.Name}_{sq.Name}_{skipPages[i]}.json"
-                    self.__buildQuery()
+                    self.__buildQuery(SQ_Queue)
 
+        if create_csvs:
+            for i, dir in enumerate(self.OutputDirectories):
+
+                # FIX: Implement csv_path
+
+                csv_filename = f"{self.Name}_{sq.Name}.csv"
+                csv_path = os.path.join(dir.parent, csv_filename)
+                json_files_to_one_csv(dir, csv_path)
 
     def add_query(self, subquery):
         self.Subqueries.append(subquery)
-
-    def getOutputDirectories(self):
-        return(self.OutputDirectories)
-        
-
-    # TODO: Implement json_to_csv here
-    def convert_to_csv(self):
-        assert self.OutputDirectories is not None
-
-
-        
-
 
     def __str__(self):
         s = f"""operationName: {self.Name}
@@ -548,6 +543,28 @@ Subqueries: {self.Subqueries}
 OutputDirectories: {self.OutputDirectories}
 Query: {self.QueryText}"""
         return s
+
+
+def json_files_to_one_csv(json_dir, out_csv):
+    all_dfs = []
+
+    for path in glob.glob(os.path.join(json_dir, '*.json')):
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        # ensure list of records
+        records = data if isinstance(data, list) else [data]
+        # flatten
+        df = pd.json_normalize(records, sep='_')
+        # explode any list columns
+        list_cols = [c for c in df.columns if df[c].apply(lambda x: isinstance(x, list)).any()]
+        for col in list_cols:
+            df = df.explode(col)
+        all_dfs.append(df)
+
+    # concatenate all, reset index
+    master = pd.concat(all_dfs, ignore_index=True)
+    master.to_csv(out_csv, index=False)
+    print(f"Wrote {len(master)} total rows to {out_csv}")
 
 
 def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, output_dir: str, max_entries = None,
