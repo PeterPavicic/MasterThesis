@@ -1,13 +1,14 @@
+from datetime import datetime
+from enum import StrEnum, Enum
+from pathlib import Path
 import glob
 import itertools
 import json
+import numpy
 import os
 import pandas as pd
 import re
 import requests
-from datetime import datetime
-from enum import StrEnum, Enum
-from pathlib import Path
 
 
 # Subgraphs
@@ -125,7 +126,16 @@ class SQ(dict, Enum):
         "returnVariables": [
             "id",
             "user",
-            "asset",
+            """asset {
+id
+condition {
+    id
+    payouts
+}
+complement
+outcomeIndex
+            }
+            """,
             "balance"
         ]
     }
@@ -140,7 +150,15 @@ class SQ(dict, Enum):
         "returnVariables": [
             "id",
             "user",
-            "asset",
+            """asset {
+    id
+    condition {
+        id
+        payouts
+    }
+    complement
+    outcomeIndex
+}""",
             "balance"
         ]
     }
@@ -154,7 +172,10 @@ class SQ(dict, Enum):
         "name": "TokenIdConditions",
         "returnVariables": [
             "id",
-            "condition",
+            """condition {
+    id
+    payouts
+}""",
             "complement",
             "outcomeIndex"
         ]
@@ -353,10 +374,11 @@ class Subquery:
     Creates subqueries which are building blocks of queries
     """
 
-    def __init__(self, subqueryType: SQ, name: str, filterText: str | None = None, startPage: int = 0):
+    def __init__(self, subqueryType: SQ, name: str, orderText: str | None = None, filterText: str | None = None, startPage: int = 0):
         self.Type = subqueryType
         self.SubQueryName = subqueryType["name"]
         self.Name = f"{subqueryType["name"]}_{name}"
+        self.Order = orderText
         self.Filter = filterText
         self.StartPage = startPage
         self.__buildSubQuery()
@@ -366,9 +388,10 @@ class Subquery:
         text = f"""
     {self.SubQueryName} (
         skip: VAR_SKIP
-        first: VAR_FIRST
-        orderBy: timestamp
-        orderDirection: asc"""
+        first: VAR_FIRST"""
+
+        if self.Order is not None:
+            text += f"\n{self.Order}"
 
         if self.Filter is not None:
             text += f"""
@@ -380,6 +403,7 @@ class Subquery:
     ) {{
         {"\n".join(self.Type["returnVariables"])}
     }}"""
+
         self.QueryText = text
 
 
@@ -525,10 +549,7 @@ query {self.Name} {queryArguments} {{
                     self.__buildQuery(SQ_Queue)
 
         if create_csvs:
-            for i, dir in enumerate(self.OutputDirectories):
-
-                # FIX: Implement csv_path
-
+            for dir in self.OutputDirectories:
                 csv_filename = f"{self.Name}_{sq.Name}.csv"
                 csv_path = os.path.join(dir.parent, csv_filename)
                 json_files_to_one_csv(dir, csv_path)
@@ -551,14 +572,17 @@ def json_files_to_one_csv(json_dir, out_csv):
     for path in glob.glob(os.path.join(json_dir, '*.json')):
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        # ensure list of records
-        records = data if isinstance(data, list) else [data]
-        # flatten
-        df = pd.json_normalize(records, sep='_')
+        # ensure type list
+        entries = data if isinstance(data, list) else [data]
+        # Flatten into pandas dataframe
+        df = pd.json_normalize(entries, sep='_')
+
+        for c in df.columns:
+            isList = df[c].apply(lambda x: isinstance(x, list)).any()
+            assert isinstance(isList, numpy.bool) or isinstance(isList, bool)
+            if(isList):
+                df = df.explode(c)
         # explode any list columns
-        list_cols = [c for c in df.columns if df[c].apply(lambda x: isinstance(x, list)).any()]
-        for col in list_cols:
-            df = df.explode(col)
         all_dfs.append(df)
 
     # concatenate all, reset index
@@ -567,7 +591,7 @@ def json_files_to_one_csv(json_dir, out_csv):
     print(f"Wrote {len(master)} total rows to {out_csv}")
 
 
-def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, output_dir: str, max_entries = None,
+def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, queryName: str, output_dir: str, max_entries = None,
                          startPage: int=0, pageSize: int=1000, timeout: int=100):
     """
     Runs given query at the given API. Paginates automatically, starting from startPage, writing files to output_dir.
@@ -606,8 +630,8 @@ def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, outpu
             break
 
 
-        # TODO: parameterise ordersMatchedEvents here
-        events = data.get("data", {}).get("ordersMatchedEvents", [])
+        # Find name of query from queryText
+        events = data.get("data", {}).get(queryName, [])
         if not events:
             print(f"[skip={skip}] [time={datetime.now()}] No more events. Stopping.")
             break
