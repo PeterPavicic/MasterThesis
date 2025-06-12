@@ -411,7 +411,13 @@ class Subquery:
 
 
     def __str__(self) -> str:
-        return(self.QueryText)
+        text = f"""
+Subquery Name:\t{self.Name}
+Subquery Type:\t{self.Type}
+Ordering by:\n{self.Order}
+Filtering by:\t{self.Filter}
+Starting page:\t{self.StartPage}"""
+        return(text)
 
 
 class Query:
@@ -461,7 +467,7 @@ query {self.Name} {queryArguments} {{
         OUTPUT_DIR_START = f"{Path(__file__).parent.parent}/Data Transactions/{self.Name}/"
         TIMEOUT = 100
         PAGESIZE = 1000
-        SQ_Queue = self.Subqueries
+        SQ_Queue = self.Subqueries.copy()
 
         skipPages = []
         output_paths = []
@@ -476,6 +482,7 @@ query {self.Name} {queryArguments} {{
         for p in output_paths:
             parent_dir = Path(p).parent
             os.makedirs(parent_dir, exist_ok=True)
+            print(f"Output directory created: {parent_dir}")
 
         self.OutputDirectories = [Path(p).parent for p in output_paths]
 
@@ -518,6 +525,7 @@ query {self.Name} {queryArguments} {{
 
             data = response_json.get("data")
 
+            # FIFO Queue for SQs which need to stop being parsed
             stopSQ = []
 
             # Parsing each subquery
@@ -540,17 +548,31 @@ query {self.Name} {queryArguments} {{
                     output_paths[i] = (os.path.join(OUTPUT_DIR_START, sq.Name, fileName))
 
 
-            # If any SQs have reached the end
-            if len(stopSQ) != 0:
-                for i in stopSQ:
-                    SQ_Queue.pop(i)
-                    skipPages.pop(i)
-                    output_paths.pop(i)
-                if len(SQ_Queue) == 0:
-                    print("Running queries exited successfully.")
-                    break
-                else:
-                    self.__buildQuery(SQ_Queue)
+            # For all SQs that have reached the end
+            while len(stopSQ) != 0:
+                toRemove = stopSQ[0]
+                print(toRemove)
+                # queue_member = SQ_Queue[toRemove]
+                # page_number = skipPages[toRemove]
+                # output_p = output_paths[toRemove]
+                SQ_Queue.pop(toRemove)
+                # print(f"Removed {queue_member}")
+                skipPages.pop(toRemove)
+                # print(f"Removed {page_number}")
+                output_paths.pop(toRemove)
+                # print(f"Removed {output_p}")
+
+                # Pop from queue
+                stopSQ.pop(0)
+
+                # Decrease index for remainder
+                stopSQ = [x - 1 for x in stopSQ]
+
+            if len(SQ_Queue) == 0:
+                print("Running queries exited successfully.")
+                break
+            else:
+                self.__buildQuery(SQ_Queue)
 
         if create_csvs:
             for i, dir in enumerate(self.OutputDirectories):
@@ -592,7 +614,7 @@ def json_files_to_one_csv(json_dir, out_csv):
     # concatenate all, reset index
     master = pd.concat(all_dfs, ignore_index=True)
     master.to_csv(out_csv, index=False)
-    print(f"Wrote {len(master)} total rows to {out_csv}")
+    print(f"Wrote {len(master)} total rows from {json_dir} to {out_csv}")
 
 
 def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, queryName: str, output_dir: str, max_entries = None,

@@ -12,5 +12,10 @@ import requests
 
 
 if __name__ == "__main__":
-    print([2] * 5)
-    pass
+    a = [1, 2, 3, 4]
+    b = a
+
+    b.pop(0)
+    print(f"a; {a}")
+    print(f"b; {b}")
+
