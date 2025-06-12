@@ -374,6 +374,7 @@ class Subquery:
     Creates subqueries which are building blocks of queries
     """
 
+    # TODO: ensure self.SubqueryName != self.Name
     def __init__(self, subqueryType: SQ, name: str, orderText: str | None = None, filterText: str | None = None, startPage: int = 0):
         self.Type = subqueryType
         self.SubQueryName = subqueryType["name"]
@@ -386,7 +387,7 @@ class Subquery:
 
     def __buildSubQuery(self) -> None:
         text = f"""
-    {self.SubQueryName} (
+     {self.Name}: {self.SubQueryName} (
         skip: VAR_SKIP
         first: VAR_FIRST"""
 
@@ -401,7 +402,7 @@ class Subquery:
 
         text += f"""
     ) {{
-        {"\n".join(self.Type["returnVariables"])}
+        {"\n\t".join(self.Type["returnVariables"])}
     }}"""
 
         self.QueryText = text
@@ -446,9 +447,10 @@ query {self.Name} {queryArguments} {{
         """
 
         # Replace each VAR_SKIP and VAR_FIRST with corresponding $skip and $first values
-        counter = itertools.count(0)
-        re.sub(r"VAR_SKIP", lambda _: f"$skip{next(counter)}", text)
-        re.sub(r"VAR_FIRST", lambda _: f"$first{next(counter)}", text)
+        skipCounter = itertools.count(0)
+        firstCounter = itertools.count(0)
+        text = re.sub(r"VAR_SKIP", lambda _: f"$skip{next(skipCounter)}", text)
+        text = re.sub(r"VAR_FIRST", lambda _: f"$first{next(firstCounter)}", text)
 
         self.QueryText = text
         
@@ -518,13 +520,13 @@ query {self.Name} {queryArguments} {{
 
             # Parsing each subquery
             for i, sq in enumerate(SQ_Queue):
-                sqKey = sq.SubQueryName
+                sqKey = sq.Name
                 output_path = output_paths[i]
 
                 sqResult = data.get(sqKey)
 
                 with open(output_path, "w") as file:
-                    json.dump(sqResult, file)
+                    json.dump(sqResult, file, indent=None, separators=(',', ':'))
                     print(f"[skip={skipPages[i]}] Saved {len(sqResult)} outputs to {output_path}.")
 
                 if len(sqResult) < PAGESIZE:
@@ -639,7 +641,7 @@ def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, query
         # Write this page to its own JSON file
         filename = os.path.join(output_dir, f"./{operationName}{skip}.json")
         with open(filename, "w") as f:
-            json.dump(events, f, indent=2)
+            json.dump(events, f, indent=None, separators=(',', ':'))
         print(f"[skip={skip}] Saved {len(events)} events to {filename}")
 
         # If fewer than pageSize, we're done
