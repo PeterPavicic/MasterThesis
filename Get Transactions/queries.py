@@ -508,12 +508,12 @@ query {self.Name} {queryArguments} {{
 
             # Catch GraphQL errors
             if "errors" in response_json:
-                print(f"[variables={paginationVariables}] [time={datetime.now()}] GraphQL errors:\n", json.dumps(response_json["errors"]))
+                print(f"\n\n[variables={paginationVariables}]\n[time={datetime.now()}] GraphQL errors:\n", json.dumps(response_json["errors"]))
                 break
 
             # Data should be error-free here and start with key `data`
             if "data" not in response_json:
-                print(f"[variables={paginationVariables}] [time={datetime.now()}] Unknown response:\n", json.dumps(response_json))
+                print(f"\n\n[variables={paginationVariables}]\n[time={datetime.now()}] \nUnknown response:\n", json.dumps(response_json))
                 break
 
             data = response_json.get("data")
@@ -553,8 +553,8 @@ query {self.Name} {queryArguments} {{
                     self.__buildQuery(SQ_Queue)
 
         if create_csvs:
-            for dir in self.OutputDirectories:
-                csv_filename = f"{self.Name}_{sq.Name}.csv"
+            for i, dir in enumerate(self.OutputDirectories):
+                csv_filename = f"{self.Name}_{self.Subqueries[i].Name}.csv"
                 csv_path = os.path.join(dir.parent, csv_filename)
                 json_files_to_one_csv(dir, csv_path)
 
