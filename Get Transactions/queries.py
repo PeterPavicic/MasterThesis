@@ -374,7 +374,6 @@ class Subquery:
     Creates subqueries which are building blocks of queries
     """
 
-    # TODO: ensure self.SubqueryName != self.Name
     def __init__(self, subqueryType: SQ, name: str, orderText: str | None = None, filterText: str | None = None, startPage: int = 0):
         self.Type = subqueryType
         self.SubQueryName = subqueryType["name"]
@@ -406,6 +405,9 @@ class Subquery:
     }}"""
 
         self.QueryText = text
+
+    def setStartPage(self, startPage) -> None:
+        self.StartPage = startPage
 
 
     def __str__(self) -> str:
