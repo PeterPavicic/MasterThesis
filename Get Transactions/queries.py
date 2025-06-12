@@ -551,7 +551,6 @@ query {self.Name} {queryArguments} {{
             # For all SQs that have reached the end
             while len(stopSQ) != 0:
                 toRemove = stopSQ[0]
-                print(toRemove)
                 # queue_member = SQ_Queue[toRemove]
                 # page_number = skipPages[toRemove]
                 # output_p = output_paths[toRemove]
@@ -614,7 +613,7 @@ def json_files_to_one_csv(json_dir, out_csv):
     # concatenate all, reset index
     master = pd.concat(all_dfs, ignore_index=True)
     master.to_csv(out_csv, index=False)
-    print(f"Wrote {len(master)} total rows from {json_dir} to {out_csv}")
+    print(f"Wrote {len(master)} total rows to {out_csv}")
 
 
 def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, queryName: str, output_dir: str, max_entries = None,
