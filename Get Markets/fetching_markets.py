@@ -3,6 +3,9 @@ import os
 import requests
 import json
 
+FILE_LOCATION = Path(__file__)
+ROOT_DIR = FILE_LOCATION.parent.parent
+
 def download_json(url, output_file):
     """
     Downloads a JSON file from the given URL and saves it to the specified output file.
@@ -31,17 +34,25 @@ def download_json(url, output_file):
         print(f"An error occurred: {e}")
 
 
-def download_events(queries: dict | list[dict], output_dir):
-    if isinstance(queries, dict):
-        queries = [queries]
+def download_events(eventQuery: dict[str, str] | list[dict[str, str]], output_dir: str | Path) -> None:
+    """
+    Downloads full event informations from Polymarket's Gamma API
+    `eventQuery` contains a dictionary or list of dictionaries of the query parameters for each event queried
+    """
+    if isinstance(eventQuery, dict):
+        eventQuery = [eventQuery]
 
     gammaURL = "https://gamma-api.polymarket.com/events"
 
-    for querystring in queries:
+    # Create output dir
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"Output directory created: {output_dir}")
+
+    for querystring in eventQuery:
         try:
             response = requests.request("GET", gammaURL, params=querystring)
-            print(response.text)
-            data = response.json()
+            # print(response.text)
+            data = response.json()[0]
             output_path = os.path.join(output_dir, f"{data.get("ticker")}.json")
 
             with open(output_path, "w") as file:
@@ -60,20 +71,75 @@ def download_events(queries: dict | list[dict], output_dir):
             print(f"An error occurred: {e}")
             break
 
-    print("Saved all queries to output paths")
+    print(f"Saved all queries to {output_dir}")
 
+
+def simplifyEvents(eventFilePaths: str | Path | list[str | Path]) -> dict | list[dict]:
+    # TODO: Add description
+
+    if not isinstance(eventFilePaths, list):
+        eventFilePaths = [eventFilePaths]
+
+    resultDicts = []
+    for event in eventFilePaths:
+        with open(event, "r") as file:
+            data = json.load(file)
+            resultDict = {}
+
+            resultDict["title"] = data.get("title")
+            resultDict["slug"] = data.get("slug")
+            resultDict["startDate"] = data.get("startDate")
+            resultDict["endDate"] = data.get("endDate")
+
+            marketsData = data.get("markets")
+            marketList = []
+            for market in marketsData:
+                marketQ = market.get("question")
+                clobEntry = market.get("clobTokenIds")
+                clobIDs = clobEntry[1:-1].split(", ")
+                yesAsset = clobIDs[0]
+                noAsset = clobIDs[1]
+
+                marketDict = {
+                    marketQ: {
+                        "Yes": yesAsset,
+                        "No": noAsset
+                    }
+                }
+                marketList.append(marketDict)
+
+            resultDict["markets"] = marketList
+
+        resultDicts.append(resultDict)
+
+    if len(resultDicts) != 1:
+        return resultDicts
+    else:
+        return resultDicts[0]
+
+
+# dict[str, str | dict[str, str]]:
+def get_markets_from_event(eventFilePath: str | Path) -> dict[str, dict[str, str]]:
+    """
+    Input: path of event file
+    Returns: dictionary with key of the market names
+    and dictionary of `Yes` and `No` with appropriate assetIDs
+    """
+    marketsDict = asd
+
+    return marketsDict
 
 if __name__ == "__main__":
-    here = Path(__file__)
-    slug_file = os.path.join(here.parent.parent, "Markets/all_fomc_slugs.txt")
-    print(slug_file)
+    # slug_file = os.path.join(FILE_LOCATION.parent, "all_fomc_events_slugs.txt")
+    #
+    # events_FOMC = []
+    # with open(slug_file, 'r') as file:
+    #     for line in file:
+    #         slug = line[:-1]
+    #         querystring = {"slug": slug}
+    #         events_FOMC.append(querystring)
+    #
+    # target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+    # download_events(events_FOMC, target_dir)
 
-
-    gammaURL = "https://gamma-api.polymarket.com/events"
-    with open(slug_file, 'r') as file:
-        for line in file:
-            slug = line[:-1]
-            querystring = {"slug":slug}
-            response = requests.request("GET", gammaURL, params=querystring)
-            print(response.text)
-
+    pass

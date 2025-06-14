@@ -9,16 +9,22 @@ import os
 import pandas as pd
 import requests
 
+FILE_LOCATION = Path(__file__)
+ROOT_DIR = FILE_LOCATION.parent.parent
 
 
 if __name__ == "__main__":
-    here = Path(__file__)
-    slug_file = os.path.join(here.parent.parent, "Markets/all_fomc_slugs.txt")
-    print(slug_file)
-    slugs = []
-    with open(slug_file, 'r') as file:
-        for line in file:
-            slugs.append(line[:-1])
-    print(slugs)
-    pass
+    # This is how to parse the clobTokenIds entries
 
+    a = "Teststring"
+
+    asd = {
+        a: "bla bla"
+    }
+
+    print(asd)
+    print(asd.get("Teststring"))
+    for k, v in asd.items():
+        print(f"Key: {k}\nValue: {v}\n")
+
+    pass

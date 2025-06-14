@@ -10,7 +10,8 @@ import pandas as pd
 import re
 import requests
 
-
+FILE_LOCATION = Path(__file__)
+ROOT_DIR = FILE_LOCATION.parent.parent
 
 # Subgraphs
 class SG(StrEnum):
@@ -465,7 +466,7 @@ query {self.Name} {queryArguments} {{
         
 
     def run_query(self, create_csvs: bool):
-        OUTPUT_DIR_START = f"{Path(__file__).parent.parent}/Data Transactions/{self.Name}/"
+        OUTPUT_DIR_START = os.path.join(ROOT_DIR, "Data Transactions", f"{self.Name}/")
         TIMEOUT = 100
         PAGESIZE = 1000
         SQ_Queue = self.Subqueries.copy()
