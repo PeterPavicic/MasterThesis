@@ -2,6 +2,9 @@
 
 from queries import *
 
+FILE_LOCATION = Path(__file__)
+ROOT_DIR = FILE_LOCATION.parent.parent
+
 def getTrumpMarket(startPages: int | list[int] = 0):
     trumpYes = '"21742633143463906290569050155826241533067272736897614950488156847949938836455"'
     trumpNo = '"48331043336612883890938759509493159234755048973500640148014422747788308965732"'
@@ -36,21 +39,27 @@ def getTrumpMarket(startPages: int | list[int] = 0):
     print("Done getting Trump Market data")
 
 
-def getTransactions(queryName: str, assetDict: dict[str, dict[str, str]], startPages: int | list[int] = 0) -> None:
+def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]], startPages: int | list[int] = 0) -> None:
     """
     Gets all orderFilled and OrdersMatched data from orders subgraph from dictionary of Yes/No assets
-    assetDict needs to have format:
-    {
-        "assetName": {
+    marketsList needs to have format (default format for data retrieved using Gamma API):
+    [
+        {
+          "assetName": {
             "Yes": `"AssetID"`,
-            "No": `"AssetID"`
+            "No": `"AssetID"` 
+          }
         },
-        "nextAssetName": {
+        {
+          "nextAssetName": {
             "Yes": `"AssetID"`,
-            "No": `"AssetID"`
-        }, etc.
-    }
+            "No": `"AssetID"` 
+          }
+        }
+    ]
     """
+
+
 
     # # 50+ bps down
     # down50Yes = '"106191328358576540351439267765925450329859429577455659884974413809922495874408"'
@@ -68,7 +77,7 @@ def getTransactions(queryName: str, assetDict: dict[str, dict[str, str]], startP
     # up25Yes = '"95823178650727331613915203831778682038645976746731326695569990405131199144192"'
     # up25No = '"22975325364139703836483070412535421663459933235801997078698722577155796494270"'
 
-    # assetDict = {
+    # marketsList = {
     #     # 50+ bps down
     #     "down50": {
     #         "Yes": '"106191328358576540351439267765925450329859429577455659884974413809922495874408"',
@@ -94,12 +103,15 @@ def getTransactions(queryName: str, assetDict: dict[str, dict[str, str]], startP
     orderTimestamp = "\torderBy: timestamp\n\torderDirection: asc"
 
     subqueries = []
+
     # go through asset dictionary, create subqueries
-    for marketName, assetIDPairs in assetDict.items():
-        yesAsset = assetIDPairs.get("Yes")
-        noAsset = assetIDPairs.get("No")
-        if yesAsset is None or noAsset is None:
-            raise Exception(f"{marketName} contains invalid assetIDs")
+    # for marketName, assetIDPairs in marketsList.items():
+    for market_dict in marketsList:
+        for marketName, assetIDPairs in market_dict.items():
+            yesAsset = assetIDPairs.get("Yes")
+            noAsset = assetIDPairs.get("No")
+            if yesAsset is None or noAsset is None:
+                raise Exception(f"{marketName} contains invalid assetIDs")
 
         # Orders Filled
         sq_filled_maker = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}_Maker", orderText=orderTimestamp, filterText=f"makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
@@ -167,6 +179,32 @@ def getTransactions(queryName: str, assetDict: dict[str, dict[str, str]], startP
 
 
 if __name__ == "__main__":
+    jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+    fileNames = [f for f in os.listdir(jsons_dir)]
+    json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
+
+    for json_file in json_files:
+        print(json_file)
+        with open(json_file, 'r') as file:
+            data = json.load(file)
+            eventTitle = data.get("title")
+            markets = data.get("markets")
+            print(f"Event title: {eventTitle}")
+            print(f"Raw markets data: {markets}")
+            print(f"Raw data type: {type(markets)}")
+            print(f"Json processed markets")
+            for market in markets: 
+                print(market)
+                type(market)
+                print(market.items())
+                asd = json.loads(market)
+                print(asd)
+
+            # getTransactions(eventTitle, markets)
+            # print(f"{fileNames[i]} simplified and written to {output_path}")
+
+            print("Done")
+
     pass
 
 

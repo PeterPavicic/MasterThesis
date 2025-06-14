@@ -126,16 +126,15 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
         return resultDicts[0]
 
 
-# dict[str, str | dict[str, str]]:
-def get_markets_from_event(eventFilePath: str | Path) -> dict[str, dict[str, str]]:
-    """
-    Input: path of event file
-    Returns: dictionary with key of the market names
-    and dictionary of `Yes` and `No` with appropriate assetIDs
-    """
-    marketsDict = asd
-
-    return marketsDict
+# # dict[str, str | dict[str, str]]:
+# def get_markets_from_event(eventFilePath: str | Path) -> dict[str, dict[str, str]]:
+#     """
+#     Input: path of event file
+#     Returns: dictionary with key of the market names
+#     and dictionary of `Yes` and `No` with appropriate assetIDs
+#     """
+#     marketsDict = asd
+#     return marketsDict
 
 if __name__ == "__main__":
     # slug_file = os.path.join(FILE_LOCATION.parent, "all_fomc_events_slugs.txt")
