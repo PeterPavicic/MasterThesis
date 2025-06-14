@@ -74,12 +74,13 @@ def download_events(eventQuery: dict[str, str] | list[dict[str, str]], output_di
     print(f"Saved all queries to {output_dir}")
 
 
-def simplifyEvents(eventFilePaths: str | Path | list[str | Path]) -> dict | list[dict]:
+def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict | list[dict]:
     # TODO: Add description
 
     if not isinstance(eventFilePaths, list):
         eventFilePaths = [eventFilePaths]
 
+    assert isinstance(eventFilePaths, list)
     resultDicts = []
     for event in eventFilePaths:
         with open(event, "r") as file:
@@ -91,11 +92,18 @@ def simplifyEvents(eventFilePaths: str | Path | list[str | Path]) -> dict | list
             resultDict["startDate"] = data.get("startDate")
             resultDict["endDate"] = data.get("endDate")
 
+            # print(resultDict)
+
             marketsData = data.get("markets")
             marketList = []
             for market in marketsData:
                 marketQ = market.get("question")
                 clobEntry = market.get("clobTokenIds")
+
+                # HACK: Assets with no token IDs are skipped and not written to markets
+                if clobEntry is None:
+                    print(f"{marketQ} skipped")
+                    continue
                 clobIDs = clobEntry[1:-1].split(", ")
                 yesAsset = clobIDs[0]
                 noAsset = clobIDs[1]
@@ -139,7 +147,26 @@ if __name__ == "__main__":
     #         querystring = {"slug": slug}
     #         events_FOMC.append(querystring)
     #
-    # target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+    # target_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
     # download_events(events_FOMC, target_dir)
 
-    pass
+    jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
+
+    fileNames = [f for f in os.listdir(jsons_dir)]
+    json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
+
+    simplifiedDicts = simplifyEvents(json_files)
+
+    target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+
+    for i, simplifiedEvent in enumerate(simplifiedDicts):
+        output_path = os.path.join(target_dir, fileNames[i])
+
+        with open(output_path, 'w') as file:
+            json.dump(simplifiedEvent, file, indent=2)
+            print(f"{fileNames[i]} simplified and written to {output_path}")
+
+            print("Done")
+
+
+

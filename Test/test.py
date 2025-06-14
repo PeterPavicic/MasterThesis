@@ -15,16 +15,9 @@ ROOT_DIR = FILE_LOCATION.parent.parent
 
 if __name__ == "__main__":
     # This is how to parse the clobTokenIds entries
-
-    a = "Teststring"
-
-    asd = {
-        a: "bla bla"
-    }
-
-    print(asd)
-    print(asd.get("Teststring"))
-    for k, v in asd.items():
-        print(f"Key: {k}\nValue: {v}\n")
-
+    for i in range(10):
+        if i % 2 == 0:
+            continue
+        else:
+            print(i)
     pass
