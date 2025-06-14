@@ -11,6 +11,7 @@ import re
 import requests
 
 
+
 # Subgraphs
 class SG(StrEnum):
 # ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/polymarket-orderbook-resync/prod/gn"

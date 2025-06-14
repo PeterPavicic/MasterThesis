@@ -1,5 +1,6 @@
 #!./venv/bin/python
 
+from requests import request
 from queries import *
 
 def getTrumpMarket(startPages: int | list[int] = 0):
@@ -94,11 +95,18 @@ def getFOMCMarket(startPages: int | list[int] = 0):
 
 
 if __name__ == "__main__":
-    # getTrumpMarket(719000)
-    getFOMCMarket()
+    here = Path(__file__)
+    slug_file = os.path.join(here.parent.parent, "Markets/all_fomc_slugs.txt")
+    print(slug_file)
 
 
-
+    gammaURL = "https://gamma-api.polymarket.com/events"
+    with open(slug_file, 'r') as file:
+        for line in file:
+            slug = line[:-1]
+            querystring = {"slug":slug}
+            response = requests.request("GET", gammaURL, params=querystring)
+            print(response.text)
 
 
 
