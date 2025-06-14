@@ -13,6 +13,17 @@ import requests
 FILE_LOCATION = Path(__file__)
 ROOT_DIR = FILE_LOCATION.parent.parent
 
+
+def cleanStringForGraphql(s: str) -> str:
+    """
+    Removes illegal characters in graphql from string and replaces
+    spaces with underscores
+    """
+    cleaned = re.sub(r'[^A-Za-z0-9_ ]+', '', s)
+    underscored = re.sub(r'\s+', '_', cleaned)
+    return underscored.strip('_')
+
+
 # Subgraphs
 class SG(StrEnum):
 # ORDERS_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/polymarket-orderbook-resync/prod/gn"
@@ -429,7 +440,7 @@ class Query:
 
     def __init__(self, operationName: str, endPoint: SG, subqueries: list[Subquery] | Subquery):
         # XOR(subqeries is not None, customQuery is not None)
-        self.Name = operationName
+        self.Name = cleanStringForGraphql(operationName)
         self.APILink = endPoint
 
         # Ensure subqueries are a list
@@ -676,3 +687,5 @@ def fetch_and_save_pages(api_url: str, operationName: str, queryText: str, query
 
         skip += pageSize 
         # time.sleep(0.2)  # optional back‑off
+
+

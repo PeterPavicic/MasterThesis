@@ -5,6 +5,7 @@ from queries import *
 FILE_LOCATION = Path(__file__)
 ROOT_DIR = FILE_LOCATION.parent.parent
 
+
 def getTrumpMarket(startPages: int | list[int] = 0):
     trumpYes = '"21742633143463906290569050155826241533067272736897614950488156847949938836455"'
     trumpNo = '"48331043336612883890938759509493159234755048973500640148014422747788308965732"'
@@ -75,8 +76,8 @@ def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]]
             sq_filled_maker = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}_Maker", orderText=orderTimestamp, filterText=f"makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
             sq_filled_taker = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}_Taker", orderText=orderTimestamp, filterText=f"takerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
             # Orders Matched
-            sq_matched_maker = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}_Maker", orderText=orderTimestamp, filterText=f"makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
-            sq_matched_taker = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}_Taker", orderText=orderTimestamp, filterText=f"takerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
+            sq_matched_maker = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}_Maker", orderText=orderTimestamp, filterText=f"makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]")
+            sq_matched_taker = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}_Taker", orderText=orderTimestamp, filterText=f"takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]")
             subqueries.append(sq_filled_maker)
             subqueries.append(sq_filled_taker)
             subqueries.append(sq_matched_maker)
