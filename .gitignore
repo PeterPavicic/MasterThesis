@@ -2,5 +2,6 @@ Data*/*
 Transactions/*.csv
 venv/*
 **/**__pycache__**/**
+**/**/my**
 # test*
 # Test*/*

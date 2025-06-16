@@ -1,7 +1,9 @@
 from pathlib import Path
-import os
-import requests
+from typing import Any
 import json
+import os
+import pandas as pd
+import requests
 
 FILE_LOCATION = Path(__file__)
 ROOT_DIR = FILE_LOCATION.parent.parent
@@ -34,7 +36,7 @@ def download_json(url, output_file):
         print(f"An error occurred: {e}")
 
 
-def download_events(eventQuery: dict[str, str] | list[dict[str, str]], output_dir: str | Path) -> None:
+def fetch_events(eventQuery: dict[str, str] | list[dict[str, str]], output_dir: str | Path) -> None:
     """
     Downloads full event informations from Polymarket's Gamma API
     `eventQuery` contains a dictionary or list of dictionaries of the query parameters for each event queried
@@ -48,9 +50,9 @@ def download_events(eventQuery: dict[str, str] | list[dict[str, str]], output_di
     os.makedirs(output_dir, exist_ok=True)
     print(f"Output directory created: {output_dir}")
 
-    for querystring in eventQuery:
+    for queryDict in eventQuery:
         try:
-            response = requests.request("GET", gammaURL, params=querystring)
+            response = requests.request("GET", gammaURL, params=queryDict)
             # print(response.text)
             data = response.json()[0]
             output_path = os.path.join(output_dir, f"{data.get("ticker")}.json")
@@ -126,46 +128,74 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
         return resultDicts[0]
 
 
-# # dict[str, str | dict[str, str]]:
-# def get_markets_from_event(eventFilePath: str | Path) -> dict[str, dict[str, str]]:
-#     """
-#     Input: path of event file
-#     Returns: dictionary with key of the market names
-#     and dictionary of `Yes` and `No` with appropriate assetIDs
-#     """
-#     marketsDict = asd
-#     return marketsDict
+def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], output_dir: str | Path) -> None:
+    """
+    Downloads full userActivity informations from Polymarket's Gamma API
+    `activityQuery` contains a dictionary or list of dictionaries of the query parameters for each event queried
+    """
+    if isinstance(activityQuery, dict):
+        activityQuery = [activityQuery]
+
+    gammaURL = "https://data-api.polymarket.com/activity"
+
+    # Create output dir
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"Output directory created: {output_dir}")
+
+    for queryDict in activityQuery:
+        while True:
+            if "limit" not in queryDict.keys():
+                queryDict["limit"] = 500
+            if "offset" not in queryDict.keys():
+                queryDict["offset"] = 0
+            # TODO: Finish writing this
+            try:
+                response = requests.request("GET", gammaURL, params=queryDict)
+                # print(response.text)
+                response.raise_for_status()
+                data = response.json()
+                output_path = os.path.join(output_dir, f"{data[0].get("proxyWallet")}.json")
+
+                with open(output_path, "w") as file:
+                    json.dump(data, file, indent=2)
+                print(f"Saved {data.get("title")} events to {output_path}")
+
+                # Pagination
+                if len(data) < queryDict["limit"]:
+                    break
+                else:
+                    queryDict["offset"] += queryDict["limit"]
+
+            except requests.RequestException as e:
+                print(f"Network/HTTP error: {e}")
+                break
+
+            except json.JSONDecodeError:
+                print(f"Failed to parse JSON response.")
+                break
+
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                break
+
+    print(f"Saved all queries to {output_dir}")
+
 
 if __name__ == "__main__":
-    # slug_file = os.path.join(FILE_LOCATION.parent, "all_fomc_events_slugs.txt")
-    #
-    # events_FOMC = []
-    # with open(slug_file, 'r') as file:
-    #     for line in file:
-    #         slug = line[:-1]
-    #         querystring = {"slug": slug}
-    #         events_FOMC.append(querystring)
-    #
-    # target_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
-    # download_events(events_FOMC, target_dir)
+    json_file = os.path.join(ROOT_DIR, "Transactions", "myActivity.json")
+    csv_file = os.path.join(ROOT_DIR, "Transactions", "myActivity.csv")
+    # print(data)
+    # print(type(data))
+    # print(len(data))
+    print(json_file)
+    # df = pd.json_normalize(pd.read_json(json_file))
+    df = pd.read_json(json_file) 
 
-    jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
+    # Ensure the output directory exists
+    output_dir = os.path.dirname(csv_file)
+    os.makedirs(output_dir, exist_ok=True)
 
-    fileNames = [f for f in os.listdir(jsons_dir)]
-    json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
-
-    simplifiedDicts = simplifyEvents(json_files)
-
-    target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
-
-    for i, simplifiedEvent in enumerate(simplifiedDicts):
-        output_path = os.path.join(target_dir, fileNames[i])
-
-        with open(output_path, 'w') as file:
-            json.dump(simplifiedEvent, file, indent=2)
-            print(f"{fileNames[i]} simplified and written to {output_path}")
-
-            print("Done")
-
+    # Write DataFrame to CSV
+    df.to_csv(csv_file, index=False)
 
 

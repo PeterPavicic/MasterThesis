@@ -72,16 +72,31 @@ def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]]
             noAsset = assetIDPairs.get("No")
             if yesAsset is None or noAsset is None:
                 raise Exception(f"{marketName} contains invalid assetIDs")
+
             # Orders Filled
-            sq_filled_maker = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}_Maker", orderText=orderTimestamp, filterText=f"makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
-            sq_filled_taker = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}_Taker", orderText=orderTimestamp, filterText=f"takerAssetId_in: [{yesAsset},\n\t\t{noAsset}]")
+            whereFilterFilled = f"""
+                or: [
+            {{makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]}},
+            {{takerAssetId_in: [{yesAsset},\n\t\t{noAsset}]}}
+                ]
+            """
+
             # Orders Matched
-            sq_matched_maker = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}_Maker", orderText=orderTimestamp, filterText=f"makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]")
-            sq_matched_taker = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}_Taker", orderText=orderTimestamp, filterText=f"takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]")
-            subqueries.append(sq_filled_maker)
-            subqueries.append(sq_filled_taker)
-            subqueries.append(sq_matched_maker)
-            subqueries.append(sq_matched_taker)
+            whereFilterMatched = f"""
+                or: [
+            {{makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}},
+            {{takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}}
+                ]
+            """
+
+            # Orders Filled
+            sq_filled_orders = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterFilled)
+
+            # Orders Matched
+            sq_matched_orders = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterMatched)
+
+            subqueries.append(sq_filled_orders)
+            subqueries.append(sq_matched_orders)
 
 
     sqCount = len(subqueries)
@@ -94,6 +109,44 @@ def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]]
         for i, sq in enumerate(subqueries):
             sq.setStartPage(startPages[i])
 
+    myQuery = Query(queryName, SG.ORDERS_SG, subqueries)
+    print(f"Running Query:\n{myQuery.QueryText}")
+    myQuery.run_query(True)
+    print(f"Done getting {queryName} orderbook data")
+
+
+def getUserPnLs(queryName: str, tokenList: list[str], startPages: int | list[int] = 0) -> None:
+    """
+    Gets all userPnLs from list of user IDs (which are strings)
+    """
+
+    ordering = "\torderBy: user\n\torderDirection: asc"
+
+    subqueries = []
+
+    # go through individual markets, create subqueries
+    for token in tokenList:
+        # marktName: market Name, assetIDPairs: Yes-No pairs
+
+        # Both Maker and Taker in one
+        whereFilter = f"""
+        tokenId: {token}
+        """
+
+        # user positions
+        sq = Subquery(SQ.UserPosition, name=f"userPnL_{token}", orderText=ordering, filterText=whereFilter)
+
+        subqueries.append(sq)
+
+    sqCount = len(subqueries)
+
+    if isinstance(startPages, int) and startPages != 0:
+        startPages = [startPages] * sqCount
+
+
+    if isinstance(startPages, list):
+        for i, sq in enumerate(subqueries):
+            sq.setStartPage(startPages[i])
 
     myQuery = Query(queryName, SG.ORDERS_SG, subqueries)
     print(f"Running Query:\n{myQuery.QueryText}")
