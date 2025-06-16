@@ -363,7 +363,7 @@ outcomeIndex
 
     # from P&L subgraph
     UserPosition = {
-        "name": "UserPositions",
+        "name": "userPositions",
         "returnVariables": [
             "id",
             "user",

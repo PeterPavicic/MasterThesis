@@ -143,7 +143,7 @@ def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], st
             # Yes Asset
             sq_yes = Subquery(SQ.UserPosition, name=f"{marketName}_Yes", orderText=ordering, filterText=yesFilter)
             # No Asset
-            sq_no = Subquery(SQ.OrdersMatched, name=f"{marketName}_No", orderText=ordering, filterText=noFilter)
+            sq_no = Subquery(SQ.UserPosition, name=f"{marketName}_No", orderText=ordering, filterText=noFilter)
 
             subqueries.append(sq_yes)
             subqueries.append(sq_no)
