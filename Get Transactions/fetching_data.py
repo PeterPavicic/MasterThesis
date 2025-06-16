@@ -176,7 +176,7 @@ if __name__ == "__main__":
             data = json.load(file)
         eventTitle = data.get("title")
         markets = data.get("markets")
-        getTransactions(eventTitle, markets)
+        getUserPnLs(eventTitle, markets)
 
     print("Done getting all FOMC Events' users' positions")
     pass
