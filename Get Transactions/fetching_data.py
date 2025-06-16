@@ -115,7 +115,7 @@ def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]]
     print(f"Done getting {queryName} orderbook data")
 
 
-def getUserPnLs(queryName: str, tokenList: list[str], startPages: int | list[int] = 0) -> None:
+def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], startPages: int | list[int] = 0) -> None:
     """
     Gets all userPnLs from list of user IDs (which are strings)
     """
@@ -125,18 +125,29 @@ def getUserPnLs(queryName: str, tokenList: list[str], startPages: int | list[int
     subqueries = []
 
     # go through individual markets, create subqueries
-    for token in tokenList:
+    for market_dict in marketsList:
         # marktName: market Name, assetIDPairs: Yes-No pairs
+        for marketName, assetIDPairs in market_dict.items():
 
-        # Both Maker and Taker in one
-        whereFilter = f"""
-        tokenId: {token}
-        """
+            yesAsset = assetIDPairs.get("Yes")
+            noAsset = assetIDPairs.get("No")
+            if yesAsset is None or noAsset is None:
+                raise Exception(f"{marketName} contains invalid assetIDs")
 
-        # user positions
-        sq = Subquery(SQ.UserPosition, name=f"userPnL_{token}", orderText=ordering, filterText=whereFilter)
+            # Orders Filled
+            yesFilter = f"tokenId: {yesAsset}"
 
-        subqueries.append(sq)
+            # Orders Matched
+            noFilter = f"tokenId: {noAsset}"
+
+            # Yes Asset
+            sq_yes = Subquery(SQ.UserPosition, name=f"{marketName}_Yes", orderText=ordering, filterText=yesFilter)
+            # No Asset
+            sq_no = Subquery(SQ.OrdersMatched, name=f"{marketName}_No", orderText=ordering, filterText=noFilter)
+
+            subqueries.append(sq_yes)
+            subqueries.append(sq_no)
+
 
     sqCount = len(subqueries)
 
@@ -148,7 +159,7 @@ def getUserPnLs(queryName: str, tokenList: list[str], startPages: int | list[int
         for i, sq in enumerate(subqueries):
             sq.setStartPage(startPages[i])
 
-    myQuery = Query(queryName, SG.ORDERS_SG, subqueries)
+    myQuery = Query(queryName, SG.PNL_SG, subqueries)
     print(f"Running Query:\n{myQuery.QueryText}")
     myQuery.run_query(True)
     print(f"Done getting {queryName} orderbook data")
@@ -167,8 +178,7 @@ if __name__ == "__main__":
         markets = data.get("markets")
         getTransactions(eventTitle, markets)
 
-    print("Done getting all FOMC transactions")
-
+    print("Done getting all FOMC Events' users' positions")
     pass
 
 
