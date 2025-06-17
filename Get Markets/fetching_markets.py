@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Any
+import glob
 import json
+import numpy
 import os
 import pandas as pd
 import requests
@@ -99,21 +101,28 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
             marketsData = data.get("markets")
             marketList = []
             for market in marketsData:
-                marketQ = market.get("question")
+                marketQ = market.get("slug")
                 clobEntry = market.get("clobTokenIds")
+                outcomePrices = market.get("outcomePrices")
 
                 # HACK: Assets with no token IDs are skipped and not written to markets
                 if clobEntry is None:
                     print(f"{marketQ} skipped")
                     continue
                 clobIDs = clobEntry[1:-1].split(", ")
+                outcomePrices = clobEntry[1:-1].split(", ")
                 yesAsset = clobIDs[0]
                 noAsset = clobIDs[1]
+                outcomeYes = outcomePrices[0]
+                outcomeNo = outcomePrices[1]
 
+                # TODO: Check if adding outcomePrices breaks anything anywhere else (it shouldn't because usually .get() used for jsons)
                 marketDict = {
                     marketQ: {
                         "Yes": yesAsset,
-                        "No": noAsset
+                        "No": noAsset,
+                        "outcomeYes": outcomeYes,
+                        "outcomeNo": outcomeNo
                     }
                 }
                 marketList.append(marketDict)
@@ -181,21 +190,113 @@ def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], ou
     print(f"Saved all queries to {output_dir}")
 
 
+def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list | list[list]:
+    # Generates a table from all eventFilePaths' tokens to determine outcomePrices
+
+    if not isinstance(eventFilePaths, list):
+        eventFilePaths = [eventFilePaths]
+
+    assert isinstance(eventFilePaths, list)
+    resultDicts = []
+    for event in eventFilePaths:
+        with open(event, "r") as file:
+            data = json.load(file)
+
+            marketsData = data.get("markets")
+
+        marketList = []
+        for market in marketsData:
+            slug = market.get("slug")
+            conditionId = market.get("conditionId")
+            clobEntry = market.get("clobTokenIds")
+            outcomePricesEntry = market.get("outcomePrices")
+
+            # HACK: Assets with no token IDs are skipped and not written to markets
+            if clobEntry is None:
+                print(f"{conditionId} skipped")
+                continue
+
+            clobIDs = clobEntry[1:-1].split(", ")
+            outcomePrices = outcomePricesEntry[1:-1].split(", ")
+            yesAsset = clobIDs[0]
+            noAsset = clobIDs[1]
+            outcomeYes = outcomePrices[0]
+            outcomeNo = outcomePrices[1]
+
+            marketDict = {
+                "slug": slug,
+                "Condition": conditionId,
+                "Yes": yesAsset,
+                "No": noAsset,
+                "outcomeYes": outcomeYes,
+                "outcomeNo": outcomeNo
+            }
+            marketList.append(marketDict)
+
+        resultDicts.append(marketList)
+
+    if len(resultDicts) != 1:
+        return resultDicts
+    else:
+        return resultDicts[0]
+
+
+def json_files_to_one_csv(json_dir, out_csv):
+    all_dfs = []
+
+    for path in glob.glob(os.path.join(json_dir, '*.json')):
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        # ensure type list
+        entries = data if isinstance(data, list) else [data]
+        # Flatten into pandas dataframe
+        df = pd.json_normalize(entries, sep='_')
+
+        for c in df.columns:
+            isList = df[c].apply(lambda x: isinstance(x, list)).any()
+            assert isinstance(isList, numpy.bool) or isinstance(isList, bool)
+            if(isList):
+                df = df.explode(c)
+        # explode any list columns
+        all_dfs.append(df)
+
+    # concatenate all, reset index
+    master = pd.concat(all_dfs, ignore_index=True)
+    master.to_csv(out_csv, index=False)
+    print(f"Wrote {len(master)} total rows to {out_csv}")
+
+
 if __name__ == "__main__":
-    json_file = os.path.join(ROOT_DIR, "Transactions", "myActivity.json")
-    csv_file = os.path.join(ROOT_DIR, "Transactions", "myActivity.csv")
-    # print(data)
-    # print(type(data))
-    # print(len(data))
-    print(json_file)
-    # df = pd.json_normalize(pd.read_json(json_file))
-    df = pd.read_json(json_file) 
 
-    # Ensure the output directory exists
-    output_dir = os.path.dirname(csv_file)
-    os.makedirs(output_dir, exist_ok=True)
+    presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/Presidential_win_market.json"
+    # presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"
 
-    # Write DataFrame to CSV
-    df.to_csv(csv_file, index=False)
+    tokenLists = get_token_table(presidentialEvent)
+
+    with open(os.path.join(ROOT_DIR, "Markets", "ElectionTokens", "ElectionTokens.json"), 'w') as file:
+        json.dump(tokenLists, file, indent = 2)
+
+
+    json_files_to_one_csv("/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/ElectionTokens/", os.path.join(ROOT_DIR, "Markets", "Election Tokens.csv"))
+
+    # jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
+    #
+    # fileNames = [f for f in os.listdir(jsons_dir)]
+    # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
+    #
+    # tokenLists = get_token_table(json_files)
+    #
+    # target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Tokens")
+    #
+    # for i, eventList in enumerate(tokenLists):
+    #     output_path = os.path.join(target_dir, fileNames[i])
+    #
+    #     with open(output_path, 'w') as file:
+    #         json.dump(eventList, file, indent=2)
+    #         print(f"{fileNames[i]} simplified and written to {output_path}")
+    #
+    #         print("Done")
+    #
+    # json_files_to_one_csv(target_dir, os.path.join(ROOT_DIR, "Markets", "FOMC Tokens.csv"))
 
 

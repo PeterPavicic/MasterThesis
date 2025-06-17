@@ -82,21 +82,21 @@ def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]]
             """
 
             # Orders Matched
-            whereFilterMatched = f"""
-                or: [
-            {{makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}},
-            {{takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}}
-                ]
-            """
+            # whereFilterMatched = f"""
+            #     or: [
+            # {{makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}},
+            # {{takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}}
+            #     ]
+            # """
 
             # Orders Filled
             sq_filled_orders = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterFilled)
 
             # Orders Matched
-            sq_matched_orders = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterMatched)
+            # sq_matched_orders = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterMatched)
 
             subqueries.append(sq_filled_orders)
-            subqueries.append(sq_matched_orders)
+            # subqueries.append(sq_matched_orders)
 
 
     sqCount = len(subqueries)
@@ -166,9 +166,12 @@ def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], st
 
 
 if __name__ == "__main__":
-    jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
-    fileNames = [f for f in os.listdir(jsons_dir)]
-    json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
+    # jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+    # fileNames = [f for f in os.listdir(jsons_dir)]
+    # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
+
+
+    json_files = ["/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"]
 
     for json_file in json_files:
         print(json_file)
@@ -178,7 +181,7 @@ if __name__ == "__main__":
         markets = data.get("markets")
         getUserPnLs(eventTitle, markets)
 
-    print("Done getting all FOMC Events' users' positions")
+    print("Done getting all Presidential election Events' users' positions")
     pass
 
 
