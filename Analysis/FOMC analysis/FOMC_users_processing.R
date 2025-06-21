@@ -66,7 +66,7 @@ perform_analysis <- function(event_tibble, event_name) {
   # save.image(sprintf("./UserPnLs/%s.RData", event_name))
 }
 
-dirs <- list.dirs(path = file.path(dirname(getwd()), "Data Transactions/All Fed Users Positions"), recursive = FALSE)
+dirs <- list.dirs(path = file.path(dirname(dirname(getwd())), "Data Transactions/All Fed Users Positions"), recursive = FALSE)
 
 # Write users to users.txt for each event
 # For each event perform analysis

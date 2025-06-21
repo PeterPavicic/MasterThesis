@@ -14,9 +14,21 @@ ROOT_DIR = FILE_LOCATION.parent.parent
 
 
 if __name__ == "__main__":
-    # This is how to parse the clobTokenIds entries
-    asd = ["a", 'b', 'c', 'd', 'e']
 
-    for i, letter in enumerate(asd):
-        print(f"{i}th letter is: {letter}")
+    tokenCSV = os.path.join(ROOT_DIR, "Analysis", "FOMC analysis", "FOMC Tokens.csv")
+    with open(tokenCSV, 'r') as file:
+        df = pd.read_csv(file)
+
+    print(df)
+    conds = df["Condition"]
+
+
+    print("Now converted to list:")
+    print(list[conds])
+    print(type(conds))
+    print(type(list(conds)))
+    for entry in list(conds):
+        print(entry)
+        print(type(entry))
+
 

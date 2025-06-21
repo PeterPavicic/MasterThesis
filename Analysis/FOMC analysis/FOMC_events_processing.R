@@ -42,7 +42,8 @@ perform_analysis <- function(event_tibble, event_name) {
       maker,
       taker,
       transactionHash,
-      orderHash
+      orderHash,
+      fee
     )
 
   timeSeriesData <- scaled_events |>
@@ -64,7 +65,7 @@ perform_analysis <- function(event_tibble, event_name) {
 }
 
 
-dirs <- list.dirs(path = file.path(dirname(getwd()), "Data Transactions/All Fed Events"), recursive = FALSE)
+dirs <- list.dirs(path = file.path(dirname(dirname(getwd())), "Data Transactions/All Fed Events"), recursive = FALSE)
 
 # Write users to users.txt for each event
 # For each event perform analysis

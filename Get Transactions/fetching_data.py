@@ -165,6 +165,68 @@ def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], st
     print(f"Done getting {queryName} orderbook data")
 
 
+# TODO: Rewrite this so data taken from csv, turned into df
+def getTokenActivity(tokenCSV: list[str]) -> None:
+    """
+    Get splits and merges
+    """
+
+    orderTimestamp = "\torderBy: timestamp\n\torderDirection: asc"
+
+    subqueries = []
+
+    # go through individual markets, create subqueries
+    for conditionID in conditions:
+
+        # marktName: market Name, assetIDPairs: Yes-No pairs
+        for marketName, assetIDPairs in market_dict.items():
+            yesAsset = assetIDPairs.get("Yes")
+            noAsset = assetIDPairs.get("No")
+            if yesAsset is None or noAsset is None:
+                raise Exception(f"{marketName} contains invalid assetIDs")
+
+            # Orders Filled
+            whereFilterFilled = f"""
+                or: [
+            {{makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]}},
+            {{takerAssetId_in: [{yesAsset},\n\t\t{noAsset}]}}
+                ]
+            """
+
+            # Orders Matched
+            # whereFilterMatched = f"""
+            #     or: [
+            # {{makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}},
+            # {{takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}}
+            #     ]
+            # """
+
+            # Orders Filled
+            sq_filled_orders = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterFilled)
+
+            # Orders Matched
+            # sq_matched_orders = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterMatched)
+
+            subqueries.append(sq_filled_orders)
+            # subqueries.append(sq_matched_orders)
+
+
+    sqCount = len(subqueries)
+
+    if isinstance(startPages, int) and startPages != 0:
+        startPages = [startPages] * sqCount
+
+
+    if isinstance(startPages, list):
+        for i, sq in enumerate(subqueries):
+            sq.setStartPage(startPages[i])
+
+    myQuery = Query(queryName, SG.ORDERS_SG, subqueries)
+    print(f"Running Query:\n{myQuery.QueryText}")
+    myQuery.run_query(True)
+    print(f"Done getting {queryName} orderbook data")
+
+
 if __name__ == "__main__":
     # jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
     # fileNames = [f for f in os.listdir(jsons_dir)]

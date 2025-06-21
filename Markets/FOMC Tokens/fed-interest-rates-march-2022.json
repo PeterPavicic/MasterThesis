@@ -1,6 +1,8 @@
 [
   {
     "slug": "will-the-fed-set-interest-rates-above-0p5-following-their-scheduled-march-meeting",
+    "event_slug": "fed-interest-rates-march-2022",
+    "volume": "61552.258777",
     "Condition": "0xacf7b4aa8b1d11f1c3e2e40d5b6ac62278e66a2604a27a4cf1765846155ebf69",
     "Yes": "\"21899810599789258632913154324655796706984895090888226213953489972315337780207\"",
     "No": "\"101868209400733943697800007325662712903397505258841206185841230597554610495665\"",

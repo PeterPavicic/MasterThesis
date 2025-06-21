@@ -1,6 +1,8 @@
 [
   {
     "slug": "will-the-fed-set-interest-rates-above-1pt50-after-their-scheduled-june-meeting",
+    "event_slug": "fed-interest-rates-june-2022",
+    "volume": "339827.648421",
     "Condition": "0x7a144ccc02835fa05315af4688aed0eeb2c189ee796018a0ba6c498f774a1391",
     "Yes": "\"82724977758152265719220013444287352391876001206885694992310481710185843734641\"",
     "No": "\"106457317128213816302171732347629991587141815330262122635664408042078753930185\"",
@@ -9,6 +11,8 @@
   },
   {
     "slug": "will-the-fed-set-interest-rates-above-1-after-their-scheduled-june-meeting",
+    "event_slug": "fed-interest-rates-june-2022",
+    "volume": "30914.969528",
     "Condition": "0xe0dce6a508b3f1bf1bedf55daf2360cc4bd3e1cfe4b08776df9874ed6e0bcc71",
     "Yes": "\"99086239833079230804472379174766489320717252111961344571267138631331697127180\"",
     "No": "\"6929665830557950561860380463109753008672716084270451206221391017875513515553\"",

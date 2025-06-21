@@ -1,3 +1,5 @@
+#!./venv/bin/python
+
 from pathlib import Path
 from typing import Any
 import glob
@@ -202,11 +204,14 @@ def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list
         with open(event, "r") as file:
             data = json.load(file)
 
+
+            event_slug = data.get("slug")
             marketsData = data.get("markets")
 
         marketList = []
         for market in marketsData:
             slug = market.get("slug")
+            volume = market.get("volume")
             conditionId = market.get("conditionId")
             clobEntry = market.get("clobTokenIds")
             outcomePricesEntry = market.get("outcomePrices")
@@ -225,6 +230,8 @@ def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list
 
             marketDict = {
                 "slug": slug,
+                "event_slug": event_slug,
+                "volume": volume,
                 "Condition": conditionId,
                 "Yes": yesAsset,
                 "No": noAsset,
@@ -268,35 +275,36 @@ def json_files_to_one_csv(json_dir, out_csv):
 
 if __name__ == "__main__":
 
-    presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/Presidential_win_market.json"
+    # presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/Presidential_win_market.json"
     # presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"
 
-    tokenLists = get_token_table(presidentialEvent)
+    # tokenLists = get_token_table(presidentialEvent)
+    #
+    # with open(os.path.join(ROOT_DIR, "Markets", "ElectionTokens", "ElectionTokens.json"), 'w') as file:
+    #     json.dump(tokenLists, file, indent = 2)
+    #
+    #
+    # json_files_to_one_csv("/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/ElectionTokens/", os.path.join(ROOT_DIR, "Markets", "Election Tokens.csv"))
 
-    with open(os.path.join(ROOT_DIR, "Markets", "ElectionTokens", "ElectionTokens.json"), 'w') as file:
-        json.dump(tokenLists, file, indent = 2)
 
+    jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
 
-    json_files_to_one_csv("/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/ElectionTokens/", os.path.join(ROOT_DIR, "Markets", "Election Tokens.csv"))
+    fileNames = [f for f in os.listdir(jsons_dir)]
+    json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
 
-    # jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
-    #
-    # fileNames = [f for f in os.listdir(jsons_dir)]
-    # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
-    #
-    # tokenLists = get_token_table(json_files)
-    #
-    # target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Tokens")
-    #
-    # for i, eventList in enumerate(tokenLists):
-    #     output_path = os.path.join(target_dir, fileNames[i])
-    #
-    #     with open(output_path, 'w') as file:
-    #         json.dump(eventList, file, indent=2)
-    #         print(f"{fileNames[i]} simplified and written to {output_path}")
-    #
-    #         print("Done")
-    #
-    # json_files_to_one_csv(target_dir, os.path.join(ROOT_DIR, "Markets", "FOMC Tokens.csv"))
+    tokenLists = get_token_table(json_files)
+
+    target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Tokens")
+
+    for i, eventList in enumerate(tokenLists):
+        output_path = os.path.join(target_dir, fileNames[i])
+
+        with open(output_path, 'w') as file:
+            json.dump(eventList, file, indent=2)
+            print(f"{fileNames[i]} simplified and written to {output_path}")
+
+            print("Done")
+
+    json_files_to_one_csv(target_dir, os.path.join(ROOT_DIR, "Markets", "FOMC Tokens.csv"))
 
 
