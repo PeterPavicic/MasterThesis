@@ -166,84 +166,78 @@ def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], st
 
 
 # TODO: Rewrite this so data taken from csv, turned into df
-def getTokenActivity(tokenCSV: list[str]) -> None:
+def getTokenActivity(queryName: str, conditionList, startPages: int | list[int] = 0) -> None:
     """
-    Get splits and merges
+    Get splits and merges from a dataframe of tokens (subqueries are events, not markets)
     """
 
     orderTimestamp = "\torderBy: timestamp\n\torderDirection: asc"
 
-    subqueries = []
+    # Works for both splits and merges
+    whereFilter = f"""
+    condition_in: [{",\n".join([f"\"{c}\"" for c in conditionList])}]
+    """
 
-    # go through individual markets, create subqueries
-    for conditionID in conditions:
+    # Splits
+    sq_splits = Subquery(SQ.Split, name=f"", orderText=orderTimestamp, filterText=whereFilter)
+    # Merges
+    sq_merges = Subquery(SQ.Merge, name=f"", orderText=orderTimestamp, filterText=whereFilter)
 
-        # marktName: market Name, assetIDPairs: Yes-No pairs
-        for marketName, assetIDPairs in market_dict.items():
-            yesAsset = assetIDPairs.get("Yes")
-            noAsset = assetIDPairs.get("No")
-            if yesAsset is None or noAsset is None:
-                raise Exception(f"{marketName} contains invalid assetIDs")
-
-            # Orders Filled
-            whereFilterFilled = f"""
-                or: [
-            {{makerAssetId_in: [{yesAsset},\n\t\t{noAsset}]}},
-            {{takerAssetId_in: [{yesAsset},\n\t\t{noAsset}]}}
-                ]
-            """
-
-            # Orders Matched
-            # whereFilterMatched = f"""
-            #     or: [
-            # {{makerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}},
-            # {{takerAssetID_in: [{yesAsset},\n\t\t{noAsset}]}}
-            #     ]
-            # """
-
-            # Orders Filled
-            sq_filled_orders = Subquery(SQ.OrdersFilled, name=f"filledOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterFilled)
-
-            # Orders Matched
-            # sq_matched_orders = Subquery(SQ.OrdersMatched, name=f"matchedOrders_{marketName}", orderText=orderTimestamp, filterText=whereFilterMatched)
-
-            subqueries.append(sq_filled_orders)
-            # subqueries.append(sq_matched_orders)
-
+    subqueries = [sq_splits, sq_merges]
 
     sqCount = len(subqueries)
 
     if isinstance(startPages, int) and startPages != 0:
         startPages = [startPages] * sqCount
 
-
     if isinstance(startPages, list):
         for i, sq in enumerate(subqueries):
             sq.setStartPage(startPages[i])
 
-    myQuery = Query(queryName, SG.ORDERS_SG, subqueries)
+    myQuery = Query(queryName, SG.ACTIVITY_SG, subqueries)
     print(f"Running Query:\n{myQuery.QueryText}")
     myQuery.run_query(True)
-    print(f"Done getting {queryName} orderbook data")
+    print(f"Done getting {queryName} activity data")
 
 
 if __name__ == "__main__":
+    tokenCSV = os.path.join(ROOT_DIR, "Analysis", "FOMC analysis", "FOMC Tokens.csv")
+    with open(tokenCSV, 'r') as file:
+        df = pd.read_csv(file,
+                         dtype = {
+                         "slug": str,
+                         "event_slug": str,
+                         "volume": float,
+                         "Condition": str,
+                         "Yes": str,
+                         "No": str,
+                         "outcomeYes": str,
+                         "outcomeNo": str
+                         })
+
+    for event_slug, group in df.groupby("event_slug"):
+        conditionIDs = list(group["Condition"].values)
+        getTokenActivity(f"{cleanStringForGraphql(str(event_slug))}", conditionIDs)
+
+
     # jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
     # fileNames = [f for f in os.listdir(jsons_dir)]
     # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
 
+    #
+    # json_files = ["/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"]
+    #
+    # for json_file in json_files:
+    #     print(json_file)
+    #     with open(json_file, 'r') as file:
+    #         data = json.load(file)
+    #     eventTitle = data.get("title")
+    #     markets = data.get("markets")
+    #     getUserPnLs(eventTitle, markets)
+    #
+    # print("Done getting all Presidential election Events' users' positions")
 
-    json_files = ["/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"]
 
-    for json_file in json_files:
-        print(json_file)
-        with open(json_file, 'r') as file:
-            data = json.load(file)
-        eventTitle = data.get("title")
-        markets = data.get("markets")
-        getUserPnLs(eventTitle, markets)
-
-    print("Done getting all Presidential election Events' users' positions")
     pass
 
 

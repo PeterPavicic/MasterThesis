@@ -5,19 +5,11 @@ library(ggplot2)
 
 event_files <- list.files(file.path(getwd(), "EventDatas"), pattern = ".RData$")
 
-fileName <- "Fed_Interest_Rates_September_2024.RData"
-
-# Analyise individual events here
-# Generate plots for all events
-# for (fileName in event_files) {
-
-
 tokens_data <- read_csv("./FOMC Tokens.csv",
-                        col_types = cols(
-                          Yes = col_character(),
-                          No = col_character()
-                        ))
-
+  col_types = cols(
+    Yes = col_character(),
+    No = col_character()
+  ))
 
 tokens_outcomes <- tokens_data |>
   select(
@@ -32,12 +24,15 @@ tokens_outcomes <- tokens_data |>
       )
   )
 
+fileName <- "Fed_Interest_Rates_September_2024.RData"
+
+# Analyise individual events here
+# Generate plots for all events
+# for (fileName in event_files) {
 
 
 load(file.path(getwd(), "EventDatas", fileName))
 load(file.path(getwd(), "UserPnLs", fileName))
-
-
 
 
 # unique(timeSeriesData$asset)
@@ -100,38 +95,38 @@ load(file.path(getwd(), "UserPnLs", fileName))
 # )
 
 
-
-
 {
   maker_order_counts <- scaled_events |>
-    filter(maker %in% realUsers) |>         # only rows where maker is in realUsers
-    distinct(maker, orderHash) |>           # one row per unique maker+orderHash
-    count(user = maker,                      # group by maker
-          name = "makerCount")               # tally unique orders
+  filter(maker %in% realUsers) |>         # only rows where maker is in realUsers
+  distinct(maker, orderHash) |>           # one row per unique maker+orderHash
+  count(user = maker,                      # group by maker
+    name = "makerCount")               # tally unique orders
 
-# 2) Count unique orders per taker **only** for realUsers
+  # 2) Count unique orders per taker **only** for realUsers
   taker_order_counts <- scaled_events %>%
     filter(taker %in% realUsers) %>%         # only rows where taker is in realUsers
     distinct(taker, orderHash) %>%           # one row per unique taker+orderHash
     count(user = taker,                      # group by taker
-          name = "takerCount")               # tally unique orders
+      name = "takerCount")               # tally unique orders
 
-# 3) Merge maker and taker counts, filling missing values with 0
+  # 3) Merge maker and taker counts, filling missing values with 0
   user_order_counts <- full_join(maker_order_counts,
-                                 taker_order_counts,
-                                 by = "user") |>
+    taker_order_counts,
+    by = "user") |>
     replace_na(list(makerCount = 0,
-                    takerCount = 0))
+      takerCount = 0))
 
 
   user_order_counts <- user_order_counts |> 
     left_join(userReturns,
-    by = "user") |> 
+      by = "user") |> 
     mutate(totalTrades = makerCount + takerCount)
-  
+
   rm(maker_order_counts)
   rm(taker_order_counts)
 }
+
+
 
 
 
@@ -145,7 +140,7 @@ HFT_class <- user_order_counts |>
       "HFT",
       "NotHFT"
     )
-)
+  )
 
 
 # LPs
@@ -163,18 +158,18 @@ HFT_liquidity_class <- HFT_class |>
         "LT"
       )
     )
-)
+  )
 
 HFT_liquidity_class
 
 asd <- HFT_liquidity_class |> 
-  mutate (
+  mutate(
     winner = if_else(
       eventReturn > 1,
       "Profit",
       "Loss"
     )
-)
+  )
 
 spineplot(asd)
 
@@ -193,7 +188,7 @@ sum(asd$winner == "Loss")
 
 
 
-  
+
 ggplot(HFT_liquidity_class, aes(x = eventReturn)) +
   geom_histogram(bins = 30, colour = "black", fill = "grey80") +
   facet_grid(HFTType ~ traderType) +
@@ -209,8 +204,8 @@ ggplot(HFT_liquidity_class, aes(x = eventReturn)) +
 
 
 hist(userReturns$eventReturn,
-     main = "Traders's Returns",
-     xlab = "Returns")
+  main = "Traders's Returns",
+  xlab = "Returns")
 
 
 summary(userReturns$eventReturn)
@@ -236,10 +231,10 @@ real_takers_events <- scaled_events %>%
 
 
 user_order_counts <- full_join(maker_order_counts,
-                               taker_order_counts,
-                               by = "user") |>
+  taker_order_counts,
+  by = "user") |>
   replace_na(list(makerCount = 0,
-                  takerCount = 0))
+    takerCount = 0))
 
 
 
@@ -247,9 +242,9 @@ user_order_counts <- full_join(maker_order_counts,
 
 
 plot(user_order_counts$makerCount, user_order_counts$takerCount, log = 'xy',
-     main = "Number of Maker and Taker orders",
-     xlab = "Number of Maker orders",
-     ylab = "Number of Taker orders")
+  main = "Number of Maker and Taker orders",
+  xlab = "Number of Maker orders",
+  ylab = "Number of Taker orders")
 
 
 
@@ -259,10 +254,10 @@ hist(user_order_counts$makerCount / user_order_counts$totalTrades, freq = TRUE)
 
 
 plot(user_order_counts$makerCount,
-user_order_counts$takerCount, log="xy")
+  user_order_counts$takerCount, log = "xy")
 
 
-plot(sort(user_order_counts$makerCount), log="y")
+plot(sort(user_order_counts$makerCount), log = "y")
 
 hist(user_order_counts$makerCount)
 hist(user_order_counts$takerCount)
@@ -273,8 +268,8 @@ ggplot(user_order_counts, aes(x = makerCount + 1)) +
   geom_histogram(binwidth = 0.1) +
   scale_x_log10() +
   labs(title = "Log-Histogram of Maker Orders",
-       x = "Maker Orders (log scale)",
-       y = "Count of Users") +
+    x = "Maker Orders (log scale)",
+    y = "Count of Users") +
   theme_minimal()
 
 
@@ -282,8 +277,8 @@ ggplot(user_order_counts, aes(x = takerCount + 1)) +
   geom_histogram(binwidth = 0.1) +
   scale_y_log10() +
   labs(title = "Log-Histogram of Taker Orders",
-       x = "Maker Orders (log scale)",
-       y = "Count of Users") +
+    x = "Maker Orders (log scale)",
+    y = "Count of Users") +
   theme_minimal()
 
 
@@ -292,18 +287,18 @@ df_fills <- scaled_events
 maker_vol <- df_fills |> 
   filter(maker %in% realUsers) |> 
   group_by(user = maker) |> 
-  summarize(vol = sum(tokenVolume), .groups="drop")
+  summarize(vol = sum(tokenVolume), .groups = "drop")
 
 taker_vol  <- df_fills %>%
   filter(taker %in% realUsers) |> 
   group_by(user = taker) %>%
-  summarize(vol = sum(tokenVolume), .groups="drop")  
+  summarize(vol = sum(tokenVolume), .groups = "drop")  
 
 # NOTE: if you want collateral volume, replace makerAmountFilled with takerAmountFilled
 
 df_vol <- bind_rows(maker_vol, taker_vol) %>%
   group_by(user) %>%
-  summarize(totalVol = sum(vol), .groups="drop")
+  summarize(totalVol = sum(vol), .groups = "drop")
 
 
 hist(df_vol$totalVol)
@@ -329,11 +324,11 @@ all_data
 df_lorenz <- df_vol %>%
   arrange(desc(totalVol)) %>%
   mutate(userRank      = row_number(),
-         cumVol        = cumsum(totalVol),
-         totalVolume   = sum(totalVol),
-         cumVolPct     = cumVol / totalVolume,
-         totalUsers    = n(),
-         cumUsersPct   = userRank / totalUsers)
+    cumVol        = cumsum(totalVol),
+    totalVolume   = sum(totalVol),
+    cumVolPct     = cumVol / totalVolume,
+    totalUsers    = n(),
+    cumUsersPct   = userRank / totalUsers)
 
 library(ggplot2)
 library(scales)
@@ -360,13 +355,9 @@ as.Date(timeSeriesData$timestamp)
 barplot(as.Date(timeSeriesData$timestamp))
 
 plot(timeSeriesData$timestamp,
-     timeSeriesData$tokenVolume)
+  timeSeriesData$tokenVolume)
 
-timeSeriesData$
-
-
-
+# timeSeriesData$
 # }
-
 # View the result
 # print(user_order_counts)
