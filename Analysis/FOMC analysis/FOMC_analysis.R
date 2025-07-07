@@ -3,7 +3,42 @@ library(readr)
 library(tidyr)
 library(ggplot2)
 
-event_files <- list.files(file.path(getwd(), "EventDatas"), pattern = ".RData$")
+
+# Load all RData from specified directory into varList list
+aggregateRDataVars <- function(directoryPath) {
+  rdata_files <- list.files(path = directoryPath,
+    pattern = "\\.RData$", full.names = TRUE)
+
+  if (length(rdata_files) == 0) {
+    stop("No RData files found in the specified directory.")
+  }
+
+  # Loop through each RData file
+  for (file_path in rdata_files) {
+    # Create new environment to load RData into
+    load_env <- new.env()
+
+    loaded_vars <- load(file_path, envir = load_env)
+
+    # Loop through the names of variables that were loaded
+    for (var_name in loaded_vars) {
+      list_name <- paste0(var_name, "List")
+
+      # Create list if it doesn't already exist in global environment
+      if (!exists(list_name, envir = .GlobalEnv)) {
+        assign(list_name, list(), envir = .GlobalEnv)
+      }
+
+      # Update list global environment with RData (local env) contents
+      existing_list <- get(list_name, envir = .GlobalEnv)
+      var_content <- get(var_name, envir = load_env)
+      updated_list <- c(existing_list, list(var_content))
+      assign(list_name, updated_list, envir = .GlobalEnv)
+    }
+  }
+  # return(invisible(NULL))
+}
+
 
 tokens_data <- read_csv("./FOMC Tokens.csv",
   col_types = cols(
@@ -24,16 +59,8 @@ tokens_outcomes <- tokens_data |>
       )
   )
 
-fileName <- "Fed_Interest_Rates_September_2024.RData"
-
-# Analyise individual events here
-# Generate plots for all events
-# for (fileName in event_files) {
-
-
-load(file.path(getwd(), "EventDatas", fileName))
-load(file.path(getwd(), "UserPnLs", fileName))
-
+aggregateRDataVars("./UserPnLs/")   # contains users' PnL, returns, real users
+aggregateRDataVars("./EventDatas/") # contains transactions, timeseries data
 
 # unique(timeSeriesData$asset)
 # 
@@ -49,8 +76,6 @@ load(file.path(getwd(), "UserPnLs", fileName))
 # 
 # library(ggplot2)
 # library(patchwork)
-
-
 # 
 # # price panel
 # p_price <- ggplot(asd, aes(timestamp, price, colour = asset)) +
@@ -71,22 +96,6 @@ load(file.path(getwd(), "UserPnLs", fileName))
 # (p_price / p_vol) + plot_layout(heights = c(2, 1))
 # 
 # 
-
-
-# down25 Yes
-# "88244443360063235221444316604590968694314258311386447899087521723508440858841" 
-
-# down50 Yes
-# "106191328358576540351439267765925450329859429577455659884974413809922495874408"
-
-# noChange Yes
-# "89262722133387845193166560202808972424089924545438804960915341631492994906283" 
-
-# up25 Yes
-# "95823178650727331613915203831778682038645976746731326695569990405131199144192" 
-
-
-
 # png(
 #   filename = paste0("./Plots/", event_name, "returnHist.png"),
 #   width = 800,
@@ -95,44 +104,401 @@ load(file.path(getwd(), "UserPnLs", fileName))
 # )
 
 
-{
+# Contains per-user
+# maker order count, token volume, usdcvolume
+# taker order count, token volume, usdcvolume
+# total returns
+user_statsList = list()
+
+# Calculate order counts, volume for maker & taker side
+# Save it to user_statsList
+for (i in seq_along(event_nameList)) {
+  # Grab event-specific variables
+  scaled_events <- scaled_eventsList[[i]]
+  realUsers <- realUsersList[[i]]
+  userReturns <- userReturnsList[[i]]
+  userMarketCount <- userMarketCountList[[i]]
+
+  ###### Order counts ######
   maker_order_counts <- scaled_events |>
-  filter(maker %in% realUsers) |>         # only rows where maker is in realUsers
-  distinct(maker, orderHash) |>           # one row per unique maker+orderHash
-  count(user = maker,                      # group by maker
-    name = "makerCount")               # tally unique orders
+    filter(maker %in% realUsers) |> # only rows where maker is in realUsers
+    distinct(maker, transactionHash) |> # one row per unique maker+orderHash
+    count(user = maker, # group by maker
+      name = "makerCount")
 
-  # 2) Count unique orders per taker **only** for realUsers
-  taker_order_counts <- scaled_events %>%
-    filter(taker %in% realUsers) %>%         # only rows where taker is in realUsers
-    distinct(taker, orderHash) %>%           # one row per unique taker+orderHash
-    count(user = taker,                      # group by taker
-      name = "takerCount")               # tally unique orders
+  # Count unique orders per taker for realUsers
+  taker_order_counts <- scaled_events |> 
+    filter(taker %in% realUsers) |> # only rows where taker is in realUsers
+    distinct(taker, transactionHash) |>  # one row per unique taker+orderHash
+    count(user = taker, name = "takerCount") # group by taker
 
-  # 3) Merge maker and taker counts, filling missing values with 0
-  user_order_counts <- full_join(maker_order_counts,
+  # Merge maker and taker counts, filling missing with 0
+  order_counts <- full_join(maker_order_counts,
     taker_order_counts,
     by = "user") |>
     replace_na(list(makerCount = 0,
-      takerCount = 0))
+      takerCount = 0)) |>
+    mutate(totalTradeCount = makerCount + takerCount)
 
+  ###### Order volume ######
+  maker_order_volume <- scaled_events |>
+    filter(maker %in% realUsers) |> # only rows where maker is in realUsers
+    group_by(maker) |>
+    summarise(
+      makerTokenVolume = sum(tokenVolume),
+      makerUsdcVolume = sum(usdcVolume)
+    ) |>
+    ungroup() |>
+    select(
+      user = maker,
+      makerTokenVolume,
+      makerUsdcVolume
+    )
 
-  user_order_counts <- user_order_counts |> 
-    left_join(userReturns,
-      by = "user") |> 
-    mutate(totalTrades = makerCount + takerCount)
+  # Count unique orders per taker for realUsers
+  taker_order_volume <- scaled_events |> 
+    filter(taker %in% realUsers) |> # only rows where taker is in realUsers
+    group_by(taker) |>
+    summarise(
+      takerTokenVolume = sum(tokenVolume),
+      takerUsdcVolume = sum(usdcVolume)
+    ) |> 
+    ungroup() |>
+    select(
+      user = taker,
+      takerTokenVolume,
+      takerUsdcVolume
+    )
 
+  # Merge maker and taker counts, filling missing with 0
+  order_volume <- full_join(maker_order_volume,
+    taker_order_volume,
+    by = "user") |>
+    replace_na(
+      list(
+        makerTokenVolume = 0,
+        makerUsdcVolume = 0,
+        takerTokenVolume = 0,
+        takerUsdcVolume = 0
+      )
+    ) |>
+    mutate(
+      totalTokenVolume = makerTokenVolume + takerTokenVolume,
+      totalUsdcVolume = makerUsdcVolume + takerUsdcVolume
+    )
+
+  # Merge order counts & volume
+  order_stats <- order_counts |> 
+    left_join(order_volume,
+      by = "user")
+
+  user_event_stats <- userReturns |> left_join(
+    userMarketCount, by = "user")
+
+  # Merge with user returns
+  # TODO: Also add other metrics described above
+  user_stats <- order_stats |> 
+    left_join(user_event_stats,
+      by = "user")
+
+  user_statsList[[i]] <- user_stats
+  rm(scaled_events)
+  rm(realUsers)
+  rm(userReturns)
   rm(maker_order_counts)
+  rm(maker_order_volume)
   rm(taker_order_counts)
+  rm(taker_order_volume)
+  rm(order_counts)
+  rm(order_volume)
+  rm(user_stats)
+  rm(order_stats)
+  rm(userMarketCount)
+  rm(i)
 }
 
 
+# TODO: Move this somewhere outside
+meeting_dates <- c(
+  as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_02_February"
+  as.POSIXct("2023-03-22 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_03_March"
+  as.POSIXct("2023-05-03 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_05_May"
+  as.POSIXct("2023-06-14 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_06_June"
+  as.POSIXct("2023-07-26 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_07_July"
+  as.POSIXct("2023-09-20 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_09_September"
+  as.POSIXct("2023-11-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_11_November"
+  as.POSIXct("2023-12-13 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_12_December"
+  as.POSIXct("2024-01-31 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_01_January"
+  as.POSIXct("2024-03-20 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_03_March"
+  # as.POSIXct("2024-05-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_06_June"
+  as.POSIXct("2024-06-12 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_06_June"
+  as.POSIXct("2024-07-31 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_07_July"
+  as.POSIXct("2024-09-18 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_09_September"
+  as.POSIXct("2024-11-07 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_11_November"
+  as.POSIXct("2024-12-18 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_12_December"
+  as.POSIXct("2025-01-29 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2025_01_January"
+  as.POSIXct("2025-03-19 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2025_03_March"
+  as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York") # "Fed_Interest_Rates_2025_05_May"
+)
 
+# 3 times checking thing
+# for (i in seq_along(event_nameList)) {
+#   print(event_nameList[[i]])
+#   print(sum(user_statsList[[i]]$totalTokenVolume) / 3)
+#   # NOTE: Why is this 3 times what it should be and not twice?
+# }
+# intermediaries <- user_statsList[[15]]$makerUsdcVolume == user_statsList[[15]]$takerUsdcVolume
+# hist(user_statsList[[15]]$eventReturn[intermediaries])
+# summary(user_statsList[[15]]$totalUsdcVolume[intermediaries])
+# summary(user_statsList[[15]]$totalTradeCount[intermediaries])
+# user_statsList[[1]]
+# rm(i)
 
+# NOTE: master table
+master_table <- bind_rows(user_statsList, .id = "market_id")
 
-HFT_class <- user_order_counts |> 
+winning_stats <- master_table |>
   mutate(
-    tradesPerDay = totalTrades / 55
+    winner = if_else(
+      eventReturn > 0,
+      TRUE,
+      FALSE
+    )
+  ) |> 
+  group_by(user) |>
+  summarise(numberWon = sum(winner),
+  numberLost = sum(1 - winner)) |>
+  mutate(percentWon = numberWon / sum(numberWon, numberLost))
+
+
+userSpending <- bind_rows(scaled_PnLList, .id = "market_id") |>
+  filter(investmentSize != 0) |> 
+  group_by(user) |>
+  summarise(
+    totalSpent = sum(investmentSize),
+    totalPnL = sum(payoff),
+    marketsParticipated = n()
+  ) |>
+  mutate(totalReturn = totalPnL / totalSpent)
+
+
+sum(userSpending$totalReturn < -1, na.rm = TRUE)
+
+hist(userSpending$totalReturn)
+
+plot(userSpending$marketsParticipated,
+userSpending$totalReturn)
+
+
+# NOTE: Descriptive statistics
+png(
+  filename = paste0("./Plots/", "returnHistSept.png"),
+  width = 800,
+  heigh = 600,
+  res = 100
+)
+ 
+# Winners or Losers
+
+# 29 percent win, 71% lose
+sum(user_statsList[[13]]$eventReturn > 0) / length(user_statsList[[13]]$user)
+
+event_nameList[[13]]
+hist(user_statsList[[13]]$eventReturn, breaks = "Scott",
+  main = "User returns for 2024 September market",
+  xlab = "Return",
+  xaxt = 'n'
+)
+
+new_ticks <- seq(-1, 12, by = 1)
+axis(side = 1, at = new_ticks)
+
+dev.off()
+
+# USDC Volume
+png(
+  filename = paste0("./Plots/", "USDCVolumeHistSept.png"),
+  width = 800,
+  heigh = 600,
+  res = 100
+)
+
+# USDC volume lognormally distributed with mean: 
+logvol <- log(user_statsList[[13]]$totalUsdcVolume[user_statsList[[13]]$totalUsdcVolume > 0])
+summary(logvol)
+
+
+event_nameList[[13]]
+hist(logvol, breaks = "Scott",
+  main = "Total log USDC volume for 2024 September market",
+  xlab = "Log Volume in $",
+  xaxt = 'n'
+)
+
+new_ticks <- seq(range(as.integer(summary(logvol)))[1], 
+  range(as.integer(summary(logvol)))[2],
+  by = 2)
+axis(side = 1, at = new_ticks)
+
+dev.off()
+
+
+# Token Volume
+png(
+  filename = paste0("./Plots/", "USDCTokenHistSept.png"),
+  width = 800,
+  heigh = 600,
+  res = 100
+)
+
+# USDC volume lognormally distributed with mean: 
+logvol <- log(user_statsList[[13]]$totalTokenVolume[user_statsList[[13]]$totalTokenVolume > 0])
+summary(logvol)
+
+event_nameList[[13]]
+hist(logvol, breaks = "Scott",
+  main = "Total log securities volume for 2024 September market",
+  xlab = "Log Asset Volume",
+  xaxt = 'n'
+)
+
+new_ticks <- seq(range(as.integer(summary(logvol)))[1], 
+  range(as.integer(summary(logvol)))[2],
+  by = 2)
+axis(side = 1, at = new_ticks)
+
+dev.off()
+
+
+# P&L Histogram
+png(
+  filename = paste0("./Plots/", "PnLHistSept.png"),
+  width = 800,
+  heigh = 600,
+  res = 100
+)
+
+a <- user_statsList[[13]]$eventReturn * user_statsList[[13]]$totalUsdcVolume
+# USDC volume lognormally distributed with mean: 
+logvol <- log(abs(a[a != 0])) * sign(a[a != 0])
+summary(logvol)
+
+event_nameList[[13]]
+hist(logvol, breaks = "Scott",
+  main = "log per-user PnL for 2024 September market",
+  xlab = "Log PnL",
+  xaxt = 'n'
+)
+
+new_ticks <- seq(range(as.integer(summary(logvol)))[1], 
+  range(as.integer(summary(logvol)))[2],
+  by = 2)
+axis(side = 1, at = new_ticks)
+
+dev.off()
+
+
+
+# maker/taker
+png(
+  filename = paste0("./Plots/", "makerUsdcProportion.png"),
+  width = 800,
+  heigh = 600,
+  res = 100
+)
+
+a <- user_statsList[[13]]$makerUsdcVolume / user_statsList[[13]]$totalUsdcVolume
+
+# event_nameList[[13]]
+hist(a, breaks = "Sturges",
+  main = "Per-user $ volume proportion of maker orders for 2024 September market",
+  xlab = "USDC volume proportion",
+  xaxt = 'n',
+  xlim = c(0, 1)
+)
+
+new_ticks <- seq(0, 1, by = .2)
+axis(side = 1, at = new_ticks)
+
+dev.off()
+
+
+# maker/taker
+png(
+  filename = paste0("./Plots/", "takerUsdcProportion.png"),
+  width = 800,
+  heigh = 600,
+  res = 100
+)
+
+a <- user_statsList[[13]]$takerUsdcVolume / user_statsList[[13]]$totalUsdcVolume
+
+# event_nameList[[13]]
+hist(a, breaks = "Sturges",
+  main = "Per-user $ volume proportion of taker orders for 2024 September market",
+  xlab = "USDC volume proportion",
+  xaxt = 'n',
+  xlim = c(0, 1)
+)
+
+new_ticks <- seq(0, 1, by = .2)
+axis(side = 1, at = new_ticks)
+
+dev.off()
+
+# Stuff from before
+plot(user_order_counts$makerCount, user_order_counts$takerCount, log = 'xy',
+  main = "Number of Maker and Taker orders",
+  xlab = "Number of Maker orders",
+  ylab = "Number of Taker orders")
+
+
+
+abline(a = 0, b = 1, col = "red", lwd = 2)
+
+hist(user_order_counts$makerCount / user_order_counts$totalTrades, freq = TRUE)
+
+
+plot(user_order_counts$makerCount,
+  user_order_counts$takerCount, log = "xy")
+
+
+plot(sort(user_order_counts$makerCount), log = "y")
+
+hist(user_order_counts$makerCount)
+hist(user_order_counts$takerCount)
+
+
+
+
+hist(user_statsList[[13]]$totalTradeCount)
+hist(user_statsList[[13]]$makerUsdcVolume)
+hist(user_statsList[[13]]$takerUsdcVolume)
+hist(user_statsList[[13]]$takerCount)
+
+
+min(scaled_eventsList[[13]]$timestamp)
+max(scaled_eventsList[[13]]$timestamp)
+
+
+
+# NOTE: Above certain amounts, etc.
+user_statsList[[13]]$totalUsdcVolume[user_statsList[[13]]$totalTradeCount > 2000]
+event_nameList[[13]]
+user_statsList[[13]]
+
+?quantile((user_statsList[[13]]$totalUsdcVolume), .90)
+
+user_statsList[[13]]$totalUsdcVolume[user_statsList[[13]]$totalTradeCount > 2000]
+user_statsList[[13]]$eventReturn[user_statsList[[13]]$totalTradeCount > 2000]
+
+
+
+# NOTE: Continue
+# HFT stuff
+HFT_class <- user_statsList[[13]] |> 
+  mutate(
+    tradesPerDay = totalTradeCount / 55
   ) |> 
   mutate(
     HFTType = if_else(
@@ -142,11 +508,10 @@ HFT_class <- user_order_counts |>
     )
   )
 
-
 # LPs
 HFT_liquidity_class <- HFT_class |> 
   mutate(
-    makerRatio = makerCount / totalTrades
+    makerRatio = makerCount / totalTradeCount 
   ) |> 
   mutate(
     traderType = if_else(
@@ -181,14 +546,7 @@ sum(asd$winner == "Profit")
 sum(asd$winner == "Loss")
 
 
-
-
-# user_liquidity_class |> 
-#   filter(traderType == "LP") |> 
-
-
-
-
+# older things
 ggplot(HFT_liquidity_class, aes(x = eventReturn)) +
   geom_histogram(bins = 30, colour = "black", fill = "grey80") +
   facet_grid(HFTType ~ traderType) +
@@ -198,112 +556,6 @@ ggplot(HFT_liquidity_class, aes(x = eventReturn)) +
     y     = "Count"
   ) +
   theme_bw()
-
-
-
-
-
-hist(userReturns$eventReturn,
-  main = "Traders's Returns",
-  xlab = "Returns")
-
-
-summary(userReturns$eventReturn)
-
-
-
-sum(user_order_counts$totalTrades > 100)
-
-
-plot(sort(user_order_counts$totalTrades))
-
-
-real_makers_events <- scaled_events |>
-  filter(maker %in% realUsers) |> 
-  group_by(maker) |> 
-  summarise(
-    makerVolume = sum()
-  )
-
-
-real_takers_events <- scaled_events %>%
-  filter(taker %in% realUsers)
-
-
-user_order_counts <- full_join(maker_order_counts,
-  taker_order_counts,
-  by = "user") |>
-  replace_na(list(makerCount = 0,
-    takerCount = 0))
-
-
-
-
-
-
-plot(user_order_counts$makerCount, user_order_counts$takerCount, log = 'xy',
-  main = "Number of Maker and Taker orders",
-  xlab = "Number of Maker orders",
-  ylab = "Number of Taker orders")
-
-
-
-abline(a = 0, b = 1, col = "red", lwd = 2)
-
-hist(user_order_counts$makerCount / user_order_counts$totalTrades, freq = TRUE)
-
-
-plot(user_order_counts$makerCount,
-  user_order_counts$takerCount, log = "xy")
-
-
-plot(sort(user_order_counts$makerCount), log = "y")
-
-hist(user_order_counts$makerCount)
-hist(user_order_counts$takerCount)
-
-
-# Log histogram maker orders
-ggplot(user_order_counts, aes(x = makerCount + 1)) +
-  geom_histogram(binwidth = 0.1) +
-  scale_x_log10() +
-  labs(title = "Log-Histogram of Maker Orders",
-    x = "Maker Orders (log scale)",
-    y = "Count of Users") +
-  theme_minimal()
-
-
-ggplot(user_order_counts, aes(x = takerCount + 1)) +
-  geom_histogram(binwidth = 0.1) +
-  scale_y_log10() +
-  labs(title = "Log-Histogram of Taker Orders",
-    x = "Maker Orders (log scale)",
-    y = "Count of Users") +
-  theme_minimal()
-
-
-df_fills <- scaled_events
-
-maker_vol <- df_fills |> 
-  filter(maker %in% realUsers) |> 
-  group_by(user = maker) |> 
-  summarize(vol = sum(tokenVolume), .groups = "drop")
-
-taker_vol  <- df_fills %>%
-  filter(taker %in% realUsers) |> 
-  group_by(user = taker) %>%
-  summarize(vol = sum(tokenVolume), .groups = "drop")  
-
-# NOTE: if you want collateral volume, replace makerAmountFilled with takerAmountFilled
-
-df_vol <- bind_rows(maker_vol, taker_vol) %>%
-  group_by(user) %>%
-  summarize(totalVol = sum(vol), .groups = "drop")
-
-
-hist(df_vol$totalVol)
-
-
 
 
 all_data <- df_vol |> 
@@ -344,20 +596,3 @@ ggplot(df_lorenz, aes(x = cumUsersPct, y = cumVolPct)) +
     y = "Cumulative % of Volume"
   ) +
   theme_minimal()
-
-
-
-
-
-
-as.Date(timeSeriesData$timestamp)
-
-barplot(as.Date(timeSeriesData$timestamp))
-
-plot(timeSeriesData$timestamp,
-  timeSeriesData$tokenVolume)
-
-# timeSeriesData$
-# }
-# View the result
-# print(user_order_counts)

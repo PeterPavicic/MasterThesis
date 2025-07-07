@@ -56,11 +56,16 @@ perform_analysis <- function(event_tibble, event_name) {
     ) |>
     arrange(user)
 
+  userMarketCount <- scaled_PnL |>
+    select(user, tokenId, investmentSize) |>
+    count(user, name = "marketCount")
+
   realUsers <- unique(userReturns$user)
   save(
     scaled_PnL,
     userReturns,
     realUsers,
+    userMarketCount,
     file = sprintf("./UserPnLs/%s.RData", event_name)
   )
   # save.image(sprintf("./UserPnLs/%s.RData", event_name))

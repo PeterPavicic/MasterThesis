@@ -11,7 +11,7 @@ perform_analysis <- function(event_tibble, event_name) {
 
   scaled_events <- event_tibble |>
     mutate(
-      timestamp = as.POSIXct(timestamp, tz = "Europe/Vienna")
+      timestamp = as.POSIXct(timestamp, tz = "UTC")
     ) |>
     mutate(
       type = if_else(makerAssetId == 0,
@@ -54,16 +54,19 @@ perform_analysis <- function(event_tibble, event_name) {
       tokenVolume
     )
 
+  # Save time series data
   write.csv(timeSeriesData, sprintf("./TimeSeries/%s.csv", event_name), row.names = FALSE)
+
+  # Save RData file
   save(
     event_name,
     scaled_events,
     timeSeriesData,
     file = sprintf("./EventDatas/%s.RData", event_name)
   )
-  # save.image(sprintf("./EventDatas/%s.RData", event_name), )
-}
 
+  cat("\nDone with analysis for ", event_name, "\n")
+}
 
 dirs <- list.dirs(path = file.path(dirname(dirname(getwd())), "Data Transactions/All Fed Events"), recursive = FALSE)
 
@@ -91,4 +94,3 @@ for (dir in dirs) {
 # Analyise individual markets here
 
 # load(file = "./EventDatas/Fed_Interest_Rates_September_2024.RData")
-

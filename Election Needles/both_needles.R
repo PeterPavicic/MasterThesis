@@ -11,18 +11,18 @@ nyt_trump_needle <- read.table("needle_data/trump_odds_needle.txt", skip = 1, se
 
 # Keep only second entry for each timestep since data is from SVG format
 # Where coordinates are given for drawing vector graphics
-nyt_harris_needle <- nyt_harris_needle[seq(1, nrow(nyt_trump_needle), 2),]
-nyt_trump_needle <- nyt_trump_needle[seq(1, nrow(nyt_trump_needle), 2),]
+nyt_harris_needle <- nyt_harris_needle[seq(1, nrow(nyt_trump_needle), 2), ]
+nyt_trump_needle <- nyt_trump_needle[seq(1, nrow(nyt_trump_needle), 2), ]
 
 colnames(nyt_harris_needle) <- c("time", "odds")
 colnames(nyt_trump_needle) <- c("time", "odds")
 
 
-nyt_harris_needle[,"odds"] <- 1 - (nyt_harris_needle[,"odds"] / 210)
-nyt_trump_needle[,"odds"] <- 1 - (nyt_trump_needle[,"odds"] / 210)
+nyt_harris_needle[, "odds"] <- 1 - (nyt_harris_needle[, "odds"] / 210)
+nyt_trump_needle[, "odds"] <- 1 - (nyt_trump_needle[, "odds"] / 210)
 
-nyt_harris_needle[,"time"] <- nyt_harris_needle[,"time"] / 612
-nyt_trump_needle[,"time"] <- nyt_trump_needle[,"time"] / 612
+nyt_harris_needle[, "time"] <- nyt_harris_needle[, "time"] / 612
+nyt_trump_needle[, "time"] <- nyt_trump_needle[, "time"] / 612
 
 # Starting time: ca. 8PM ET aka New York time
 # Ending time: 5:38AM ET
@@ -31,8 +31,8 @@ needleStart <- as.numeric(as.POSIXct("2024-11-05 20:00", tz = "America/New_York"
 needleEnd <- as.numeric(as.POSIXct("2024-11-06 05:38", tz = "America/New_York"))
 timelength <- needleEnd - needleStart
 
-nyt_harris_needle[,"time"] <- as.POSIXct(needleStart + nyt_harris_needle[,"time"] * timelength)
-nyt_trump_needle[,"time"] <- as.POSIXct(needleStart + nyt_trump_needle[,"time"] * timelength)
+nyt_harris_needle[, "time"] <- as.POSIXct(needleStart + nyt_harris_needle[, "time"] * timelength)
+nyt_trump_needle[, "time"] <- as.POSIXct(needleStart + nyt_trump_needle[, "time"] * timelength)
 
 
 polymarket_harris <- read.csv("needle_data/minute_data_harris.csv",
@@ -50,7 +50,7 @@ polymarket_data <- data.frame("Timestamp" = as.POSIXct(polymarket_harris$timesta
                               "Trump" = polymarket_trump$price)
 
 polymarket_data <- polymarket_data[needleStart <= as.numeric(polymarket_data$Timestamp) &
-                                           as.numeric(polymarket_data$Timestamp) <= needleEnd,]
+                                           as.numeric(polymarket_data$Timestamp) <= needleEnd, ]
 
 polymarket_harris_needle <- data.frame("Timestamp" = polymarket_data$Timestamp,
                                        "odds" = polymarket_data$Harris)
@@ -241,12 +241,12 @@ print(granger_test$Granger)
 residuals_var <- residuals(var_model)
 serial_test <- serial.test(var_model, lags.pt = optimal_lag, type = "PT.asymptotic")
 print(serial_test)
-Box.test(residuals_var[,1], lag = optimal_lag, type = "Ljung-Box")
-Box.test(residuals_var[,2], lag = optimal_lag, type = "Ljung-Box")
-adf.test(residuals_var[,1], alternative = "stationary", k = optimal_lag)
-adf.test(residuals_var[,2], alternative = "stationary", k = optimal_lag)
-plot(residuals_var[,1])
-plot(residuals_var[,2])
+Box.test(residuals_var[, 1], lag = optimal_lag, type = "Ljung-Box")
+Box.test(residuals_var[, 2], lag = optimal_lag, type = "Ljung-Box")
+adf.test(residuals_var[, 1], alternative = "stationary", k = optimal_lag)
+adf.test(residuals_var[, 2], alternative = "stationary", k = optimal_lag)
+plot(residuals_var[, 1])
+plot(residuals_var[, 2])
 
 
 # Granger Causality test
@@ -264,12 +264,12 @@ print(granger_test$Granger)
 residuals_var <- residuals(var_model)
 serial_test <- serial.test(var_model, lags.pt = optimal_lag, type = "PT.asymptotic")
 print(serial_test)
-Box.test(residuals_var[,1], lag = optimal_lag, type = "Ljung-Box")
-Box.test(residuals_var[,2], lag = optimal_lag, type = "Ljung-Box")
-adf.test(residuals_var[,1], alternative = "stationary", k = optimal_lag)
-adf.test(residuals_var[,2], alternative = "stationary", k = optimal_lag)
-plot(residuals_var[,1])
-plot(residuals_var[,2])
+Box.test(residuals_var[, 1], lag = optimal_lag, type = "Ljung-Box")
+Box.test(residuals_var[, 2], lag = optimal_lag, type = "Ljung-Box")
+adf.test(residuals_var[, 1], alternative = "stationary", k = optimal_lag)
+adf.test(residuals_var[, 2], alternative = "stationary", k = optimal_lag)
+plot(residuals_var[, 1])
+plot(residuals_var[, 2])
 
 
 

@@ -201,41 +201,42 @@ def getTokenActivity(queryName: str, conditionList, startPages: int | list[int] 
 
 
 if __name__ == "__main__":
-    tokenCSV = os.path.join(ROOT_DIR, "Analysis", "FOMC analysis", "FOMC Tokens.csv")
-    with open(tokenCSV, 'r') as file:
-        df = pd.read_csv(file,
-                         dtype = {
-                         "slug": str,
-                         "event_slug": str,
-                         "volume": float,
-                         "Condition": str,
-                         "Yes": str,
-                         "No": str,
-                         "outcomeYes": str,
-                         "outcomeNo": str
-                         })
 
-    for event_slug, group in df.groupby("event_slug"):
-        conditionIDs = list(group["Condition"].values)
-        getTokenActivity(f"{cleanStringForGraphql(str(event_slug))}", conditionIDs)
-
-
-    # jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
-    # fileNames = [f for f in os.listdir(jsons_dir)]
+    jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+    fileNames = [f for f in os.listdir(jsons_dir)]
     # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
+    json_files = [
+        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-january-2025.json",
+        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-november-2023.json"
+    ]
+    
+    for json_file in json_files:
+        # print(json_file)
+        with open(json_file, 'r') as file:
+            data = json.load(file)
+        eventTitle = data.get("title")
+        markets = data.get("markets")
+        getTransactions(eventTitle, markets)
 
+    print("Done getting missing data")
+
+    # tokenCSV = os.path.join(ROOT_DIR, "Analysis", "FOMC analysis", "FOMC Tokens.csv")
+    # with open(tokenCSV, 'r') as file:
+    #     df = pd.read_csv(file,
+    #                      dtype = {
+    #                      "slug": str,
+    #                      "event_slug": str,
+    #                      "volume": float,
+    #                      "Condition": str,
+    #                      "Yes": str,
+    #                      "No": str,
+    #                      "outcomeYes": str,
+    #                      "outcomeNo": str
+    #                      })
     #
-    # json_files = ["/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"]
-    #
-    # for json_file in json_files:
-    #     print(json_file)
-    #     with open(json_file, 'r') as file:
-    #         data = json.load(file)
-    #     eventTitle = data.get("title")
-    #     markets = data.get("markets")
-    #     getUserPnLs(eventTitle, markets)
-    #
-    # print("Done getting all Presidential election Events' users' positions")
+    # for event_slug, group in df.groupby("event_slug"):
+    #     conditionIDs = list(group["Condition"].values)
+    #     getTokenActivity(f"{cleanStringForGraphql(str(event_slug))}", conditionIDs)
 
 
     pass
