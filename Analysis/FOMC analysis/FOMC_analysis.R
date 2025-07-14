@@ -534,17 +534,11 @@ dev.off()
 
 
 
-
-
-
-
-
 # Stuff from before
 plot(user_order_counts$makerCount, user_order_counts$takerCount, log = 'xy',
   main = "Number of Maker and Taker orders",
   xlab = "Number of Maker orders",
   ylab = "Number of Taker orders")
-
 
 
 abline(a = 0, b = 1, col = "red", lwd = 2)

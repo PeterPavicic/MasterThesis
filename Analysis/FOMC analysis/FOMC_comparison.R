@@ -1,6 +1,5 @@
 library(dplyr)
 library(ggplot2)
-library(ggplot2)
 library(readr)
 library(tibble)
 library(tidyr)
@@ -9,6 +8,26 @@ library(viridis)
 
 # NOTE: Comparison for September 2024 market
 
+# Writing FOMC Tokens.csv from bkp
+read_csv(
+  "./bkpFOMC Tokens.csv",
+  col_types = cols(
+    Yes = col_character(),
+    No = col_character()
+  )) |>
+  select(
+    event_slug,
+    slug,
+    volume,
+    Condition,
+    Yes,
+    No,
+    outcomeYes,
+    outcomeNo
+  ) |>
+  write_csv("./FOMC Tokens.csv")
+
+# TODO: Generalise this to work with any FOMC market
 tokens_data <- read_csv(
   "./FOMC Tokens.csv",
   col_types = cols(
@@ -33,7 +52,8 @@ tokens_data <- read_csv(
   )
 
 PM_data <- read_csv(
-  "./TimeSeries/Fed_Interest_Rates_2024_09_September.csv",
+  # "./TimeSeries/Fed_Interest_Rates_2024_09_September.csv",
+  "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv",
   col_types = cols(
     asset = col_character() 
     # timestamp = col_datetime()
@@ -48,14 +68,11 @@ PM_data <- read_csv(
       select(assetName, Yes),
     by = join_by(asset == Yes)
   ) |>
-  select(time, asset = assetName, price) |>
-  filter(
-    time > as.POSIXct("2024-08-01 00:00:00", tz = "America/New_York"),
-    time < as.POSIXct("2024-09-30 23:59:59", tz = "America/New_York")
-  )
+  select(time, asset = assetName, price)
+
 
 PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
-
+range(PM_data$time)
 
 ZQU24 <- read_csv(
   "./ZQ/ZQU2024.csv",
@@ -130,8 +147,6 @@ range(ZQV24$time)
 PM_data_start <- min(PM_data$time)
 PM_data_end <- max(PM_data$time)
 september_end <- as.POSIXct("2024-09-30 23:59:59", tz = "America/New_York")
-
-# as.numeric(range(PM_data$time))
 
 # August: Q
 # September: U
@@ -494,5 +509,3 @@ min(ZQU24$time) > min(PM_data$time)
 #   col = c("#440154", "#2D708E", "#73D055"),
 #   lwd = c(5, 5, 5)
 # )
-
-

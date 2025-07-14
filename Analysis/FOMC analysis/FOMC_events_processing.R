@@ -10,9 +10,9 @@ perform_analysis <- function(event_tibble, event_name) {
     arrange(timestamp)
 
   scaled_events <- event_tibble |>
-    mutate(
-      timestamp = as.POSIXct(timestamp, tz = "UTC")
-    ) |>
+    # mutate(
+    #   timestamp = as.POSIXct(timestamp, tz = "UTC")
+    # ) |>
     mutate(
       type = if_else(makerAssetId == 0,
         "makerBuy",
