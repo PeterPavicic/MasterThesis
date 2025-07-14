@@ -4,7 +4,7 @@ library(purrr)
 
 asd <- read.csv("/home/peter/WU_OneDrive/QFin/MT Master Thesis/Analysis/FOMC analysis/TimeSeries/Fed_Interest_Rates_2024_09_September.csv")
 
-sum(asd$tokenVolume) / 2
+sum(tokenVolume)
 
 # Assuming 'scaled_events' is your dataframe of orderFilledEvents
 # and it includes transactionHash, maker, taker, and tokenVolume.

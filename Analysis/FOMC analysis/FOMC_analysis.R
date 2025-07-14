@@ -50,7 +50,7 @@ tokens_outcomes <- tokens_data |>
   select(
     tokenId = Yes,
     tokenOutcome = outcomeYes
-  )  |>
+  ) |>
   bind_rows(
     tokens_data |> 
       select(
@@ -289,6 +289,7 @@ hist(userSpending$totalReturn)
 plot(userSpending$marketsParticipated,
 userSpending$totalReturn)
 
+# dev.new()
 
 # NOTE: Descriptive statistics
 png(
@@ -303,17 +304,32 @@ png(
 # 29 percent win, 71% lose
 sum(user_statsList[[13]]$eventReturn > 0) / length(user_statsList[[13]]$user)
 
-event_nameList[[13]]
-hist(user_statsList[[13]]$eventReturn, breaks = "Scott",
+toPlot <- user_statsList[[13]]$eventReturn
+toPlotMean <- round(mean(toPlot), 4)
+toPlotMedian <- round(median(toPlot), 4)
+
+# event_nameList[[13]]
+hist(toPlot, breaks = "Scott",
   main = "User returns for 2024 September market",
   xlab = "Return",
   xaxt = 'n'
+)
+abline(v = toPlotMean, col = "#440154", lwd = 3)
+abline(v = toPlotMedian, col = "#73D055", lwd = 3)
+legend("topright",
+  c(paste("Mean:", toPlotMean),
+    paste("Median:", toPlotMedian)
+  ),
+  col = c("#440154", "#73D055"),
+  lwd = 5
 )
 
 new_ticks <- seq(-1, 12, by = 1)
 axis(side = 1, at = new_ticks)
 
 dev.off()
+
+
 
 # USDC Volume
 png(
@@ -327,20 +343,33 @@ png(
 logvol <- log(user_statsList[[13]]$totalUsdcVolume[user_statsList[[13]]$totalUsdcVolume > 0])
 summary(logvol)
 
+toPlot <- logvol
+toPlotMean <- round(exp(mean(toPlot)), 4)
+toPlotMedian <- round(exp(median(toPlot)), 4)
 
 event_nameList[[13]]
-hist(logvol, breaks = "Scott",
-  main = "Total log USDC volume for 2024 September market",
-  xlab = "Log Volume in $",
+hist(toPlot, breaks = "Scott",
+  main = "Total USDC volume for 2024 September market (log)",
+  xlab = "Volume in $",
   xaxt = 'n'
 )
-
+abline(v = toPlotMean, col = "#440154", lwd = 3)
+abline(v = toPlotMedian, col = "#73D055", lwd = 3)
+legend("topright",
+  c(paste("Mean:", toPlotMean),
+    paste("Median:", toPlotMedian)
+  ),
+  col = c("#440154", "#73D055"),
+  lwd = 5
+)
 new_ticks <- seq(range(as.integer(summary(logvol)))[1], 
   range(as.integer(summary(logvol)))[2],
   by = 2)
-axis(side = 1, at = new_ticks)
+axis(side = 1, at = new_ticks, labels = round(exp(new_ticks), 1))
 
 dev.off()
+
+
 
 
 # Token Volume
@@ -355,19 +384,35 @@ png(
 logvol <- log(user_statsList[[13]]$totalTokenVolume[user_statsList[[13]]$totalTokenVolume > 0])
 summary(logvol)
 
+toPlot <- logvol
+toPlotMean <- round(exp(mean(toPlot)), 4)
+toPlotMedian <- round(exp(median(toPlot)), 4)
+
 event_nameList[[13]]
-hist(logvol, breaks = "Scott",
-  main = "Total log securities volume for 2024 September market",
-  xlab = "Log Asset Volume",
+hist(toPlot, breaks = "Scott",
+  main = "Total securities volume for 2024 September market (log)",
+  xlab = "Asset Volume",
   xaxt = 'n'
+)
+abline(v = toPlotMean, col = "#440154", lwd = 3)
+abline(v = toPlotMedian, col = "#73D055", lwd = 3)
+legend("topright",
+  c(paste("Mean:", toPlotMean),
+    paste("Median:", toPlotMedian)
+  ),
+  col = c("#440154", "#73D055"),
+  lwd = 5
 )
 
 new_ticks <- seq(range(as.integer(summary(logvol)))[1], 
   range(as.integer(summary(logvol)))[2],
   by = 2)
-axis(side = 1, at = new_ticks)
+axis(side = 1, at = new_ticks, labels = round(exp(new_ticks), 1))
 
 dev.off()
+
+
+
 
 
 # P&L Histogram
@@ -383,17 +428,31 @@ a <- user_statsList[[13]]$eventReturn * user_statsList[[13]]$totalUsdcVolume
 logvol <- log(abs(a[a != 0])) * sign(a[a != 0])
 summary(logvol)
 
+
+toPlot <- logvol
+toPlotMean <- round(exp(mean(toPlot)), 4)
+toPlotMedian <- round(exp(median(toPlot)), 4)
+
 event_nameList[[13]]
-hist(logvol, breaks = "Scott",
+hist(toPlot, breaks = "Scott",
   main = "log per-user PnL for 2024 September market",
-  xlab = "Log PnL",
+  xlab = "PnL",
   xaxt = 'n'
+)
+abline(v = toPlotMean, col = "#440154", lwd = 3)
+abline(v = toPlotMedian, col = "#73D055", lwd = 3)
+legend("topright",
+  c(paste("Mean:", toPlotMean),
+    paste("Median:", toPlotMedian)
+  ),
+  col = c("#440154", "#73D055"),
+  lwd = 5
 )
 
 new_ticks <- seq(range(as.integer(summary(logvol)))[1], 
   range(as.integer(summary(logvol)))[2],
   by = 2)
-axis(side = 1, at = new_ticks)
+axis(side = 1, at = new_ticks, labels = round(exp(new_ticks), 1))
 
 dev.off()
 
@@ -409,12 +468,25 @@ png(
 
 a <- user_statsList[[13]]$makerUsdcVolume / user_statsList[[13]]$totalUsdcVolume
 
+toPlot <- a
+toPlotMean <- round(mean(toPlot), 4)
+toPlotMedian <- round(median(toPlot), 4)
+
 # event_nameList[[13]]
-hist(a, breaks = "Sturges",
+hist(toPlot, breaks = "Sturges",
   main = "Per-user $ volume proportion of maker orders for 2024 September market",
   xlab = "USDC volume proportion",
   xaxt = 'n',
   xlim = c(0, 1)
+)
+abline(v = toPlotMean, col = "#440154", lwd = 3)
+abline(v = toPlotMedian, col = "#73D055", lwd = 3)
+legend("topright",
+  c(paste("Mean:", toPlotMean),
+    paste("Median:", toPlotMedian)
+  ),
+  col = c("#440154", "#73D055"),
+  lwd = 5
 )
 
 new_ticks <- seq(0, 1, by = .2)
@@ -433,18 +505,39 @@ png(
 
 a <- user_statsList[[13]]$takerUsdcVolume / user_statsList[[13]]$totalUsdcVolume
 
+
+toPlot <- a
+toPlotMean <- round(mean(toPlot), 4)
+toPlotMedian <- round(median(toPlot), 4)
+
 # event_nameList[[13]]
-hist(a, breaks = "Sturges",
+hist(toPlot, breaks = "Sturges",
   main = "Per-user $ volume proportion of taker orders for 2024 September market",
   xlab = "USDC volume proportion",
   xaxt = 'n',
   xlim = c(0, 1)
+)
+abline(v = toPlotMean, col = "#440154", lwd = 3)
+abline(v = toPlotMedian, col = "#73D055", lwd = 3)
+legend("topright",
+  c(paste("Mean:", toPlotMean),
+    paste("Median:", toPlotMedian)
+  ),
+  col = c("#440154", "#73D055"),
+  lwd = 5
 )
 
 new_ticks <- seq(0, 1, by = .2)
 axis(side = 1, at = new_ticks)
 
 dev.off()
+
+
+
+
+
+
+
 
 # Stuff from before
 plot(user_order_counts$makerCount, user_order_counts$takerCount, log = 'xy',
