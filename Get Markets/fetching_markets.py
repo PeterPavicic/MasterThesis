@@ -204,7 +204,6 @@ def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list
         with open(event, "r") as file:
             data = json.load(file)
 
-
             event_slug = data.get("slug")
             marketsData = data.get("markets")
 
@@ -215,6 +214,7 @@ def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list
             conditionId = market.get("conditionId")
             clobEntry = market.get("clobTokenIds")
             outcomePricesEntry = market.get("outcomePrices")
+            groupItemTitle = market.get("groupItemTitle")
 
             # HACK: Assets with no token IDs are skipped and not written to markets
             if clobEntry is None:
@@ -229,8 +229,9 @@ def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list
             outcomeNo = outcomePrices[1]
 
             marketDict = {
-                "slug": slug,
                 "event_slug": event_slug,
+                "slug": slug,
+                "marketTitle": groupItemTitle,
                 "volume": volume,
                 "Condition": conditionId,
                 "Yes": yesAsset,
@@ -252,6 +253,7 @@ def json_files_to_one_csv(json_dir, out_csv):
     all_dfs = []
 
     for path in glob.glob(os.path.join(json_dir, '*.json')):
+        print(f"Processing {path}")
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         # ensure type list

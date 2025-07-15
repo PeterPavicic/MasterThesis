@@ -8,24 +8,6 @@ library(viridis)
 
 # NOTE: Comparison for September 2024 market
 
-# Writing FOMC Tokens.csv from bkp
-read_csv(
-  "./bkpFOMC Tokens.csv",
-  col_types = cols(
-    Yes = col_character(),
-    No = col_character()
-  )) |>
-  select(
-    event_slug,
-    slug,
-    volume,
-    Condition,
-    Yes,
-    No,
-    outcomeYes,
-    outcomeNo
-  ) |>
-  write_csv("./FOMC Tokens.csv")
 
 # TODO: Generalise this to work with any FOMC market
 tokens_data <- read_csv(
@@ -50,6 +32,7 @@ tokens_data <- read_csv(
     Yes,
     No
   )
+
 
 PM_data <- read_csv(
   # "./TimeSeries/Fed_Interest_Rates_2024_09_September.csv",

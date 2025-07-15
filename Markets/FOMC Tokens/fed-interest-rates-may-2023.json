@@ -1,7 +1,8 @@
 [
   {
-    "slug": "will-the-fed-increase-interest-rates-by-0-bps-after-its-may-meeting",
     "event_slug": "fed-interest-rates-may-2023",
+    "slug": "will-the-fed-increase-interest-rates-by-0-bps-after-its-may-meeting",
+    "marketTitle": "0 bps increase after May meeting?",
     "volume": "59840.957104",
     "Condition": "0xe83e0658c0c1cdfc4e2e4a82128307cc9b4c2cd0239c321f5a8f8a5ec38ae6b9",
     "Yes": "\"23650086263083463046866085460688010098893623875122636648911714629906015607279\"",
@@ -10,8 +11,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "will-the-fed-decrease-interest-rates-by-25-bps-after-its-may-meeting",
     "event_slug": "fed-interest-rates-may-2023",
+    "slug": "will-the-fed-decrease-interest-rates-by-25-bps-after-its-may-meeting",
+    "marketTitle": "25 bps decrease after May meeting?",
     "volume": "9782.958393",
     "Condition": "0xfe19e1af4350a0bbed71a3805badb5b661c0598321d983b1f2e7066c7261a83d",
     "Yes": "\"77209694159259082790197575986383892325824939786255945625736889530908894966530\"",
@@ -20,8 +22,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "will-the-fed-increase-interest-rates-by-25-bps-after-its-may-meeting",
     "event_slug": "fed-interest-rates-may-2023",
+    "slug": "will-the-fed-increase-interest-rates-by-25-bps-after-its-may-meeting",
+    "marketTitle": "25 bps increase after May meeting?",
     "volume": "161929.810726",
     "Condition": "0x9876cd5626a39e33e073159b813199f48ee860c8279f67244ee085dc7a9f0b41",
     "Yes": "\"115350632289540754655477413035450781265287800543010890679113445883868019459501\"",
@@ -30,8 +33,9 @@
     "outcomeNo": "\"0\""
   },
   {
-    "slug": "will-the-fed-increase-interest-rates-by-50-bps-after-its-may-meeting",
     "event_slug": "fed-interest-rates-may-2023",
+    "slug": "will-the-fed-increase-interest-rates-by-50-bps-after-its-may-meeting",
+    "marketTitle": "50 bps increase after May meeting?",
     "volume": "17386.70661",
     "Condition": "0x50555c7f34fc16f03d84dd3c5f416506e53455515a8ca82c0fa90a2f8cacb5d3",
     "Yes": "\"33261527669619336954907279704446573896925969032948558995572827246663602014042\"",

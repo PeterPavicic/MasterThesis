@@ -1,7 +1,8 @@
 [
   {
-    "slug": "will-the-fed-increase-interest-rates-by-25-bps-after-their-september-meeting",
     "event_slug": "fed-interest-rates-september-2022",
+    "slug": "will-the-fed-increase-interest-rates-by-25-bps-after-their-september-meeting",
+    "marketTitle": "25 bps increase after September meeting? ",
     "volume": "1331.207661",
     "Condition": "0x8137d425a84134010f70af5c51198b3c0b0155c34125095d12e2a9b9da13e395",
     "Yes": "\"21261756861784164898332695903126353375429196634668100217027472401102808734075\"",
@@ -10,8 +11,9 @@
     "outcomeNo": "\"0.9999980458726058055020668822888475\""
   },
   {
-    "slug": "will-the-fed-increase-interest-rates-by-75-bps-after-their-september-meeting",
     "event_slug": "fed-interest-rates-september-2022",
+    "slug": "will-the-fed-increase-interest-rates-by-75-bps-after-their-september-meeting",
+    "marketTitle": "75 bps increase after September meeting? ",
     "volume": "423473.422814",
     "Condition": "0xb9ba5452e141e2ca056cc1e909d704273eba37dcde4eb70ae86f20a902eb3bef",
     "Yes": "\"30649718793991109895369298088929962316556831898489636995154585317909137916595\"",
@@ -20,8 +22,9 @@
     "outcomeNo": "\"0.000001209383817874142778324141422059021\""
   },
   {
-    "slug": "will-the-fed-increase-interest-rates-by-100-bps-after-their-september-meeting",
     "event_slug": "fed-interest-rates-september-2022",
+    "slug": "will-the-fed-increase-interest-rates-by-100-bps-after-their-september-meeting",
+    "marketTitle": "100 bps increase after September meeting? ",
     "volume": "25792.204752",
     "Condition": "0x6bcfad376b0836cdeea187c8578328e17511dd0295f1b6afa0b2fed368a29839",
     "Yes": "\"63343939007792930621078156300535073891138946428533808447734829661979974331888\"",

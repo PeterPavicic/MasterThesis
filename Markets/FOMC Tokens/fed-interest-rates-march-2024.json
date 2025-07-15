@@ -1,7 +1,8 @@
 [
   {
-    "slug": "will-the-fed-raise-interest-rates-by-25-bps-after-its-2024-march-meeting",
     "event_slug": "fed-interest-rates-march-2024",
+    "slug": "will-the-fed-raise-interest-rates-by-25-bps-after-its-2024-march-meeting",
+    "marketTitle": "25+ bps increase",
     "volume": "197105.478278",
     "Condition": "0xdf3b361f2617570e0abc10ece5e350a979c5e1e58ad5a2b5147e023ade4d9311",
     "Yes": "\"100647932394524753511024372351439090270565953451319138975996721541418061568325\"",
@@ -10,8 +11,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "will-the-fed-decrease-interest-rates-by-50-bps-after-its-march-2024-meeting",
     "event_slug": "fed-interest-rates-march-2024",
+    "slug": "will-the-fed-decrease-interest-rates-by-50-bps-after-its-march-2024-meeting",
+    "marketTitle": "50+ bps decrease",
     "volume": "13322.492923",
     "Condition": "0xd4a957e7b51fc2e74c4f1909583972011772eda01aada975251aeaffbbc73f56",
     "Yes": "\"11926510984467575492668088820266912612839730750582615176483366783609104285702\"",
@@ -20,8 +22,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "will-the-fed-decrease-interest-rates-by-25-bps-after-its-2024-march-meeting",
     "event_slug": "fed-interest-rates-march-2024",
+    "slug": "will-the-fed-decrease-interest-rates-by-25-bps-after-its-2024-march-meeting",
+    "marketTitle": "25 bps decrease",
     "volume": "8974.822979",
     "Condition": "0x70ee5e1d18a794f36d3c50b7215bd203e00f702d71fa0f0014466f98afe35a09",
     "Yes": "\"36077421028184666368397541781786578313775102458600964047317604370778545362617\"",
@@ -30,8 +33,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "no-change-in-fed-raise-interest-rates-after-its-2024-march-meeting",
     "event_slug": "fed-interest-rates-march-2024",
+    "slug": "no-change-in-fed-raise-interest-rates-after-its-2024-march-meeting",
+    "marketTitle": "No change",
     "volume": "63023.462319",
     "Condition": "0xa1d06c273030c75b85ecfee08b2ff1f0e510c07f12152f81c707eb83deaab8ba",
     "Yes": "\"51735590924894170001569823740991899172901949146021448619123146982012128066328\"",

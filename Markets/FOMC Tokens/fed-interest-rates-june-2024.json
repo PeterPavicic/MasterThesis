@@ -1,7 +1,8 @@
 [
   {
-    "slug": "fed-decreases-interest-rates-by-50-bps-after-june-2024-meeting",
     "event_slug": "fed-interest-rates-june-2024",
+    "slug": "fed-decreases-interest-rates-by-50-bps-after-june-2024-meeting",
+    "marketTitle": "50+ bps decrease",
     "volume": "571695.348357",
     "Condition": "0x5df9458d9918da733d784bc2a07768b293d10826385a3eb31dd716f99475dc79",
     "Yes": "\"105335949811124386846945739797176354973352045946592454514796555249725921609384\"",
@@ -10,8 +11,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "fed-decreases-interest-rates-by-25-bps-after-june-2024-meeting",
     "event_slug": "fed-interest-rates-june-2024",
+    "slug": "fed-decreases-interest-rates-by-25-bps-after-june-2024-meeting",
+    "marketTitle": "25 bps decrease",
     "volume": "602846.108907",
     "Condition": "0x86797195cdde3c3a30e2b1b9503bc727fe787845228e9876ed9bc380aa021148",
     "Yes": "\"110024958657457359532038665777399264506271681375762791050970079862807455423716\"",
@@ -20,8 +22,9 @@
     "outcomeNo": "\"1\""
   },
   {
-    "slug": "no-change-in-fed-interest-rates-after-2024-june-meeting",
     "event_slug": "fed-interest-rates-june-2024",
+    "slug": "no-change-in-fed-interest-rates-after-2024-june-meeting",
+    "marketTitle": "No Change",
     "volume": "530059.986699",
     "Condition": "0x67a072e839762191a7931e405923110d52343ef6dc1d61cfc0720233951c03e4",
     "Yes": "\"88465704193015812461296177724920569739949794882741848131901008619945303668495\"",
@@ -30,8 +33,9 @@
     "outcomeNo": "\"0\""
   },
   {
-    "slug": "fed-increases-interest-rates-by-25-bps-after-june-2024-meeting",
     "event_slug": "fed-interest-rates-june-2024",
+    "slug": "fed-increases-interest-rates-by-25-bps-after-june-2024-meeting",
+    "marketTitle": "25+ bps increase",
     "volume": "582731.685936",
     "Condition": "0x4c21fdaee92538da1af2d227e7688673fe8789decff537003cd3b67b0ecb1b8d",
     "Yes": "\"90466366936933482311444495299458164031476797828715202684149333718525518630645\"",

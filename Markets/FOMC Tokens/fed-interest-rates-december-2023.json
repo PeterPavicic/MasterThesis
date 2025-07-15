@@ -1,7 +1,8 @@
 [
   {
-    "slug": "will-the-fed-raise-interest-rates-by-0-bps-after-its-december-meeting",
     "event_slug": "fed-interest-rates-december-2023",
+    "slug": "will-the-fed-raise-interest-rates-by-0-bps-after-its-december-meeting",
+    "marketTitle": "0 bps increase?",
     "volume": "29458.058773",
     "Condition": "0xac95a5009e493902628eaaa2138780fca5b5476825924ae7de023e8c65917662",
     "Yes": "\"12408230057550388631927572995498874087256748510441651102756939481228298956369\"",
@@ -10,8 +11,9 @@
     "outcomeNo": "\"0\""
   },
   {
-    "slug": "will-the-fed-raise-interest-rates-by-25-bps-after-its-december-meeting",
     "event_slug": "fed-interest-rates-december-2023",
+    "slug": "will-the-fed-raise-interest-rates-by-25-bps-after-its-december-meeting",
+    "marketTitle": "25 bps increase?",
     "volume": "27152.23446",
     "Condition": "0x5d0c7869d6bbd5c926178c5ebb2c1ab1afa3e1b04bd036bcde5573481e3998c0",
     "Yes": "\"115570981123842187496894360626945622467149923579919003091466749371113066796130\"",

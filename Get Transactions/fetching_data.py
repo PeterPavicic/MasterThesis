@@ -206,8 +206,8 @@ if __name__ == "__main__":
     fileNames = [f for f in os.listdir(jsons_dir)]
     # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
     json_files = [
-        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-january-2025.json",
-        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-november-2023.json"
+        # "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-january-2025.json",
+        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-may-2024.json"
     ]
     
     for json_file in json_files:
@@ -216,7 +216,8 @@ if __name__ == "__main__":
             data = json.load(file)
         eventTitle = data.get("title")
         markets = data.get("markets")
-        getTransactions(eventTitle, markets)
+        # getTransactions(eventTitle, markets)
+        getUserPnLs(eventTitle, markets)
 
     print("Done getting missing data")
 

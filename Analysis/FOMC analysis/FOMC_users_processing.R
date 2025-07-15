@@ -68,7 +68,6 @@ perform_analysis <- function(event_tibble, event_name) {
     userMarketCount,
     file = sprintf("./UserPnLs/%s.RData", event_name)
   )
-  # save.image(sprintf("./UserPnLs/%s.RData", event_name))
 }
 
 dirs <- list.dirs(path = file.path(dirname(dirname(getwd())), "Data Transactions/All Fed Users Positions"), recursive = FALSE)
