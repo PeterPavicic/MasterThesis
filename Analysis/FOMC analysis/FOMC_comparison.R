@@ -10,52 +10,60 @@ library(viridis)
 
 
 # TODO: Generalise this to work with any FOMC market
+
 tokens_data <- read_csv(
   "./FOMC Tokens.csv",
   col_types = cols(
     Yes = col_character(),
     No = col_character()
   )) |>
-  filter(
-    event_slug == "fed-interest-rates-september-2024"
-  ) |>
-  mutate(
-    assetName = case_when(
-      slug == "fed-decreases-interest-rates-by-50-bps-after-september-2024-meeting" ~ "down50",
-      slug == "fed-decreases-interest-rates-by-25-bps-after-september-2024-meeting" ~ "down25",
-      slug == "no-change-in-fed-interest-rates-after-2024-september-meeting" ~ "noChange",
-      slug == "fed-increases-interest-rates-by-25-bps-after-september-2024-meeting" ~ "up25"
-    )
-  ) |>
   select(
-    assetName,
+    event_slug,
+    assetName = marketTitle,
     Yes,
     No
   )
 
+# TODO: Put this in a loop,
+# double check ZQ data as below,
+# figure out how to use appropriate ZQ data
+# construct ZQ estimates
+# construct PM estimates properly
+# Figure out how to perform Granger causality test
 
-PM_data <- read_csv(
-  # "./TimeSeries/Fed_Interest_Rates_2024_09_September.csv",
-  "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv",
-  col_types = cols(
-    asset = col_character() 
-    # timestamp = col_datetime()
-  )
-) |> 
-  filter(asset %in% tokens_data$Yes) |>
-  mutate(
-    time = as.POSIXct(timestamp, tz = "America/New_York")
-  ) |>
-  left_join(
-    tokens_data |>
-      select(assetName, Yes),
-    by = join_by(asset == Yes)
-  ) |>
-  select(time, asset = assetName, price)
+# Test filename:
+# csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
+
+# TODO: Using this loop and additional loop double check earliest ZQ data
+csv_files <- file.path("./TimeSeries", list.files(path = "./TimeSeries/", pattern = "\\.csv$"))
+for (csv_fileName in csv_files) {
+  PM_data <- read_csv(
+    csv_fileName,
+    col_types = cols(
+      asset = col_character() 
+    )
+  ) |> 
+    filter(asset %in% tokens_data$Yes) |>
+    mutate(
+      time = as.POSIXct(timestamp, tz = "America/New_York")
+    ) |>
+    left_join(
+      tokens_data |>
+        select(assetName, Yes),
+      by = join_by(asset == Yes)
+    ) |>
+    select(
+      time,
+      asset = assetName,
+      price
+    )
+
+  PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
+  print(fileName)
+  print(range(PM_data$time))
+}
 
 
-PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
-range(PM_data$time)
 
 ZQU24 <- read_csv(
   "./ZQ/ZQU2024.csv",
