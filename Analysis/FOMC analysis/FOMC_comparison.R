@@ -6,6 +6,54 @@ library(tidyr)
 library(viridis)
 
 
+# Data frame with the meeting dates for each filename
+meeting_dates <- data.frame(
+  fileName = c(
+    "Fed_Interest_Rates_2023_02_February.csv",
+    "Fed_Interest_Rates_2023_03_March.csv",
+    "Fed_Interest_Rates_2023_05_May.csv",
+    "Fed_Interest_Rates_2023_06_June.csv",
+    "Fed_Interest_Rates_2023_07_July.csv",
+    "Fed_Interest_Rates_2023_09_September.csv",
+    "Fed_Interest_Rates_2023_11_November.csv",
+    "Fed_Interest_Rates_2023_12_December.csv",
+    "Fed_Interest_Rates_2024_01_January.csv",
+    "Fed_Interest_Rates_2024_03_March.csv",
+    "Fed_Interest_Rates_2024_05_May.csv",
+    "Fed_Interest_Rates_2024_06_June.csv",
+    "Fed_Interest_Rates_2024_07_July.csv",
+    "Fed_Interest_Rates_2024_09_September.csv",
+    "Fed_Interest_Rates_2024_11_November.csv",
+    "Fed_Interest_Rates_2024_12_December.csv",
+    "Fed_Interest_Rates_2025_01_January.csv",
+    "Fed_Interest_Rates_2025_03_March.csv",
+    "Fed_Interest_Rates_2025_05_May.csv"
+  ),
+  time = c(
+    as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-03-22 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-05-03 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-06-14 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-07-26 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-09-20 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-11-01 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2023-12-13 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-01-31 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-03-20 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-05-01 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-06-12 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-07-31 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-09-18 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-11-07 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2024-12-18 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2025-01-29 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2025-03-19 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York")
+  )
+)
+
+
+
 # NOTE: Comparison for September 2024 market
 
 
@@ -32,40 +80,50 @@ tokens_data <- read_csv(
 # Figure out how to perform Granger causality test
 
 # Test filename:
-# csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
 
 # TODO: Using this loop and additional loop double check earliest ZQ data
-csv_files <- file.path("./TimeSeries", list.files(path = "./TimeSeries/", pattern = "\\.csv$"))
-for (csv_fileName in csv_files) {
-  PM_data <- read_csv(
-    csv_fileName,
-    col_types = cols(
-      asset = col_character() 
-    )
-  ) |> 
-    filter(asset %in% tokens_data$Yes) |>
-    mutate(
-      time = as.POSIXct(timestamp, tz = "America/New_York")
-    ) |>
-    left_join(
-      tokens_data |>
-        select(assetName, Yes),
-      by = join_by(asset == Yes)
-    ) |>
-    select(
-      time,
-      asset = assetName,
-      price
-    )
+csv_files <- file.path("./TimeSeries", 
+  list.files(path = "./TimeSeries/", pattern = "\\.csv$")
+)
 
-  PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
-  print(fileName)
-  print(range(PM_data$time))
-}
+# csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
+
+# # Print time range for data in each of the files:
+# for (csv_fileName in csv_files) {
+#   PM_data <- read_csv(
+#     csv_fileName,
+#     col_types = cols(
+#       asset = col_character() 
+#     )
+#   ) |> 
+#     filter(asset %in% tokens_data$Yes) |>
+#     mutate(
+#       time = as.POSIXct(timestamp, tz = "America/New_York")
+#     ) |>
+#     left_join(
+#       tokens_data |>
+#         select(assetName, Yes),
+#       by = join_by(asset == Yes)
+#     ) |>
+#     select(
+#       time,
+#       asset = assetName,
+#       price
+#     )
+#
+#   PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
+#   print(csv_fileName)
+#   print("Trading timerange:")
+#   print(range(PM_data$time))
+# }
+
+
+# TODO: Come up with generalised formula for computing the implied probability stuff
 
 
 
-ZQU24 <- read_csv(
+
+ZQU2024 <- read_csv(
   "./ZQ/ZQU2024.csv",
   col_types = cols(
     # time = col_datetime(),
@@ -86,7 +144,7 @@ ZQU24 <- read_csv(
     time < as.POSIXct("2024-09-30 23:59:59", tz = "America/New_York")
   )
 
-ZQV24 <- read_csv(
+ZQV2024 <- read_csv(
   "./ZQ/ZQV2024.csv",
   col_types = cols(
     # time = col_datetime(),
@@ -107,7 +165,7 @@ ZQV24 <- read_csv(
     time < as.POSIXct("2024-09-30 23:59:59", tz = "America/New_York")
   )
 
-ZQQ24 <- read_csv(
+ZQQ2024 <- read_csv(
   "./ZQ/ZQQ2024.csv",
   col_types = cols(
     # time = col_datetime(),
