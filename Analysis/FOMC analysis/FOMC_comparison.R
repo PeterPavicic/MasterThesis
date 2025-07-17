@@ -6,8 +6,8 @@ library(tidyr)
 library(viridis)
 
 
-# Data frame with the meeting dates for each filename
-meeting_dates <- data.frame(
+# Data frame with fileName, event_slug, meeting time
+meeting_dates <- tibble(
   fileName = c(
     "Fed_Interest_Rates_2023_02_February.csv",
     "Fed_Interest_Rates_2023_03_March.csv",
@@ -27,9 +27,36 @@ meeting_dates <- data.frame(
     "Fed_Interest_Rates_2024_12_December.csv",
     "Fed_Interest_Rates_2025_01_January.csv",
     "Fed_Interest_Rates_2025_03_March.csv",
-    "Fed_Interest_Rates_2025_05_May.csv"
+    "Fed_Interest_Rates_2025_05_May.csv",
+    "Fed_Interest_Rates_2025_06_June.csv",
+    "Fed_Interest_Rates_2025_07_July.csv",
+    "Fed_Interest_Rates_2025_09_September.csv"
   ),
-  time = c(
+  event_slug = c(
+    "fed-interest-rates-february-2023",
+    "fed-interest-rates-march-2023",
+    "fed-interest-rates-may-2023",
+    "fed-interest-rates-june-2023",
+    "fed-interest-rates-july-2023",
+    "fed-interest-rates-september-2023",
+    "fed-interest-rates-november-2023",
+    "fed-interest-rates-december-2023",
+    "fed-interest-rates-january-2024",
+    "fed-interest-rates-march-2024",
+    "fed-interest-rates-may-2024",
+    "fed-interest-rates-june-2024",
+    "fed-interest-rates-july-2024",
+    "fed-interest-rates-september-2024",
+    "fed-interest-rates-november-2024",
+    "fed-interest-rates-december-2024",
+    "fed-interest-rates-january-2025",
+    "fed-decision-in-march",
+    "fed-decision-in-may-2025",
+    "fed-decision-in-june",
+    "fed-decision-in-july",
+    "fed-decision-in-september"
+  ),
+  meetingTime = c(
     as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"),
     as.POSIXct("2023-03-22 14:00:00", tz = "America/New_York"),
     as.POSIXct("2023-05-03 14:00:00", tz = "America/New_York"),
@@ -48,16 +75,12 @@ meeting_dates <- data.frame(
     as.POSIXct("2024-12-18 14:00:00", tz = "America/New_York"),
     as.POSIXct("2025-01-29 14:00:00", tz = "America/New_York"),
     as.POSIXct("2025-03-19 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York")
+    as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2025-06-18 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2025-07-30 14:00:00", tz = "America/New_York"),
+    as.POSIXct("2025-09-17 14:00:00", tz = "America/New_York")
   )
 )
-
-
-
-# NOTE: Comparison for September 2024 market
-
-
-# TODO: Generalise this to work with any FOMC market
 
 tokens_data <- read_csv(
   "./FOMC Tokens.csv",
@@ -71,6 +94,14 @@ tokens_data <- read_csv(
     Yes,
     No
   )
+
+head(meeting_dates)
+head(tokens_data)
+
+
+
+# TODO: Generalise this to work with any FOMC market
+
 
 # TODO: Put this in a loop,
 # double check ZQ data as below,
@@ -86,39 +117,73 @@ csv_files <- file.path("./TimeSeries",
   list.files(path = "./TimeSeries/", pattern = "\\.csv$")
 )
 
-# csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
+ZQ_files <- file.path("./ZQ", 
+  list.files(path = "./ZQ/", pattern = "\\.csv$")
+)
 
-# # Print time range for data in each of the files:
-# for (csv_fileName in csv_files) {
-#   PM_data <- read_csv(
-#     csv_fileName,
-#     col_types = cols(
-#       asset = col_character() 
-#     )
-#   ) |> 
-#     filter(asset %in% tokens_data$Yes) |>
-#     mutate(
-#       time = as.POSIXct(timestamp, tz = "America/New_York")
-#     ) |>
-#     left_join(
-#       tokens_data |>
-#         select(assetName, Yes),
-#       by = join_by(asset == Yes)
-#     ) |>
-#     select(
-#       time,
-#       asset = assetName,
-#       price
-#     )
-#
-#   PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
-#   print(csv_fileName)
-#   print("Trading timerange:")
-#   print(range(PM_data$time))
-# }
+# csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
 
 
 # TODO: Come up with generalised formula for computing the implied probability stuff
+
+# TODO: Compose tibbles for each meeting with all the relevant information
+# PM Data takes 
+for (csv_fileName in csv_files) {
+  PM_data <- read_csv(
+    csv_fileName,
+    col_types = cols(
+      asset = col_character() 
+    )
+  ) |> 
+    filter(asset %in% tokens_data$Yes) |>
+    mutate(
+      time = as.POSIXct(timestamp, tz = "America/New_York")
+    ) |>
+    left_join(
+      tokens_data |>
+        select(assetName, Yes),
+      by = join_by(asset == Yes)
+    ) |>
+    select(
+      time,
+      asset = assetName,
+      price
+    )
+  PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
+
+  # # Print time range for data in each of the files:
+  # print(csv_fileName)
+  # print("Trading timerange:")
+  # print(range(PM_data$time))
+}
+
+ZQ_fileName <- "./ZQ/ZQK2023.csv"
+
+# TODO: Put this into for loop just like PM_data above
+for (ZQ_fileName in ZQ_files) {
+  ZQ_data <- read_csv(
+    ZQ_fileName,
+    col_types = cols(
+      open = col_double(),
+      high = col_double(),
+      low = col_double(),
+      close = col_double()
+    )
+  ) |>
+    select(time, close) |>
+    mutate(
+      time = as.POSIXct(time, tz = "America/New_York"),
+      rateBps = (100 - close) * 100,
+      # TODO: Here only load data, perform change calculation elsewhere
+      changeBps = rateBps - 525
+    )
+
+  # # Print time range for data in each of the files:
+  cat("\n\n", ZQ_fileName, "\n")
+  print("ZQ range:")
+  print(range(ZQ_data$time))
+}
+
 
 
 
