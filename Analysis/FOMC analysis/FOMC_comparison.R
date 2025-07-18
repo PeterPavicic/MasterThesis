@@ -117,8 +117,8 @@ csv_files <- file.path("./TimeSeries",
   list.files(path = "./TimeSeries/", pattern = "\\.csv$")
 )
 
-ZQ_files <- file.path("./ZQ", 
-  list.files(path = "./ZQ/", pattern = "\\.csv$")
+ZQ_files <- file.path("./ZQ", "test",
+  list.files(path = "./ZQ/test/", pattern = "\\.csv$")
 )
 
 # csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
@@ -157,10 +157,13 @@ for (csv_fileName in csv_files) {
   # print(range(PM_data$time))
 }
 
-ZQ_fileName <- "./ZQ/ZQK2023.csv"
+# ZQ_fileName <- "./ZQ/ZQK2023.csv"
+
+firstStarts <- numeric(length(ZQ_files))
 
 # TODO: Put this into for loop just like PM_data above
-for (ZQ_fileName in ZQ_files) {
+for (i in seq_along(ZQ_files)) {
+  ZQ_fileName <- ZQ_files[i]
   ZQ_data <- read_csv(
     ZQ_fileName,
     col_types = cols(
@@ -179,11 +182,16 @@ for (ZQ_fileName in ZQ_files) {
     )
 
   # # Print time range for data in each of the files:
-  cat("\n\n", ZQ_fileName, "\n")
-  print("ZQ range:")
-  print(range(ZQ_data$time))
+  firstStarts[i] <- min(ZQ_data$time)
+  # cat("\n\n", ZQ_fileName, "\n")
+  # print("ZQ range:")
+  # print(range(ZQ_data$time))
 }
 
+
+rm(i)
+df <- data.frame(fileName = ZQ_files, firstStart = as.POSIXct(firstStarts))
+View(df)
 
 
 
