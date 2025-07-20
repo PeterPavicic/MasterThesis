@@ -218,7 +218,6 @@ for (i in seq_along(event_nameList)) {
 }
 
 
-# TODO: Move this somewhere outside
 meeting_dates <- c(
   as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_02_February"
   as.POSIXct("2023-03-22 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_03_March"
@@ -254,7 +253,6 @@ meeting_dates <- c(
 # user_statsList[[1]]
 # rm(i)
 
-# NOTE: master table
 master_table <- bind_rows(user_statsList, .id = "market_id")
 
 winning_stats <- master_table |>
@@ -291,7 +289,7 @@ userSpending$totalReturn)
 
 # dev.new()
 
-# NOTE: Descriptive statistics
+# ------- Descriptive statistics -------
 png(
   filename = paste0("./Plots/", "returnHistSept.png"),
   width = 800,
@@ -569,7 +567,7 @@ max(scaled_eventsList[[13]]$timestamp)
 
 
 
-# NOTE: Above certain amounts, etc.
+# Above certain amounts, etc.
 user_statsList[[13]]$totalUsdcVolume[user_statsList[[13]]$totalTradeCount > 2000]
 event_nameList[[13]]
 user_statsList[[13]]
@@ -581,7 +579,6 @@ user_statsList[[13]]$eventReturn[user_statsList[[13]]$totalTradeCount > 2000]
 
 
 
-# NOTE: Continue
 # HFT stuff
 HFT_class <- user_statsList[[13]] |> 
   mutate(

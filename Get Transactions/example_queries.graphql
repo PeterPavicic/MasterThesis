@@ -1,4 +1,4 @@
-# NOTE: First ### transactions for Trump winning or losing election
+# First ### transactions for Trump winning or losing election
 query TrumpWinsElectionMarket {
   orderFilledEvents(
     skip: $skip,
@@ -30,7 +30,7 @@ query TrumpWinsElectionMarket {
 }
 
 
-# NOTE: Parameterised template for the same thing
+# Parameterised template for the same thing
 query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
   orderFilledEvents(
     skip: $skip,
@@ -62,7 +62,6 @@ query TrumpWinsElectionMarket($skip: Int!, $first: Int!) {
 }
 
 
-# NOTE: First ### orders matched for market of Trump winning or losing
 query findTrumpMatchedOrders {
   ordersMatchedEvents (
     first: 1000
@@ -86,7 +85,7 @@ query findTrumpMatchedOrders {
 }
 
 
-# NOTE: Example Response
+# Example Response
 {
   "data": {
     "orderFilledEvents": [
@@ -205,7 +204,7 @@ query findTrumpMatchedOrders {
 }
 
 
-# NOTE: Getting market size information
+# Getting market size information
 query getMarketSizeData {
 orderbook(
   id:
@@ -219,17 +218,3 @@ orderbook(
   scaledCollateralVolume
 }
 }
-
-
-
-
-
-
-# TODO: Write query for finding out if there are FPMMs in the markets
-# TODO: Write query for transactions: 
-# Getting transaction amount, volume, etc. to infer token price and volume
-
-# NOTE: What is order direction?
-
-
-

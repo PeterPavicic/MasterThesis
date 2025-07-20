@@ -1,8 +1,6 @@
 library(dplyr)
 library(readr)
 
-# NOTE: This file assumes the working directory has been set to the directory this file is in.
-
 tokens_data <- read_csv("./FOMC Tokens.csv",
   col_types = cols(
     Yes = col_character(),
@@ -56,17 +54,21 @@ perform_analysis <- function(event_tibble, event_name) {
     ) |>
     arrange(user)
 
+  userMarketCount <- scaled_PnL |>
+    select(user, tokenId, investmentSize) |>
+    count(user, name = "marketCount")
+
   realUsers <- unique(userReturns$user)
   save(
     scaled_PnL,
     userReturns,
     realUsers,
+    userMarketCount,
     file = sprintf("./UserPnLs/%s.RData", event_name)
   )
-  # save.image(sprintf("./UserPnLs/%s.RData", event_name))
 }
 
-dirs <- list.dirs(path = file.path(dirname(getwd()), "Data Transactions/All Fed Users Positions"), recursive = FALSE)
+dirs <- list.dirs(path = file.path(dirname(dirname(getwd())), "Data Transactions/All Fed Users Positions"), recursive = FALSE)
 
 # Write users to users.txt for each event
 # For each event perform analysis
