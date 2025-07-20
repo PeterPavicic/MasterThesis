@@ -96,15 +96,15 @@ tokens_data <- read_csv(
   )
 
 
-# TODO: write table/tibble for which meeting to use which ZQ data
 head(meeting_dates)
 head(tokens_data)
 
 
-# TODO:Write calculation functions (3 types), 
-# construct ZQ estimates
-# construct PM estimates properly
-# Figure out how to perform Granger causality test
+# TODO: 
+# - Write table/tibble for which meeting to use which ZQ data
+# - Write calculation functions (3 types) which construct ZQ estimates
+# - Match ZQ estimates with PM estimates
+# - Figure out how to perform Granger causality test
 
 
 PM_files <- file.path("./TimeSeries", 
@@ -176,7 +176,6 @@ PM_data
 PM_files
 
 
-# TODO: For each PM market calculated implied RN probs
 ZQU2024 <- read_csv(
   "./ZQ/ZQU2024.csv",
   col_types = cols(
@@ -314,6 +313,7 @@ synthetic_ZQU24 <- unified_data |>
   ) |>
   select(time, close, rateBps, changeBps)
 
+
 # Interpolation replication
 png(
   filename = paste0("./Plots/", "ZQ_weighted_average_comparison.png"),
@@ -423,6 +423,7 @@ PM_probs_unscaled <- PM_data |>
   ) |>
   select(time, down50, down25, noChange, up25)
 
+
 PM_probs <- PM_probs_unscaled |> 
   mutate(
     total = down50 + down25 + noChange + up25
@@ -444,10 +445,10 @@ range(PM_probs$time)
 range(implied_probs$time)
 
 
-###### ggplot stacked area charts ######
+# ------ ggplot stacked area charts ------ 
 
 #### ZQ implied ####
-# NOTE: Version 1
+# Version 1
 png(
   filename = paste0("./Plots/", "ZQ_implied_probs_v1.png"),
   width = 800,
@@ -482,7 +483,7 @@ ggplot(data_long, aes(x = time, y = value, fill = category)) +
 dev.off()
 
 
-# NOTE: Version 2
+# Version 2
 png(
   filename = paste0("./Plots/", "ZQ_implied_probs_v2.png"),
   width = 800,
@@ -518,7 +519,7 @@ dev.off()
 
 
 #### PM implied ####
-# NOTE: Version 1
+# Version 1
 png(
   filename = paste0("./Plots/", "PM_implied_probs_v1.png"),
   width = 800,
@@ -552,7 +553,7 @@ ggplot(data_long, aes(x = time, y = value, fill = category)) +
   theme(legend.position = "top")
 dev.off()
 
-# NOTE: Version 2
+# Version 2
 png(
   filename = paste0("./Plots/", "PM_implied_probs_v2.png"),
   width = 800,
@@ -587,7 +588,7 @@ ggplot(df_long, aes(x = time, y = value, fill = category)) +
 dev.off()
 
 
-# NOTE: Granger causality stuff
+# ------ Granger causality stuff ------ 
 ZQU24$time[first(which(ZQU24$time > min(PM_data$time)))]
 which(ZQV24$time > min(PM_data$time))
 

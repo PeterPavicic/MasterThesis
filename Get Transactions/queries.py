@@ -13,6 +13,7 @@ import requests
 FILE_LOCATION = Path(__file__)
 ROOT_DIR = FILE_LOCATION.parent.parent
 
+# TODO: Implement logging for queries, e.g. at the top of the event download folder
 
 def cleanStringForGraphql(s: str) -> str:
     """

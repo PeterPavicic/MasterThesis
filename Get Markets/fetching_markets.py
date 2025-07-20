@@ -12,6 +12,8 @@ import requests
 FILE_LOCATION = Path(__file__)
 ROOT_DIR = FILE_LOCATION.parent.parent
 
+
+
 def download_json(url, output_file):
     """
     Downloads a JSON file from the given URL and saves it to the specified output file.
@@ -139,6 +141,8 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
         return resultDicts[0]
 
 
+
+# TODO: Finish writing this
 def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], output_dir: str | Path) -> None:
     """
     Downloads full userActivity informations from Polymarket's Gamma API
@@ -159,7 +163,6 @@ def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], ou
                 queryDict["limit"] = 500
             if "offset" not in queryDict.keys():
                 queryDict["offset"] = 0
-            # TODO: Finish writing this
             try:
                 response = requests.request("GET", gammaURL, params=queryDict)
                 # print(response.text)

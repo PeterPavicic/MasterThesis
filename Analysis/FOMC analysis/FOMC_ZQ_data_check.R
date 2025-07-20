@@ -70,7 +70,7 @@ plot(BC_data[, c("time", "rateBps")], type = 'l', col = "black")
 lines(TW_data[, c("time", "rateBps")], type = 'l', col="red")
 
 
-# NOTE: Test for ZQG
+# Test for ZQG
 BC_data <- read_csv(
   "./ZQ/test/BC_ZQG2025.csv",
   col_types = cols(
@@ -176,7 +176,6 @@ for (BC_file in BC_files) {
 # ---------- Checking starting time of ZQ files
 firstStarts <- numeric(length(ZQ_files))
 
-# TODO: Put this into for loop just like PM_data above
 for (i in seq_along(ZQ_files)) {
   ZQ_fileName <- ZQ_files[i]
   ZQ_data <- read_csv(
