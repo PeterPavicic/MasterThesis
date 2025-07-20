@@ -83,7 +83,20 @@ def fetch_events(eventQuery: dict[str, str] | list[dict[str, str]], output_dir: 
 
 
 def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict | list[dict]:
-    # TODO: Add description
+    """
+    Input: raw json file for an event acquired from Gamma API
+
+    Return: For each eventFilePath returns a dictionary formatted
+    {
+        groupItemTitle: {
+            "slug": market's slug
+            "Yes": yesAsset's TokenID,
+            "No": noAsset's TokenID,
+            "outcomeYes": yesAsset's outcome price (or market price if market not closed),
+            "outcomeNo": noAsset's outcome price (or market price if market not closed)
+        }
+    }
+    """
 
     if not isinstance(eventFilePaths, list):
         eventFilePaths = [eventFilePaths]
@@ -105,13 +118,14 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
             marketsData = data.get("markets")
             marketList = []
             for market in marketsData:
-                marketQ = market.get("slug")
+                marketSlug = market.get("slug")
                 clobEntry = market.get("clobTokenIds")
                 outcomePrices = market.get("outcomePrices")
+                groupItemTitle = market.get("groupItemTitle")
 
                 # HACK: Assets with no token IDs are skipped and not written to markets
                 if clobEntry is None:
-                    print(f"{marketQ} skipped")
+                    print(f"{marketSlug} skipped")
                     continue
                 clobIDs = clobEntry[1:-1].split(", ")
                 outcomePrices = clobEntry[1:-1].split(", ")
@@ -120,9 +134,9 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
                 outcomeYes = outcomePrices[0]
                 outcomeNo = outcomePrices[1]
 
-                # TODO: Check if adding outcomePrices breaks anything anywhere else (it shouldn't because usually .get() used for jsons)
                 marketDict = {
-                    marketQ: {
+                    groupItemTitle: {
+                        "slug": marketSlug,
                         "Yes": yesAsset,
                         "No": noAsset,
                         "outcomeYes": outcomeYes,
