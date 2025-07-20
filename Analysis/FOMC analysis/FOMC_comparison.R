@@ -95,41 +95,34 @@ tokens_data <- read_csv(
     No
   )
 
+
+# TODO: write table/tibble for which meeting to use which ZQ data
 head(meeting_dates)
 head(tokens_data)
 
 
-
-# TODO: Generalise this to work with any FOMC market
-
-
-# TODO: Put this in a loop,
-# double check ZQ data as below,
-# figure out how to use appropriate ZQ data
+# TODO:Write calculation functions (3 types), 
 # construct ZQ estimates
 # construct PM estimates properly
 # Figure out how to perform Granger causality test
 
-# Test filename:
 
-# TODO: Using this loop and additional loop double check earliest ZQ data
-csv_files <- file.path("./TimeSeries", 
+PM_files <- file.path("./TimeSeries", 
   list.files(path = "./TimeSeries/", pattern = "\\.csv$")
 )
 
-ZQ_files <- file.path("./ZQ", "test",
-  list.files(path = "./ZQ/test/", pattern = "\\.csv$")
+ZQ_files <- file.path("./ZQ", 
+  list.files(path = "./ZQ/", pattern = "\\.csv$")
 )
 
-# csv_fileName <- "./TimeSeries/Fed_Interest_Rates_2023_02_February.csv"
+PM_data <- list()
+ZQ_data <- list()
 
+# Loading Polymarket data
+for (i in seq_along(PM_files)) {
+  csv_fileName <- PM_files[i]
 
-# TODO: Come up with generalised formula for computing the implied probability stuff
-
-# TODO: Compose tibbles for each meeting with all the relevant information
-# PM Data takes 
-for (csv_fileName in csv_files) {
-  PM_data <- read_csv(
+  PM_df <- read_csv(
     csv_fileName,
     col_types = cols(
       asset = col_character() 
@@ -149,23 +142,16 @@ for (csv_fileName in csv_files) {
       asset = assetName,
       price
     )
-  PM_data <- PM_data[!duplicated(PM_data[, 1:2]), ]
+  PM_df <- PM_df[!duplicated(PM_df[, 1:2]), ]
 
-  # # Print time range for data in each of the files:
-  # print(csv_fileName)
-  # print("Trading timerange:")
-  # print(range(PM_data$time))
+  PM_data[[i]] <- PM_df
 }
 
-# ZQ_fileName <- "./ZQ/ZQK2023.csv"
-
-firstStarts <- numeric(length(ZQ_files))
-
-# TODO: Put this into for loop just like PM_data above
 for (i in seq_along(ZQ_files)) {
-  ZQ_fileName <- ZQ_files[i]
-  ZQ_data <- read_csv(
-    ZQ_fileName,
+  csv_fileName <- ZQ_files[i]
+
+  ZQ_df <- read_csv(
+    csv_fileName,
     col_types = cols(
       open = col_double(),
       high = col_double(),
@@ -177,25 +163,20 @@ for (i in seq_along(ZQ_files)) {
     mutate(
       time = as.POSIXct(time, tz = "America/New_York"),
       rateBps = (100 - close) * 100,
-      # TODO: Here only load data, perform change calculation elsewhere
+      # TODO: Here only load data, perform change calculation later
       changeBps = rateBps - 525
     )
 
-  # # Print time range for data in each of the files:
-  firstStarts[i] <- min(ZQ_data$time)
-  # cat("\n\n", ZQ_fileName, "\n")
-  # print("ZQ range:")
-  # print(range(ZQ_data$time))
+  ZQ_data[[i]] <- ZQ_df
 }
 
+rm(i, PM_df, ZQ_df, csv_fileName)
 
-rm(i)
-df <- data.frame(fileName = ZQ_files, firstStart = as.POSIXct(firstStarts))
-View(df)
-
-
+PM_data
+PM_files
 
 
+# TODO: For each PM market calculated implied RN probs
 ZQU2024 <- read_csv(
   "./ZQ/ZQU2024.csv",
   col_types = cols(
