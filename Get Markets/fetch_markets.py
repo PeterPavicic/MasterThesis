@@ -306,7 +306,7 @@ if __name__ == "__main__":
     # json_files_to_one_csv("/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/ElectionTokens/", os.path.join(ROOT_DIR, "Markets", "Election Tokens.csv"))
 
 
-    jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events")
+    jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events Simplified")
 
     fileNames = [f for f in os.listdir(jsons_dir)]
     json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]

@@ -201,12 +201,12 @@ def getTokenActivity(queryName: str, conditionList, startPages: int | list[int] 
 
 if __name__ == "__main__":
 
-    jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events")
+    jsons_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Events Simplified")
     fileNames = [f for f in os.listdir(jsons_dir)]
     # json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
     json_files = [
-        # "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-january-2025.json",
-        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events/fed-interest-rates-may-2024.json"
+        # "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events Simplified/fed-interest-rates-january-2025.json",
+        "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/FOMC Events Simplified/fed-interest-rates-may-2024.json"
     ]
     
     for json_file in json_files:
