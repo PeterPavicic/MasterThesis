@@ -1,0 +1,14 @@
+{
+  "title": "Fed Interest Rates March 2022",
+  "slug": "fed-interest-rates-march-2022",
+  "startDate": "2022-02-01T17:00:00Z",
+  "endDate": "2022-03-16T00:00:00Z",
+  "markets": [
+    {
+      "Will the FED set interest rates above 0.5% following their scheduled March meeting?": {
+        "Yes": "\"21899810599789258632913154324655796706984895090888226213953489972315337780207\"",
+        "No": "\"101868209400733943697800007325662712903397505258841206185841230597554610495665\""
+      }
+    }
+  ]
+}

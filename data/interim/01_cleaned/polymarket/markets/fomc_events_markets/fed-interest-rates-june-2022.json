@@ -1,0 +1,20 @@
+{
+  "title": "Fed Interest Rates June 2022",
+  "slug": "fed-interest-rates-june-2022",
+  "startDate": null,
+  "endDate": "2022-06-15T00:00:00Z",
+  "markets": [
+    {
+      "Will the Fed set interest rates above 1.50% after their scheduled June meeting?": {
+        "Yes": "\"82724977758152265719220013444287352391876001206885694992310481710185843734641\"",
+        "No": "\"106457317128213816302171732347629991587141815330262122635664408042078753930185\""
+      }
+    },
+    {
+      "Will the Fed set interest rates above 1% after their scheduled June meeting?": {
+        "Yes": "\"99086239833079230804472379174766489320717252111961344571267138631331697127180\"",
+        "No": "\"6929665830557950561860380463109753008672716084270451206221391017875513515553\""
+      }
+    }
+  ]
+}
