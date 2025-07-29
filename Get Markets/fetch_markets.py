@@ -82,7 +82,7 @@ def fetch_events(eventQuery: dict[str, str] | list[dict[str, str]], output_dir: 
     print(f"Saved all queries to {output_dir}")
 
 
-def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict | list[dict]:
+def simplifyEvents(event_file_paths: str | Path | list[str] | list[Path]) -> dict | list[dict]:
     """
     Input: raw json file for an event acquired from Gamma API
 
@@ -98,12 +98,12 @@ def simplifyEvents(eventFilePaths: str | Path | list[str] | list[Path]) -> dict 
     }
     """
 
-    if not isinstance(eventFilePaths, list):
-        eventFilePaths = [eventFilePaths]
+    if not isinstance(event_file_paths, list):
+        event_file_paths = [event_file_paths]
 
-    assert isinstance(eventFilePaths, list)
+    assert isinstance(event_file_paths, list)
     resultDicts = []
-    for event in eventFilePaths:
+    for event in event_file_paths:
         with open(event, "r") as file:
             data = json.load(file)
             resultDict = {}
@@ -209,15 +209,27 @@ def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], ou
     print(f"Saved all queries to {output_dir}")
 
 
-def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list | list[list]:
-    # Generates a table from all eventFilePaths' tokens to determine outcomePrices
+# TODO: implement filtering for 2022 data
+def generate_token_table() -> None:
+    """
+    ourse_dir: dir containing json file paths for raw data
+    Reads raw data jsons and puts out list
+    """
+    # Generates a table from all event_file_paths' tokens to determine outcomePrices
 
-    if not isinstance(eventFilePaths, list):
-        eventFilePaths = [eventFilePaths]
 
-    assert isinstance(eventFilePaths, list)
+    source_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events Simplified")
+    target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Tokens")
+
+    target_filenames = [f for f in os.listdir(source_dir)]
+    event_file_paths = [os.path.join(source_dir, f) for f in os.listdir(source_dir)]
+
+    if not isinstance(event_file_paths, list):
+        event_file_paths = [event_file_paths]
+
+    assert isinstance(event_file_paths, list)
     resultDicts = []
-    for event in eventFilePaths:
+    for event in event_file_paths:
         with open(event, "r") as file:
             data = json.load(file)
 
@@ -260,10 +272,25 @@ def get_token_table(eventFilePaths: str | Path | list[str] | list[Path]) -> list
 
         resultDicts.append(marketList)
 
+    
     if len(resultDicts) != 1:
-        return resultDicts
+        tokenLists = resultDicts
     else:
-        return resultDicts[0]
+        tokenLists = resultDicts[0]
+
+
+    for i, eventList in enumerate(tokenLists):
+        output_path = os.path.join(target_dir, target_filenames[i])
+
+        with open(output_path, 'w') as file:
+            json.dump(eventList, file, indent=2)
+            print(f"{target_filenames[i]} simplified and written to {output_path}")
+
+            print("Done")
+
+    json_files_to_one_csv(target_dir, os.path.join(ROOT_DIR, "Markets", "FOMC Tokens.csv"))
+
+
 
 
 def json_files_to_one_csv(json_dir, out_csv):
@@ -297,7 +324,7 @@ if __name__ == "__main__":
     # presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/Presidential_win_market.json"
     # presidentialEvent = "/home/peter/WU_OneDrive/QFin/MT Master Thesis/Data Markets/simplified_Presidential_win_market.json"
 
-    # tokenLists = get_token_table(presidentialEvent)
+    # tokenLists = generate_token_table(presidentialEvent)
     #
     # with open(os.path.join(ROOT_DIR, "Markets", "ElectionTokens", "ElectionTokens.json"), 'w') as file:
     #     json.dump(tokenLists, file, indent = 2)
@@ -305,25 +332,6 @@ if __name__ == "__main__":
     #
     # json_files_to_one_csv("/home/peter/WU_OneDrive/QFin/MT Master Thesis/Markets/ElectionTokens/", os.path.join(ROOT_DIR, "Markets", "Election Tokens.csv"))
 
-
-    jsons_dir = os.path.join(ROOT_DIR, "Data Markets", "FOMC Events Simplified")
-
-    fileNames = [f for f in os.listdir(jsons_dir)]
-    json_files = [os.path.join(jsons_dir, f) for f in os.listdir(jsons_dir)]
-
-    tokenLists = get_token_table(json_files)
-
-    target_dir = os.path.join(ROOT_DIR, "Markets", "FOMC Tokens")
-
-    for i, eventList in enumerate(tokenLists):
-        output_path = os.path.join(target_dir, fileNames[i])
-
-        with open(output_path, 'w') as file:
-            json.dump(eventList, file, indent=2)
-            print(f"{fileNames[i]} simplified and written to {output_path}")
-
-            print("Done")
-
-    json_files_to_one_csv(target_dir, os.path.join(ROOT_DIR, "Markets", "FOMC Tokens.csv"))
+    pass
 
 
