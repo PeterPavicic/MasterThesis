@@ -4,11 +4,12 @@ library(readr)
 library(tibble)
 library(tidyr)
 library(viridis)
+library(lubridate)
 
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
 # Data frame with fileName, event_slug, meeting time
-meeting_dates <- tibble(
+meetings <- tibble(
   fileName = c(
     "Fed_Interest_Rates_2023_02_February.csv",
     "Fed_Interest_Rates_2023_03_March.csv",
@@ -30,8 +31,7 @@ meeting_dates <- tibble(
     "Fed_Interest_Rates_2025_03_March.csv",
     "Fed_Interest_Rates_2025_05_May.csv",
     "Fed_Interest_Rates_2025_06_June.csv",
-    "Fed_Interest_Rates_2025_07_July.csv",
-    "Fed_Interest_Rates_2025_09_September.csv"
+    "Fed_Interest_Rates_2025_07_July.csv"
   ),
   event_slug = c(
     "fed-interest-rates-february-2023",
@@ -54,8 +54,7 @@ meeting_dates <- tibble(
     "fed-decision-in-march",
     "fed-decision-in-may-2025",
     "fed-decision-in-june",
-    "fed-decision-in-july",
-    "fed-decision-in-september"
+    "fed-decision-in-july"
   ),
   meetingTime = c(
     as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"),
@@ -78,12 +77,17 @@ meeting_dates <- tibble(
     as.POSIXct("2025-03-19 14:00:00", tz = "America/New_York"),
     as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York"),
     as.POSIXct("2025-06-18 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-07-30 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-09-17 14:00:00", tz = "America/New_York")
+    as.POSIXct("2025-07-30 14:00:00", tz = "America/New_York")
   )
-)
+) |>
+  mutate(
+    nextMonthIsAnchor = 
+    (floor_date(meetingTime, unit = "month") + months(1)) !=
+      lead(floor_date(meetingTime, unit = "month"))
+  )
 
-tokens_data <- read_csv(
+
+tokens <- read_csv(
   file.path(ROOT_DIR, "/data/processed/tokens/FOMC Tokens.csv"),
   col_types = cols(
     Yes = col_character(),
@@ -97,9 +101,8 @@ tokens_data <- read_csv(
   )
 
 
-head(meeting_dates)
-head(tokens_data)
-
+head(meetings)
+head(tokens)
 
 # TODO: 
 # - Write table/tibble for which meeting to use which ZQ data
@@ -108,79 +111,96 @@ head(tokens_data)
 # - Figure out how to perform Granger causality test
 
 
+implied_prob <- function() {
 
-PM_files <- file.path(ROOT_DIR, "data/processed/TimeSeries",
-  list.files(
-    path = file.path(ROOT_DIR, "data/processed/TimeSeries"),
-    pattern = "\\.csv$")
-)
-
-
-ZQ_files <- file.path(ROOT_DIR, "data/processed/ZQ", 
-  list.files(
-    path = file.path(ROOT_DIR, "data/processed/ZQ"),
-    pattern = "\\.csv$")
-)
-
-PM_data <- list()
-ZQ_data <- list()
-
-# Loading Polymarket data
-for (i in seq_along(PM_files)) {
-  csv_fileName <- PM_files[i]
-
-  PM_df <- read_csv(
-    csv_fileName,
-    col_types = cols(
-      asset = col_character() 
-    )
-  ) |> 
-    filter(asset %in% tokens_data$Yes) |>
-    mutate(
-      time = as.POSIXct(timestamp, tz = "America/New_York")
-    ) |>
-    left_join(
-      tokens_data |>
-        select(assetName, Yes),
-      by = join_by(asset == Yes)
-    ) |>
-    select(
-      time,
-      asset = assetName,
-      price
-    )
-  PM_df <- PM_df[!duplicated(PM_df[, 1:2]), ]
-
-  PM_data[[i]] <- PM_df
 }
 
-for (i in seq_along(ZQ_files)) {
-  csv_fileName <- ZQ_files[i]
 
-  ZQ_df <- read_csv(
-    csv_fileName,
-    col_types = cols(
-      open = col_double(),
-      high = col_double(),
-      low = col_double(),
-      close = col_double()
-    )
-  ) |>
-    select(time, close) |>
-    mutate(
-      time = as.POSIXct(time, tz = "America/New_York"),
-      rateBps = (100 - close) * 100,
-      # TODO: Here only load data, perform change calculation later
-      changeBps = rateBps - 525
+
+
+# ------ Loading PM and ZQ data ------ 
+{
+
+  PM_files <- file.path(ROOT_DIR, "data/processed/TimeSeries",
+    list.files(
+      path = file.path(ROOT_DIR, "data/processed/TimeSeries"),
+      pattern = "\\.csv$")
+  )
+
+
+  ZQ_files <- file.path(ROOT_DIR, "data/processed/ZQ", 
+    list.files(
+      path = file.path(ROOT_DIR, "data/processed/ZQ"),
+      pattern = "\\.csv$")
+  )
+
+  PM_data <- list()
+  ZQ_data <- list()
+
+  # Loading Polymarket data
+  for (i in seq_along(PM_files)) {
+    csv_fileName <- PM_files[i]
+
+    PM_df <- read_csv(
+      csv_fileName,
+      col_types = cols(
+        asset = col_character() 
+      )
+    ) |> 
+      filter(asset %in% tokens$Yes) |>
+      mutate(
+        time = as.POSIXct(timestamp, tz = "America/New_York")
+      ) |>
+      left_join(
+        tokens |>
+          select(assetName, Yes),
+        by = join_by(asset == Yes)
+      ) |>
+      select(
+        time,
+        asset = assetName,
+        price
+      )
+
+    PM_df <- PM_df[!duplicated(PM_df[, 1:2]), ]
+
+    PM_data[[i]] <- PM_df
+  }
+
+  for (i in seq_along(ZQ_files)) {
+    csv_fileName <- ZQ_files[i]
+
+    ZQ_df <- read_csv(
+      csv_fileName,
+      col_types = cols(
+        open = col_double(),
+        high = col_double(),
+        low = col_double(),
+        close = col_double()
+      )
+    ) |>
+      select(time, close) |>
+      mutate(
+        time = as.POSIXct(time, tz = "America/New_York"),
+        rateBps = (100 - close) * 100,
+        # TODO: Here only load data, perform change calculation later
+        changeBps = rateBps - 525
+      )
+
+
+    ZQ_name <- substr(
+      basename(csv_fileName), 1, nchar(basename(csv_fileName)) - 4
     )
 
-  ZQ_data[[i]] <- ZQ_df
+    ZQ_data[[ZQ_name]] <- ZQ_df
+  }
+
+  rm(i, PM_df, ZQ_df, PM_files, ZQ_files, ZQ_name, csv_fileName)
 }
 
-rm(i, PM_df, ZQ_df, csv_fileName)
 
 PM_data
-PM_files
+ZQ_data
 
 
 
