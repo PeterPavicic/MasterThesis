@@ -81,10 +81,26 @@ meetings <- tibble(
   )
 ) |>
   mutate(
+    meetingMonth = format(meetingTime, "%Y-%m"),
     nextMonthIsAnchor = 
     (floor_date(meetingTime, unit = "month") + months(1)) !=
-      lead(floor_date(meetingTime, unit = "month"))
+      na.omit(c(
+        lead(floor_date(meetingTime, unit = "month")), 
+        as.POSIXct(1758132000, tz = "America/New_York") # September meeting
+      )),
+    previousMonthIsAnchor = 
+    (floor_date(meetingTime, unit = "month") - months(1)) !=
+      na.omit(c(
+        as.POSIXct(1671044400, tz = "America/New_York"), # September meeting
+        lag(floor_date(meetingTime, unit = "month")) 
+      ))
   )
+
+
+View(meetings)
+
+
+
 
 
 tokens <- read_csv(
@@ -100,7 +116,7 @@ tokens <- read_csv(
     No
   )
 
-
+View(meetings)
 head(meetings)
 head(tokens)
 
@@ -120,7 +136,6 @@ implied_prob <- function() {
 
 # ------ Loading PM and ZQ data ------ 
 {
-
   PM_files <- file.path(ROOT_DIR, "data/processed/TimeSeries",
     list.files(
       path = file.path(ROOT_DIR, "data/processed/TimeSeries"),
@@ -160,11 +175,19 @@ implied_prob <- function() {
         time,
         asset = assetName,
         price
-      )
+      ) 
+
+    PM_name <- meetings |>
+      filter(
+        fileName == basename(csv_fileName)
+      ) |>
+      pull(meetingMonth)
+    
+
 
     PM_df <- PM_df[!duplicated(PM_df[, 1:2]), ]
 
-    PM_data[[i]] <- PM_df
+    PM_data[[PM_name]] <- PM_df
   }
 
   for (i in seq_along(ZQ_files)) {
@@ -187,7 +210,6 @@ implied_prob <- function() {
         changeBps = rateBps - 525
       )
 
-
     ZQ_name <- substr(
       basename(csv_fileName), 1, nchar(basename(csv_fileName)) - 4
     )
@@ -195,7 +217,16 @@ implied_prob <- function() {
     ZQ_data[[ZQ_name]] <- ZQ_df
   }
 
-  rm(i, PM_df, ZQ_df, PM_files, ZQ_files, ZQ_name, csv_fileName)
+  rm(
+    i,
+    PM_df,
+    ZQ_df,
+    PM_files,
+    ZQ_files,
+    PM_name,
+    ZQ_name,
+    csv_fileName
+  )
 }
 
 
