@@ -8,230 +8,345 @@ library(lubridate)
 
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
-# Data frame with fileName, event_slug, meeting time
-meetings <- tibble(
-  fileName = c(
-    "Fed_Interest_Rates_2023_02_February.csv",
-    "Fed_Interest_Rates_2023_03_March.csv",
-    "Fed_Interest_Rates_2023_05_May.csv",
-    "Fed_Interest_Rates_2023_06_June.csv",
-    "Fed_Interest_Rates_2023_07_July.csv",
-    "Fed_Interest_Rates_2023_09_September.csv",
-    "Fed_Interest_Rates_2023_11_November.csv",
-    "Fed_Interest_Rates_2023_12_December.csv",
-    "Fed_Interest_Rates_2024_01_January.csv",
-    "Fed_Interest_Rates_2024_03_March.csv",
-    "Fed_Interest_Rates_2024_05_May.csv",
-    "Fed_Interest_Rates_2024_06_June.csv",
-    "Fed_Interest_Rates_2024_07_July.csv",
-    "Fed_Interest_Rates_2024_09_September.csv",
-    "Fed_Interest_Rates_2024_11_November.csv",
-    "Fed_Interest_Rates_2024_12_December.csv",
-    "Fed_Interest_Rates_2025_01_January.csv",
-    "Fed_Interest_Rates_2025_03_March.csv",
-    "Fed_Interest_Rates_2025_05_May.csv",
-    "Fed_Interest_Rates_2025_06_June.csv",
-    "Fed_Interest_Rates_2025_07_July.csv"
-  ),
-  event_slug = c(
-    "fed-interest-rates-february-2023",
-    "fed-interest-rates-march-2023",
-    "fed-interest-rates-may-2023",
-    "fed-interest-rates-june-2023",
-    "fed-interest-rates-july-2023",
-    "fed-interest-rates-september-2023",
-    "fed-interest-rates-november-2023",
-    "fed-interest-rates-december-2023",
-    "fed-interest-rates-january-2024",
-    "fed-interest-rates-march-2024",
-    "fed-interest-rates-may-2024",
-    "fed-interest-rates-june-2024",
-    "fed-interest-rates-july-2024",
-    "fed-interest-rates-september-2024",
-    "fed-interest-rates-november-2024",
-    "fed-interest-rates-december-2024",
-    "fed-interest-rates-january-2025",
-    "fed-decision-in-march",
-    "fed-decision-in-may-2025",
-    "fed-decision-in-june",
-    "fed-decision-in-july"
-  ),
-  meetingTime = c(
-    as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-03-22 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-05-03 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-06-14 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-07-26 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-09-20 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-11-01 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2023-12-13 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-01-31 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-03-20 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-05-01 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-06-12 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-07-31 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-09-18 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-11-07 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2024-12-18 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-01-29 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-03-19 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-06-18 14:00:00", tz = "America/New_York"),
-    as.POSIXct("2025-07-30 14:00:00", tz = "America/New_York")
-  )
-) |>
-  mutate(
-    meetingMonth = format(meetingTime, "%Y-%m"),
-    nextMonthIsAnchor = 
-    (floor_date(meetingTime, unit = "month") + months(1)) !=
-      na.omit(c(
-        lead(floor_date(meetingTime, unit = "month")), 
-        as.POSIXct(1758132000, tz = "America/New_York") # September meeting
-      )),
-    previousMonthIsAnchor = 
-    (floor_date(meetingTime, unit = "month") - months(1)) !=
-      na.omit(c(
-        as.POSIXct(1671044400, tz = "America/New_York"), # September meeting
-        lag(floor_date(meetingTime, unit = "month")) 
-      ))
-  )
+# TODO: Write this somewhere else
 
+# source("./FOMC_preprocessing.R")
+load("./FOMC_preprocesed.RData")
 
-View(meetings)
+# head(meetings)
+# head(tokens)
+# head(PM_data)
+# head(ZQ_data)
 
-
-
-
-
-tokens <- read_csv(
-  file.path(ROOT_DIR, "/data/processed/tokens/FOMC Tokens.csv"),
-  col_types = cols(
-    Yes = col_character(),
-    No = col_character()
-  )) |>
-  select(
-    event_slug,
-    assetName = marketTitle,
-    Yes,
-    No
-  )
-
-View(meetings)
-head(meetings)
-head(tokens)
 
 # TODO: 
-# - Write table/tibble for which meeting to use which ZQ data
-# - Write calculation functions (3 types) which construct ZQ estimates
-# - Match ZQ estimates with PM estimates
-# - Figure out how to perform Granger causality test
+# Match ZQ estimates with PM estimates
+# Figure out how to perform Granger causality test
 
 
-implied_prob <- function() {
+# WARNING: Chronological order makes a difference here
 
+
+# Assumes ZQ_list comes in correct chronological order
+# Takes list of 2 and performs full_join on time.  
+# Resulting tibble has columns time, rateBps.1, rateBps.2
+unify_ZQ <- function(ZQ1, ZQ2) {
+  if (any(is.na(ZQ1)) || any(is.na(ZQ2))) stop("ZQ tibbles missing in input")
+
+  # First joining
+  unified <- ZQ1 |>
+    full_join(
+      ZQ2,
+      by = "time",
+      suffix = c(".1", ".2")
+    ) |>
+    select(
+      time,
+      rateBps.1,
+      rateBps.2,
+    ) |>
+    fill(
+      rateBps.1,
+      rateBps.2,
+      .direction = "downup")
+
+  unified
 }
 
 
+# ------- Calculating the intramonth price-implied rates -------
+# We want to calculate the implied EFFR at the beginning and the end of the month
+# (so we can compute the risk-neutral expected change in the EFFR, thereby estimating the Fed decision)
+# ------ Formulas ------
+# N: number of days in current month before meeting (incl. both meeting days)
+# M: number of days in current month after meeting
+# startRate: implied EFFR at beginning of the month
+# endRate: implied EFFR at end of the current month
+# avgRate: implied average EFFR for the month
+
+# FedWatch assumption:
+# Only meeting changes EFFR ==> avgRate is day-weighted average of startRate and endRate
+
+# avgRate:
+# avgRate = [M / (N + M)] * endRate + [N / (N + M)] * startRate 
+# avgRate = [ weightEnd ]   * endRate + [weightStart] * startRate
+
+# startRate:
+# [weightEnd] * endRate + [weightStart] * startRate = avgRate
+# [weightStart] * startRate = avgRate - [weightEnd] * endRate
+# startRate = [1 / weightStart] * avgRate - [weightEnd / weightStart] * endRate
+
+# endRate:
+# [weightEnd] * endRate + [weightStart] * startRate = avgRate
+# [weightEnd] * endRate = avgRate - [weightStart] * startRate 
+# endRate = [1 / weightEnd] * avgRate - [weightStart / weightEnd] * startRate 
 
 
-# ------ Loading PM and ZQ data ------ 
-{
-  PM_files <- file.path(ROOT_DIR, "data/processed/TimeSeries",
-    list.files(
-      path = file.path(ROOT_DIR, "data/processed/TimeSeries"),
-      pattern = "\\.csv$")
-  )
+# View(meetings)
 
 
-  ZQ_files <- file.path(ROOT_DIR, "data/processed/ZQ", 
-    list.files(
-      path = file.path(ROOT_DIR, "data/processed/ZQ"),
-      pattern = "\\.csv$")
-  )
 
-  PM_data <- list()
-  ZQ_data <- list()
+#' Wrapper function to be called inside of `apply` in main loop
+#' which takes rows containing meetings & applies relevant calculations to get
+#' outcomes and their associated probabilities
+#' which will be saved to a list where each entry will be a meeting
+meeting_implied_rates <- function(meetingRow) {
 
-  # Loading Polymarket data
-  for (i in seq_along(PM_files)) {
-    csv_fileName <- PM_files[i]
+  # TODO: Filter unified data for PM_data_start and PM_data_end
+  meetingTime <- meetingRow["meetingTime"]
+  meetingMonth <- meetingRow["meetingMonth"]
+  PM_data_start <- meetingRow["data_start"]
+  PM_data_end <- meetingRow["data_end"]
 
-    PM_df <- read_csv(
-      csv_fileName,
-      col_types = cols(
-        asset = col_character() 
-      )
-    ) |> 
-      filter(asset %in% tokens$Yes) |>
-      mutate(
-        time = as.POSIXct(timestamp, tz = "America/New_York")
-      ) |>
-      left_join(
-        tokens |>
-          select(assetName, Yes),
-        by = join_by(asset == Yes)
-      ) |>
-      select(
-        time,
-        asset = assetName,
-        price
-      ) 
+  # for current month:
+  # days before meeting (incl. meeting days)
+  N <- day(meetingTime)
+  # days after meeting (excl. meeting days)
+  M <- days_in_month(meetingTime) - day(meetingTime)
 
-    PM_name <- meetings |>
-      filter(
-        fileName == basename(csv_fileName)
-      ) |>
-      pull(meetingMonth)
-    
-
-
-    PM_df <- PM_df[!duplicated(PM_df[, 1:2]), ]
-
-    PM_data[[PM_name]] <- PM_df
-  }
-
-  for (i in seq_along(ZQ_files)) {
-    csv_fileName <- ZQ_files[i]
-
-    ZQ_df <- read_csv(
-      csv_fileName,
-      col_types = cols(
-        open = col_double(),
-        high = col_double(),
-        low = col_double(),
-        close = col_double()
-      )
-    ) |>
-      select(time, close) |>
-      mutate(
-        time = as.POSIXct(time, tz = "America/New_York"),
-        rateBps = (100 - close) * 100,
-        # TODO: Here only load data, perform change calculation later
-        changeBps = rateBps - 525
-      )
-
-    ZQ_name <- substr(
-      basename(csv_fileName), 1, nchar(basename(csv_fileName)) - 4
+  ZQ_current <- ZQ_data[[meetingMonth]] |>
+    filter(
+      PM_data_start <= time,
+      time <= PM_data_end
     )
 
-    ZQ_data[[ZQ_name]] <- ZQ_df
+  # TODO: Implement memoisation
+
+  if (meetingRow["previousMonthIsAnchor"]) {
+    previous_month_name <- format(as.Date(meetingTime) - months(1), "%Y-%m")
+    ZQ_previous <- ZQ_data[[previous_month_name]] |>
+      filter(
+        PM_data_start <= time,
+        time <= PM_data_end
+      )
+
+    intraMonthRates <- IRPreviousMonthAnchor(N, M, ZQ_previous, ZQ_current)
+
+  } else if (meetingRow["nextMonthIsAnchor"]) {
+    next_month_name <- format(as.Date(meetingTime) + months(1), "%Y-%m")
+    ZQ_next <- ZQ_data[[next_month_name]] |>
+      filter(
+        PM_data_start <= time,
+        time <= PM_data_end
+      )
+
+
+    intraMonthRates <- IRNextMonthAnchor(N, M, ZQ_current, ZQ_next)
+
+  } else if (meetingRow["nextNextMonthIsAnchor"]) {
+    next_month_name <- format(as.Date(meetingTime) + months(1), "%Y-%m")
+    ZQ_next <- ZQ_data[[next_month_name]] |> 
+      filter(
+        PM_data_start <= time,
+        time <= PM_data_end
+      )
+
+    next_next_month_name <- format(as.Date(meetingMonth) + months(2), "%Y-%m")
+    ZQ_next_next <- ZQ_data[[next_next_month_name]] |> 
+      filter(
+        PM_data_start <= time,
+        time <= PM_data_end
+      )
+
+    nextMonthMeetingDate <- meetings |>
+      filter(meetingMonth == next_month_name) |>
+      pull(meetingTime)
+
+    nextMonthMeeting_N <- day(nextMonthMeetingDate)
+    nextMonthMeeting_M <- days_in_month(meetingTime) - day(meetingTime)
+
+    intraMonthRates <- IRNextNextMonthAnchor(
+      N, M,
+      nextMonthMeeting_N, nextMonthMeeting_M,
+      ZQ_current, ZQ_next, ZQ_next_next
+    )
+  } else {
+    stop("Neither previous or next 2 months are anchor months")
   }
 
-  rm(
-    i,
-    PM_df,
-    ZQ_df,
-    PM_files,
-    ZQ_files,
-    PM_name,
-    ZQ_name,
-    csv_fileName
+  implied_probabilities <- get_probabilities(intraMonthRates$changeBps)
+
+  tibble(
+    intraMonthRates$time,
+    implied_probabilities
   )
+
 }
 
 
-PM_data
-ZQ_data
+IRPreviousMonthAnchor <- function(N, M, ZQ1, ZQ2) {
+  # ZQ1 is ZQ data for previous month
+  # ZQ2 is ZQ data for current month
+  # N: number of days in current month before meeting (incl. both meeting days)
+  # M: number of days in current month after meeting (incl. both meeting days)
+
+  unified_df <- unify_ZQ(ZQ1, ZQ2)
+
+  previousMonth <- unified_df |>
+    select(
+      time,
+      rateBps = rateBps.1
+    )
+
+  currentMonth <- unified_df |>
+    select(
+      time,
+      rateBps = rateBps.2
+    )
+
+  weightStart <- N / (N + M)
+  weightEnd <- M / (N + M) # = 1 - weightStart
+
+  # in Bps
+  startRate <- previousMonth$rateBps 
+  avgRate <- currentMonth$rateBps 
+
+  endRate <- (1 / weightEnd) * avgRate - (weightStart / weightEnd) * startRate 
+  changeBps <- endRate - startRate
+
+  # NOTE: Should this function only return the implied rate change instead?
+  tibble(
+    time = unified_df$time,
+    startRate,
+    avgRate,
+    endRate,
+    changeBps
+  )
+}
+
+IRNextMonthAnchor <- function(N, M, ZQ1, ZQ2) {
+  # ZQ1 is ZQ data for current month
+  # ZQ2 is ZQ data for next month
+  # N: number of days in current month before meeting (incl. both meeting days)
+  # M: number of days in current month after meeting (incl. both meeting days)
+
+  unified_df <- unify_ZQ(ZQ1, ZQ2)
+
+  currentMonth <- unified_df |>
+    select(
+      time,
+      rateBps = rateBps.1
+    )
+
+  nextMonth <- unified_df |>
+    select(
+      time,
+      rateBps = rateBps.2
+    )
+  
+  # and in Bps
+  endRate <- nextMonth$rateBps 
+  avgRate <- currentMonth$rateBps 
+
+  weightStart <- N / (N + M)
+  weightEnd <- M / (N + M) # = 1 - weightStart
+
+  startRate <- (1 / weightStart) * avgRate - (weightEnd / weightStart) * endRate
+  
+  changeBps <- endRate - startRate
+
+  # NOTE: Should this function only return the implied rate change instead?
+  tibble(
+    time = unified_df$time,
+    startRate,
+    avgRate,
+    endRate,
+    changeBps
+  )
+}
+
+IRNextNextMonthAnchor <- function(N1_2, M1_2, N2_3, M2_3, ZQ1, ZQ2, ZQ3) {
+  nextMonth <- IRNextMonthAnchor(N2_3, M2_3, ZQ2, ZQ3)
+
+  nextMonth_renamed <- nextMonth |>
+    as_tibble() |>
+    select(time, rateBps = startRate)
+
+  IRNextMonthAnchor(N1_2, M1_2, ZQ1, nextMonth_renamed)
+}
+
+
+# ------- Calculating price-implied risk-neutral probabilities -------
+get_probabilities <- function(changeBps) {
+  # NOTE: Here we get outcomes and probabilities for lower and higher rates (increments of 25 bps) for 
+  # possible changes to the interest rates
+  
+  # Division of changeBps by 25 bps yields the number of implied IR cuts which can be decomposed into:
+  # characteristic: characteristic (integer part)
+  # mantissa: mantissa (decimal points part)
+  characteristic <- (abs(changeBps / 25) %/% 1) * sign(changeBps)
+  mantissa <- (abs(changeBps / 25) %% 1) * sign(changeBps)
+  
+  # The characteristic determines the lower bound of potential rate hikes or cuts
+  # (step #7 from FedWatch Methodology)
+  lower <- (characteristic + floor(mantissa)) * 25
+  upper <- lower + 25
+  
+  
+  # The mantissa determines the probability of hikes or cuts of the size of the lower bound
+  # (step #8 from FedWatch Methodology)
+  # if mantissa < 0:
+  # lowerProb = - mantissa
+  #
+  # if mantissa > 0:
+  # lowerProb = 1 - mantissa
+  # 
+  # if mantissa = 0:
+  # lowerProb = 1
+  #
+  # combined:
+  # lowerProb = I_{0 <= mantissa} - mantissa 
+  
+  lowerProb <- (0 <= mantissa) - mantissa
+  upperProb <- 1 - lowerProb
+  
+  rates_implied_prob <- tibble(
+    lower,
+    lowerProb,
+    upper,
+    upperProb,
+  ) |>
+    mutate(
+      # Initialise all possible change probabilities
+      down100 = 0,
+      down75 = 0,
+      down50 = 0,
+      down25 = 0,
+      noChange = 0,
+      up25 = 0,
+      up50 = 0,
+      up75 = 0,
+      up100 = 0,
+      # get named changes
+      lowerName = case_when(
+        lower == 0 ~ "noChange",
+        lower < 0 ~ paste0("down", abs(lower)),
+        lower > 0 ~ paste0("up", abs(lower))
+      ),
+      upperName = case_when(
+        upper == 0 ~ "noChange",
+        upper < 0 ~ paste0("down", abs(upper)),
+        upper > 0 ~ paste0("up", abs(upper))
+      )
+    )
+  
+  # fill grid for down100, down75, etc.
+  for (rowIndex in seq_len(nrow(rates_implied_prob))) {
+    lowerRate <- rates_implied_prob[[rowIndex, "lowerName"]]
+    rates_implied_prob[rowIndex, lowerRate] <- rates_implied_prob[rowIndex, "lowerProb"]
+    upperRate <- rates_implied_prob[[rowIndex, "upperName"]]
+    rates_implied_prob[rowIndex, upperRate] <- rates_implied_prob[rowIndex, "upperProb"]
+  }
+
+  rates_implied_prob
+}
+
+
+# Put it all together
+ZQ_Implied_Probs <- apply(meetings, 1, meeting_implied_rates)
+
+# FIX:
+# Error in sign(changeBps) : non-numeric argument to mathematical function
 
 
 
@@ -299,14 +414,9 @@ ZQQ2024 <- read_csv(
   )
 
 
-range(PM_data$time)
-range(ZQQ24$time)
-range(ZQU24$time)
-range(ZQV24$time)
+# NOTE: For october contract
+View(meetings)
 
-
-PM_data_start <- min(PM_data$time)
-PM_data_end <- max(PM_data$time)
 september_end <- as.POSIXct("2024-09-30 23:59:59", tz = "America/New_York")
 
 # August: Q
@@ -410,23 +520,21 @@ dev.off()
 # WARNING: Different calculations needed for rate hikes, or when switching between potential
 # hikes or cuts
 
-# NOTE: For october contract
-char <- (abs(ZQV24$changeBps / 25) %/% 1) * sign(ZQV24$changeBps)
+characteristic <- (abs(ZQV24$changeBps / 25) %/% 1) * sign(ZQV24$changeBps)
 mantissa <- (abs(ZQV24$changeBps / 25) %% 1) * sign(ZQV24$changeBps)
-recreated <- (char + mantissa) * 25
+recreated <- (characteristic + mantissa) * 25
  
-# char <- (abs(ZQV24$changeBps) %/% 25) * sign(ZQV24$changeBps)
+# characteristic <- (abs(ZQV24$changeBps) %/% 25) * sign(ZQV24$changeBps)
 # mantissa <- (abs(ZQV24$changeBps) %% 25) * sign(ZQV24$changeBps)
 
-cbind(ZQV24$changeBps, char, mantissa, recreated)
-unique(char)
+cbind(ZQV24$changeBps, characteristic, mantissa, recreated)
+unique(characteristic)
 
 ######### Calculating implied probabillities #########
 implied_probs <- tibble(
-  # NOTE: higher mathematically (lower in abs value here)
   time = ZQV24$time,
-  higher = char * 25,
-  lower = (char - 1) * 25,
+  higher = characteristic * 25,
+  lower = (characteristic - 1) * 25,
   probHigher = 1 - abs(mantissa),
   probLower = abs(mantissa)
 ) |>
@@ -495,14 +603,6 @@ PM_probs <- PM_probs_unscaled |>
   ) |>
   select(-total) |>
   filter(PM_data_start < time & time < PM_data_end)
-
-# dev.new()
-
-PM_data_start
-PM_data_end
-range(PM_probs$time)
-range(implied_probs$time)
-
 
 # ------ ggplot stacked area charts ------ 
 
