@@ -156,17 +156,17 @@ meetings_noTimeRange <- tibble(
 ) |>
   mutate(
     meetingMonth = format(meetingTime, "%Y-%m"),
-    nextMonthIsAnchor = 
-    (floor_date(meetingTime, unit = "month") + months(1)) !=
-      na.omit(c(
-        lead(floor_date(meetingTime, unit = "month")), 
-        as.POSIXct(1758132000, tz = "America/New_York") # September meeting
-      )),
     previousMonthIsAnchor = 
     (floor_date(meetingTime, unit = "month") - months(1)) !=
       na.omit(c(
         as.POSIXct(1671044400, tz = "America/New_York"), # September meeting
         lag(floor_date(meetingTime, unit = "month")) 
+      )),
+    nextMonthIsAnchor = 
+    (floor_date(meetingTime, unit = "month") + months(1)) !=
+      na.omit(c(
+        lead(floor_date(meetingTime, unit = "month")), 
+        as.POSIXct(1758132000, tz = "America/New_York") # September meeting
       )),
     # technically redundant because no 4 consecutive meetings months
     nextNextMonthIsAnchor = 
@@ -180,7 +180,7 @@ meetings_noTimeRange <- tibble(
 
 
 tokens <- read_csv(
-  file.path(ROOT_DIR, "/data/processed/tokens/FOMC Tokens.csv"),
+  file.path(ROOT_DIR, "data/processed/tokens/FOMC Tokens.csv"),
   col_types = cols(
     Yes = col_character(),
     No = col_character()
@@ -261,11 +261,11 @@ tokens <- read_csv(
         close = col_double()
       )
     ) |>
-      select(time, close) |>
       mutate(
         time = as.POSIXct(time, tz = "America/New_York"),
         rateBps = (100 - close) * 100
-      )
+      ) |>
+      select(time, rateBps)
 
     ZQ_name <- substr(
       basename(csv_fileName), 1, nchar(basename(csv_fileName)) - 4
@@ -311,3 +311,5 @@ save(
   ZQ_data,
   file = "./FOMC_preprocesed.RData"
 )
+
+print("Finished preprocessing")
