@@ -244,9 +244,24 @@ tokens <- read_csv(
     
 
 
-    PM_df <- PM_df[!duplicated(PM_df[, 1:2]), ]
+    PM_df_long <- PM_df[!duplicated(PM_df[, 1:2]), ]
+    # If price data missing fill down, otherwise replace with 0
 
-    PM_data[[PM_name]] <- PM_df
+    assetNames <- unique(PM_df_long$asset)
+
+    # This is the best way I could use replace_na
+    replaceWith <- list()
+    replaceWith[assetNames] <- 0
+
+    PM_df_wide <- PM_df_long |> 
+      pivot_wider(
+        names_from = asset,
+        values_from = price,
+        ) |>
+      fill(!time, .direction = "down") |>
+      replace_na(replace = replaceWith)
+
+    PM_data[[PM_name]] <- PM_df_wide
   }
 
   for (i in seq_along(ZQ_files)) {
