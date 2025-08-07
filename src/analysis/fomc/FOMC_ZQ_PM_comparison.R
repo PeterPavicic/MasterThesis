@@ -86,10 +86,10 @@ unify_ZQ <- function(ZQ1, ZQ2) {
 
 
 
-#' Wrapper function to be called inside of `apply` in main loop
-#' which takes rows containing meetings & applies relevant calculations to get
-#' outcomes and their associated probabilities
-#' which will be saved to a list where each entry will be a meeting
+# wrapper to be called inside of `apply` in main loop
+# which takes rows containing meetings & applies relevant calculations to get
+# outcomes and their associated probabilities
+# which will be saved to a list where each entry will be a meeting
 meeting_implied_rates <- function(meetingRow) {
 
   # TODO: Filter unified data for PM_data_start and PM_data_end
@@ -113,7 +113,8 @@ meeting_implied_rates <- function(meetingRow) {
   # TODO: Implement memoisation
 
   if (meetingRow["previousMonthIsAnchor"]) {
-    previous_month_name <- format(as.Date(meetingTime) - months(1), "%Y-%m")
+    previous_month_name <- format(as.Date(paste0(meetingMonth, "-01")), "%Y-%m") 
+
     ZQ_previous <- ZQ_data[[previous_month_name]] |>
       filter(
         PM_data_start <= time,
@@ -123,7 +124,8 @@ meeting_implied_rates <- function(meetingRow) {
     intraMonthRates <- IRPreviousMonthAnchor(N, M, ZQ_previous, ZQ_current)
 
   } else if (meetingRow["nextMonthIsAnchor"]) {
-    next_month_name <- format(as.Date(meetingTime) + months(1), "%Y-%m")
+    next_month_name <- format(as.Date(paste0(meetingMonth, "-01")), "%Y-%m") 
+
     ZQ_next <- ZQ_data[[next_month_name]] |>
       filter(
         PM_data_start <= time,
@@ -134,14 +136,16 @@ meeting_implied_rates <- function(meetingRow) {
     intraMonthRates <- IRNextMonthAnchor(N, M, ZQ_current, ZQ_next)
 
   } else if (meetingRow["nextNextMonthIsAnchor"]) {
-    next_month_name <- format(as.Date(meetingTime) + months(1), "%Y-%m")
+    next_month_name <- format(as.Date(paste0(meetingMonth, "-01")), "%Y-%m")
+
     ZQ_next <- ZQ_data[[next_month_name]] |> 
       filter(
         PM_data_start <= time,
         time <= PM_data_end
       )
 
-    next_next_month_name <- format(as.Date(meetingMonth) + months(2), "%Y-%m")
+    next_next_month_name <- format(as.Date(paste0(meetingMonth, "-01")), "%Y-%m") 
+
     ZQ_next_next <- ZQ_data[[next_next_month_name]] |> 
       filter(
         PM_data_start <= time,
@@ -166,13 +170,12 @@ meeting_implied_rates <- function(meetingRow) {
 
   implied_probabilities <- get_probabilities(intraMonthRates$changeBps)
 
+
   tibble(
-    intraMonthRates$time,
+    time = intraMonthRates$time,
     implied_probabilities
   )
-
 }
-
 
 IRPreviousMonthAnchor <- function(N, M, ZQ1, ZQ2) {
   # ZQ1 is ZQ data for previous month
@@ -338,15 +341,35 @@ get_probabilities <- function(changeBps) {
     rates_implied_prob[rowIndex, upperRate] <- rates_implied_prob[rowIndex, "upperProb"]
   }
 
-  rates_implied_prob
+  rates_implied_prob |>
+    select(
+      down100,
+      down75,
+      down50,
+      down25,
+      noChange,
+      up25,
+      up50,
+      up75,
+      up100
+    )
 }
 
 
-# Put it all together
+# Putting it all together
 ZQ_Implied_Probs <- apply(meetings, 1, meeting_implied_rates)
+names(ZQ_Implied_Probs) <- meetings$meetingMonth
 
-# FIX:
-# Error in sign(changeBps) : non-numeric argument to mathematical function
+
+
+save(
+  meetings,
+  tokens,
+  PM_data,
+  ZQ_data,
+  ZQ_Implied_Probs,
+  file = "./FOMC_Granger_Causality.RData"
+)
 
 
 
