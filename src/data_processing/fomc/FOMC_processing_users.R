@@ -11,7 +11,6 @@ tokens_data <- read_csv(
     No = col_character()
   ))
 
-
 tokens_outcomes <- tokens_data |>
   select(
     tokenId = Yes,

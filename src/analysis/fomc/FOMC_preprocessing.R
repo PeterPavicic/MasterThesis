@@ -246,7 +246,6 @@ tokens <- read_csv(
 
 
     PM_df_long <- PM_df[!duplicated(PM_df[, 1:2]), ]
-    # If price data missing fill down, otherwise replace with 0
 
     assetNames <- unique(PM_df_long$asset)
 
@@ -254,6 +253,10 @@ tokens <- read_csv(
     replaceWith <- list()
     replaceWith[assetNames] <- 0
 
+    # assert that PM_df_long sorted in time
+    # without this, fill ends up wrong
+    if (any(PM_df_long$time != sort(PM_df_long$time))) stop("PM_df_long unsorted by time")
+    # If price data missing fill down, otherwise replace with 0
     PM_df_wide <- PM_df_long |> 
       pivot_wider(
         names_from = asset,

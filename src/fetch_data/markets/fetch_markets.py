@@ -10,7 +10,7 @@ import pandas as pd
 import requests
 
 FILE_LOCATION = Path(__file__)
-ROOT_DIR = FILE_LOCATION.parent.parent
+ROOT_DIR = FILE_LOCATION.parent.parent.parent.parent
 
 
 

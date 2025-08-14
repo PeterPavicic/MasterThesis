@@ -372,6 +372,11 @@ save(
   file = "./FOMC_Granger_Causality.RData"
 )
 
+PM_data$`2023-05`
+
+View(ZQ_Implied_Probs$`2024-03`)
+View(ZQ_Implied_Probs$`2023-05`)
+
 
 
 ZQU2024 <- read_csv(
