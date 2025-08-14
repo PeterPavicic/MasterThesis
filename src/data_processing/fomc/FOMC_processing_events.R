@@ -100,7 +100,8 @@ for (dir in dirs) {
         takerAssetId = col_character()
       )) |>
       as_tibble()
-  }, simplify = FALSE))
+  }, simplify = FALSE)) |>
+    arrange(timestamp)
 
   perform_analysis(all_markets_for_event, event_name)
 }

@@ -1,6 +1,7 @@
 library(dplyr)
 library(readr)
 
+# Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
 tokens_data <- read_csv(
@@ -9,7 +10,6 @@ tokens_data <- read_csv(
     Yes = col_character(),
     No = col_character()
   ))
-
 
 tokens_outcomes <- tokens_data |>
   select(

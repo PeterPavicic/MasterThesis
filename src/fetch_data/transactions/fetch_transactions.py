@@ -3,7 +3,7 @@
 from queries import *
 
 FILE_LOCATION = Path(__file__)
-ROOT_DIR = FILE_LOCATION.parent.parent
+ROOT_DIR = FILE_LOCATION.parent.parent.parent.parent
 
 
 def getTrumpMarket(startPages: int | list[int] = 0):
@@ -206,16 +206,17 @@ if __name__ == "__main__":
     # fileNames = [f for f in os.listdir(jsons_dir)]
 
     json_files = [
-        os.path.join(ROOT_DIR, "/data/interim/02_renamed/polymarket/markets/fed-interest-rates-may-2024.json")
+        os.path.join(ROOT_DIR, "data/interim/02_renamed/polymarket/markets/fed-decision-in-june.json"),
+        os.path.join(ROOT_DIR, "data/interim/02_renamed/polymarket/markets/fed-decision-in-july.json")
     ]
     
     for json_file in json_files:
-        # print(json_file)
+        print(json_file)
         with open(json_file, 'r') as file:
             data = json.load(file)
         eventTitle = data.get("title")
         markets = data.get("markets")
-        # getTransactions(eventTitle, markets)
+        getTransactions(eventTitle, markets)
         getUserPnLs(eventTitle, markets)
 
     print("Done getting missing data")

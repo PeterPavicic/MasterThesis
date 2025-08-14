@@ -5,6 +5,7 @@ if (!require(vars)) install.packages("vars"); library(vars)
 if (!require(urca)) install.packages("urca"); library(urca)
 if (!require(car)) install.packages("car"); library(car)
 
+# Set wd to the dir containing this file before running
 ROOT_DIR <- AKSJDNSAJKNDAJKNDASKJNDJASKNDKJSANDJKSAND
 
 nyt_harris_needle <- read.table(
