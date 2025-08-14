@@ -4,6 +4,7 @@ library(tidyr)
 library(ggplot2)
 
 
+# Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
 # Load all RData from specified directory into varList list
