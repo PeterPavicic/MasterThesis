@@ -10,9 +10,6 @@ library(viridis)
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
-# TODO: Write this somewhere else
-
-# source("./FOMC_preprocessing.R")
 load("./FOMC_preprocesed.RData")
 
 # head(meetings)
@@ -20,13 +17,6 @@ load("./FOMC_preprocesed.RData")
 # head(PM_data)
 # head(ZQ_data)
 
-
-# TODO: 
-# Match ZQ estimates with PM estimates
-# Figure out how to perform Granger causality test
-
-
-# WARNING: Chronological order makes a difference here
 
 # Assumes ZQ_list comes in correct chronological order
 # Takes list of 2 and performs full_join on time.  
@@ -83,18 +73,20 @@ unify_ZQ <- function(ZQ1, ZQ2) {
 # [weightEnd] * endRate = avgRate - [weightStart] * startRate 
 # endRate = [1 / weightEnd] * avgRate - [weightStart / weightEnd] * startRate 
 
-
 # wrapper to be called inside of `apply` in main loop
 # which takes rows containing meetings & applies relevant calculations to get
 # outcomes and their associated probabilities
 # which will be saved to a list where each entry will be a meeting
 meeting_implied_rates <- function(meetingRow) {
+  # Parsing all datatypes correctly
+  meetingTime <- as.POSIXct(meetingRow[["meetingTime"]], tz = "America/New_York")
+  meetingMonth <- meetingRow[["meetingMonth"]]
+  previousMonthIsAnchor <- as.logical(meetingRow[["previousMonthIsAnchor"]])
+  nextMonthIsAnchor <- as.logical(meetingRow[["nextMonthIsAnchor"]])
+  nextNextMonthIsAnchor <- as.logical(meetingRow[["nextNextMonthIsAnchor"]])
+  PM_data_start <- as.POSIXct(meetingRow[["data_start"]], tz = "America/New_York")
+  PM_data_end <- as.POSIXct(meetingRow[["data_end"]], tz = "America/New_York")
 
-  # TODO: Filter unified data for PM_data_start and PM_data_end
-  meetingTime <- meetingRow["meetingTime"]
-  meetingMonth <- meetingRow["meetingMonth"]
-  PM_data_start <- meetingRow["data_start"]
-  PM_data_end <- meetingRow["data_end"]
 
   # for current month:
   # days before meeting (incl. meeting days)
@@ -108,7 +100,7 @@ meeting_implied_rates <- function(meetingRow) {
       time <= PM_data_end
     )
 
-  if (meetingRow["previousMonthIsAnchor"]) {
+  if (meetingRow[["previousMonthIsAnchor"]]) {
     previous_month_name <- format(as.Date(paste0(meetingMonth, "-01")) - months(1), "%Y-%m") 
 
     ZQ_previous <- ZQ_data[[previous_month_name]] |>
@@ -119,7 +111,7 @@ meeting_implied_rates <- function(meetingRow) {
 
     intraMonthRates <- IRPreviousMonthAnchor(N, M, ZQ_previous, ZQ_current)
 
-  } else if (meetingRow["nextMonthIsAnchor"]) {
+  } else if (meetingRow[["nextMonthIsAnchor"]]) {
     next_month_name <- format(as.Date(paste0(meetingMonth, "-01")) + months(1), "%Y-%m") 
 
     ZQ_next <- ZQ_data[[next_month_name]] |>
@@ -131,7 +123,7 @@ meeting_implied_rates <- function(meetingRow) {
 
     intraMonthRates <- IRNextMonthAnchor(N, M, ZQ_current, ZQ_next)
 
-  } else if (meetingRow["nextNextMonthIsAnchor"]) {
+  } else if (meetingRow[["nextNextMonthIsAnchor"]]) {
     next_month_name <- format(as.Date(paste0(meetingMonth, "-01")) + months(1), "%Y-%m") 
 
     ZQ_next <- ZQ_data[[next_month_name]] |> 
@@ -419,15 +411,15 @@ for (meetingName in meetings$meetingMonth) {
     antialias = "subpixel"
   )
 
-  svglite(
-    filename = file.path(ROOT_DIR,
-      "outputs/fomc/plots/ZQ_PM_comparison",
-      paste0("ZQ_PM_FOMC_meeting_", 
-        sub("-", "_", meetingName), ".svg")
-    ), 
-    width = 7,
-    height = 5
-  )
+  # svglite(
+  #   filename = file.path(ROOT_DIR,
+  #     "outputs/fomc/plots/ZQ_PM_comparison",
+  #     paste0("ZQ_PM_FOMC_meeting_", 
+  #       sub("-", "_", meetingName), ".svg")
+  #   ), 
+  #   width = 7,
+  #   height = 5
+  # )
 
   # always have enough space for plots, 2 columns
   par(
