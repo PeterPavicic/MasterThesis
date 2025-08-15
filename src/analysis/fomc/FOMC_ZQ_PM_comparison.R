@@ -359,15 +359,40 @@ ZQ_Implied_Probs <- apply(meetings, 1, meeting_implied_rates)
 names(ZQ_Implied_Probs) <- meetings$meetingMonth
 
 
+PM_data_unscaled <- PM_data
+rm(PM_data)
+
+
+# scale each PM_data tibble so probabilities sum to 1
+# but also store unscaled sum for reference
+PM_data_scaled <- list()
+for (i in seq_along(PM_data_unscaled)) {
+  PM_df <- PM_data_unscaled[[i]]
+  PM_data_scaled[[i]] <- PM_df |>
+    rowwise() |>
+    mutate(
+      unscaled_sum = sum(c_across(-time))
+    ) |> 
+    mutate(
+      across(-c(time, unscaled_sum), function(x) {x / unscaled_sum})
+    ) |> 
+    ungroup()
+}
+
+names(PM_data_scaled) <- names(PM_data_unscaled)
+
 save(
   meetings,
   tokens,
-  PM_data,
+  PM_data_scaled,
+  PM_data_unscaled,
   ZQ_data,
   ZQ_Implied_Probs,
   file = "./FOMC_Granger_Causality.RData"
 )
 
+# TODO: perhaps plot everything
+# and clean up below
 
 
 
