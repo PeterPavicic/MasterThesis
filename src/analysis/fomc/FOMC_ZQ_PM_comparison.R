@@ -1,10 +1,11 @@
 library(dplyr)
 library(ggplot2)
+library(lubridate)
 library(readr)
+library(svglite)
 library(tibble)
 library(tidyr)
 library(viridis)
-library(lubridate)
 
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
@@ -82,10 +83,6 @@ unify_ZQ <- function(ZQ1, ZQ2) {
 # [weightEnd] * endRate = avgRate - [weightStart] * startRate 
 # endRate = [1 / weightEnd] * avgRate - [weightStart / weightEnd] * startRate 
 
-
-# View(meetings)
-
-# View(meetings)
 
 # wrapper to be called inside of `apply` in main loop
 # which takes rows containing meetings & applies relevant calculations to get
@@ -353,7 +350,6 @@ get_probabilities <- function(changeBps) {
     )
 }
 
-
 # Putting it all together
 ZQ_Implied_Probs <- apply(meetings, 1, meeting_implied_rates)
 names(ZQ_Implied_Probs) <- meetings$meetingMonth
@@ -379,6 +375,8 @@ for (i in seq_along(PM_data_unscaled)) {
     ungroup()
 }
 
+rm(i, PM_df)
+
 names(PM_data_scaled) <- names(PM_data_unscaled)
 
 save(
@@ -391,10 +389,101 @@ save(
   file = "./FOMC_Granger_Causality.RData"
 )
 
-# TODO: perhaps plot everything
-# and clean up below
+
+# Plotting every asset in every meeting: ZQ-PM
+for (meetingName in meetings$meetingMonth) {
+  # get asset names from current polymarket market
+  PM_df <- PM_data_scaled[[meetingName]]
+  assetNames <- colnames(PM_df)[!(colnames(PM_df) %in% c("time", "unscaled_sum"))]
+
+  # only select ones with bets on Polymarket
+  ZQ_IP_df_unfiltered <- ZQ_Implied_Probs[[meetingName]]
+  ZQ_IP_df <- ZQ_IP_df_unfiltered |>
+    select(time, all_of(assetNames))
 
 
+  # how many rows in plot such that there are always two plots in one row
+  rowCountInPlot <- ceiling(length(assetNames) / 2)
+
+  # Where to save plot
+  png(
+    filename = file.path(ROOT_DIR,
+      "outputs/fomc/plots/ZQ_PM_comparison",
+      paste0("ZQ_PM_FOMC_meeting_", 
+        sub("-", "_", meetingName), ".png")
+    ),
+    width = 1600,
+    height = 600 * rowCountInPlot,
+    res = 100 * rowCountInPlot,
+    type = "cairo-png",
+    antialias = "subpixel"
+  )
+
+  svglite(
+    filename = file.path(ROOT_DIR,
+      "outputs/fomc/plots/ZQ_PM_comparison",
+      paste0("ZQ_PM_FOMC_meeting_", 
+        sub("-", "_", meetingName), ".svg")
+    ), 
+    width = 7,
+    height = 5
+  )
+
+  # always have enough space for plots, 2 columns
+  par(
+    mfrow = c(
+      rowCountInPlot,
+      2
+    ),
+    oma = c(0, 0, 3, 0)
+  )
+
+  for (assetName in assetNames) {
+    PM_time <- PM_df$time
+    PM_probs <- PM_df[[assetName]]
+
+    ZQ_time <- ZQ_IP_df$time
+    ZQ_probs <- ZQ_IP_df[[assetName]]
+
+    # Initialise plotting area
+    plot(PM_time, PM_probs, type = 'n', ylim = c(0, 1),
+      main = assetName,
+      ylab = "Implied probability",
+      xlab = "Time", lty = "solid",
+      yaxt = "n",
+      cex.main = 1,
+      cex.lab = 1,
+      cex.axis = 1
+    )
+    # y-axis
+    axis(2, at = seq(0, 1, .2), labels = paste0(seq(0, 100, 20), "%"))
+    grid()
+
+    # Polymarket probabilities
+    lines(PM_time, PM_probs, type = 'l', col = "#2D9CDB")
+    # ZQ implied probabilities
+    lines(ZQ_time, ZQ_probs, type = 'l', col = "#FF5952")
+    # legend("right", legend = c("Polymarket", "ZQ-implied"),
+    #   col = c("#2D9CDB", "#FF5952"), lwd = 2)
+  }
+
+  # Large title for the entire plot
+  title(
+    paste(
+      "FOMC meeting",
+      format(as.Date(paste0(meetingName, "-01")), "%Y %B")
+    ),
+    cex.main = 1.5,
+    cex.adj = c(0, -2),
+    line = -0.5,
+    outer = TRUE
+  )
+
+  dev.off()
+}
+
+
+# TODO:clean up below
 
 ZQU2024 <- read_csv(
   file.path(ROOT_DIR, "data/processed/ZQ/ZQU2024.csv"),
