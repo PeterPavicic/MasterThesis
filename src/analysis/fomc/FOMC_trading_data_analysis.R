@@ -1,8 +1,12 @@
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(readr)) install.packages("readr")
+if (!require(tidyr)) install.packages("tidyr")
+if (!require(ggplot2)) install.packages("ggplot2")
+
 library(dplyr)
 library(readr)
 library(tidyr)
 library(ggplot2)
-
 
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 

@@ -1,6 +1,12 @@
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(tibble)) install.packages("tibble")
+if (!require(tidyr)) install.packages("tidyr")
+if (!require(vars)) install.packages("vars")
+
 library(dplyr)
 library(tibble)
 library(tidyr)
+library(vars)
 
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
@@ -31,7 +37,6 @@ for (meetingName in meetings$meetingMonth) {
 range(ZQ_data$`2024-09`$time)
 range(PM_data_unscaled$`2024-09`$time)
 range(ZQ_Implied_Probs$`2024-09`$time)
-
 
 
 

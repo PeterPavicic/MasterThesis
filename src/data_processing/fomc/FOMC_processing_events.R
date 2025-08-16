@@ -1,6 +1,8 @@
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(readr)) install.packages("readr")
+
 library(dplyr)
 library(readr)
-
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
 perform_analysis <- function(event_tibble, event_name) {

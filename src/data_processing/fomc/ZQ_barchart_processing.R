@@ -1,6 +1,8 @@
-library(readr)
-library(dplyr)
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(readr)) install.packages("readr")
 
+library(dplyr)
+library(readr)
 ROOT_DIR <- dirname(dirname(dirname(getwd())))
 
 barchart_folder <- file.path(ROOT_DIR, "data/raw/barchart")

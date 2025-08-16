@@ -1,4 +1,13 @@
 # TODO: Move this into data_processing
+
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(readr)) install.packages("readr")
+if (!require(tibble)) install.packages("tibble")
+if (!require(tidyr)) install.packages("tidyr")
+if (!require(viridis)) install.packages("viridis")
+if (!require(lubridate)) install.packages("lubridate")
+
 library(dplyr)
 library(ggplot2)
 library(readr)
@@ -6,6 +15,7 @@ library(tibble)
 library(tidyr)
 library(viridis)
 library(lubridate)
+
 
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
@@ -305,7 +315,8 @@ meetings <- meetings_noTimeRange |>
   mutate(
     data_start = min(PM_data[[meetingMonth]]$time),
     data_end = max(PM_data[[meetingMonth]]$time)
-  )
+  ) |> 
+  ungroup()
 
 rm(
   meetings_noTimeRange, 

@@ -1,11 +1,21 @@
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(lubridate)) install.packages("lubridate")
+if (!require(readr)) install.packages("readr")
+# if (!require(svglite)) install.packages("svglite")
+if (!require(tibble)) install.packages("tibble")
+if (!require(tidyr)) install.packages("tidyr")
+if (!require(viridis)) install.packages("viridis")
+
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(readr)
-library(svglite)
+# library(svglite)
 library(tibble)
 library(tidyr)
 library(viridis)
+
 
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
@@ -382,7 +392,7 @@ save(
 )
 
 
-# Plotting every asset in every meeting: ZQ-PM
+# ------- Plotting every asset in every meeting -------
 for (meetingName in meetings$meetingMonth) {
   # get asset names from current polymarket market
   PM_df <- PM_data_scaled[[meetingName]]
@@ -466,7 +476,7 @@ for (meetingName in meetings$meetingMonth) {
       format(as.Date(paste0(meetingName, "-01")), "%Y %B")
     ),
     cex.main = 1.5,
-    cex.adj = c(0, -2),
+    # cex.adj = c(0, -2),
     line = -0.5,
     outer = TRUE
   )

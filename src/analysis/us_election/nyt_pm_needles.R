@@ -1,5 +1,3 @@
-rm(list = ls())
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 if (!require(tseries)) install.packages("tseries"); library(tseries)
 if (!require(vars)) install.packages("vars"); library(vars)
 if (!require(urca)) install.packages("urca"); library(urca)
