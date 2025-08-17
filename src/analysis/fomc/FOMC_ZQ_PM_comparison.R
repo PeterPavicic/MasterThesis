@@ -381,13 +381,14 @@ rm(i, PM_df)
 
 names(PM_data_scaled) <- names(PM_data_unscaled)
 
+meetingMonths <- meetings$meetingMonth
+
+
 save(
-  meetings,
-  tokens,
   PM_data_scaled,
   PM_data_unscaled,
-  ZQ_data,
   ZQ_Implied_Probs,
+  meetingMonths,
   file = "./FOMC_Granger_Causality.RData"
 )
 
@@ -565,6 +566,55 @@ for (meetingName in meetings$meetingMonth) {
   ZQ_minute_distances[[meetingName]] <- ZQ_m_distance
   PM_minute_distances[[meetingName]] <- PM_m_distance
 }
+
+rbind(
+  summary(ZQ_minute_distances[[1]]),
+  summary(ZQ_minute_distances[[2]]),
+  summary(ZQ_minute_distances[[3]]),
+  summary(ZQ_minute_distances[[4]]),
+  summary(ZQ_minute_distances[[5]]),
+  summary(ZQ_minute_distances[[6]]),
+  summary(ZQ_minute_distances[[7]]),
+  summary(ZQ_minute_distances[[8]]),
+  summary(ZQ_minute_distances[[9]]),
+  summary(ZQ_minute_distances[[10]]),
+  summary(ZQ_minute_distances[[11]]),
+  summary(ZQ_minute_distances[[12]]),
+  summary(ZQ_minute_distances[[13]]),
+  summary(ZQ_minute_distances[[14]]),
+  summary(ZQ_minute_distances[[15]]),
+  summary(ZQ_minute_distances[[16]]),
+  summary(ZQ_minute_distances[[17]]),
+  summary(ZQ_minute_distances[[18]]),
+  summary(ZQ_minute_distances[[19]]),
+  summary(ZQ_minute_distances[[20]]),
+  summary(ZQ_minute_distances[[21]])
+)
+
+rbind(
+  summary(PM_minute_distances[[1]]),
+  summary(PM_minute_distances[[2]]),
+  summary(PM_minute_distances[[3]]),
+  summary(PM_minute_distances[[4]]),
+  summary(PM_minute_distances[[5]]),
+  summary(PM_minute_distances[[6]]),
+  summary(PM_minute_distances[[7]]),
+  summary(PM_minute_distances[[8]]),
+  summary(PM_minute_distances[[9]]),
+  summary(PM_minute_distances[[10]]),
+  summary(PM_minute_distances[[11]]),
+  summary(PM_minute_distances[[12]]),
+  summary(PM_minute_distances[[13]]),
+  summary(PM_minute_distances[[14]]),
+  summary(PM_minute_distances[[15]]),
+  summary(PM_minute_distances[[16]]),
+  summary(PM_minute_distances[[17]]),
+  summary(PM_minute_distances[[18]]),
+  summary(PM_minute_distances[[19]]),
+  summary(PM_minute_distances[[20]]),
+  summary(PM_minute_distances[[21]])
+)
+
 
 
 
