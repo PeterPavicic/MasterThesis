@@ -391,6 +391,8 @@ save(
   file = "./FOMC_Granger_Causality.RData"
 )
 
+load("./FOMC_Granger_Causality.RData")
+ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
 # ------- Plotting every asset in every meeting -------
 for (meetingName in meetings$meetingMonth) {
@@ -468,6 +470,147 @@ for (meetingName in meetings$meetingMonth) {
     # legend("right", legend = c("Polymarket", "ZQ-implied"),
     #   col = c("#2D9CDB", "#FF5952"), lwd = 2)
   }
+
+  # Large title for the entire plot
+  title(
+    paste(
+      "FOMC meeting",
+      format(as.Date(paste0(meetingName, "-01")), "%Y %B")
+    ),
+    cex.main = 1.5,
+    # cex.adj = c(0, -2),
+    line = -0.5,
+    outer = TRUE
+  )
+
+  dev.off()
+}
+
+
+ZQ_minute_distances <- list()
+PM_minute_distances <- list()
+
+# ------- Plotting pauses in trading -------
+for (meetingName in meetings$meetingMonth) {
+  PM_df <- PM_data_unscaled[[meetingName]]
+  assetNames <- colnames(PM_df)[!(colnames(PM_df) %in% c("time"))]
+
+  # only select ones with bets on Polymarket
+  ZQ_df <- ZQ_Implied_Probs[[meetingName]] |>
+    dplyr::select(time, all_of(assetNames))
+
+  # difference in minutes
+  ZQ_m_distance <- diff(as.numeric(ZQ_df$time) / 60)
+  PM_m_distance <- diff(as.numeric(PM_df$time) / 60)
+
+  ZQ_timeIndex <- ZQ_df$time
+  ZQ_timeIndexToPlot <- (ZQ_timeIndex)[2:length(ZQ_timeIndex)]
+  ZQ_toPlot <- log(ZQ_m_distance)
+
+  PM_timeIndex <- PM_df$time
+  PM_timeIndexToPlot <- (PM_timeIndex)[2:length(PM_timeIndex)]
+  PM_toPlot <- log(PM_m_distance)
+
+  # Where to save plot
+  # png(
+  #   filename = file.path(ROOT_DIR,
+  #     "outputs/fomc/plots/granger_causality/trading_pauses",
+  #     paste0("FOMC_meeting_", 
+  #       sub("-", "_", meetingName), ".png")
+  #   ),
+  #   width = 1600,
+  #   height = 600,
+  #   res = 100,
+  #   type = "cairo-png",
+  #   antialias = "subpixel"
+  # )
+  #
+  # par(mfrow = c(1, 2), oma = c(0, 0, 3, 0))
+  #
+  #
+  # plot(ZQ_timeIndexToPlot, ZQ_toPlot, type = 'l',
+  #   main = paste("ZQ Minutes distance"),
+  #   xlab = "time",
+  #   yaxt = 'n'
+  # )
+  # ZQ_ticks <- seq(range(as.integer(summary(ZQ_toPlot)))[1], 
+  #   range(as.integer(summary(ZQ_toPlot)))[2],
+  #   by = 2)
+  # axis(side = 2, at = ZQ_ticks, labels = round(exp(ZQ_ticks), 1))
+  #
+  # plot(PM_timeIndexToPlot, PM_toPlot, type = 'l',
+  #   main = paste("PM Minutes distance"),
+  #   xlab = "time",
+  #   yaxt = 'n'
+  # )
+  # PM_ticks <- seq(range(as.integer(summary(PM_toPlot)))[1], 
+  #   range(as.integer(summary(PM_toPlot)))[2],
+  #   by = 2)
+  # axis(side = 2, at = PM_ticks, labels = round(exp(PM_ticks), 1))
+  #
+  # # Large title for the entire plot
+  # title(
+  #   paste(
+  #     "FOMC meeting",
+  #     format(as.Date(paste0(meetingName, "-01")), "%Y %B")
+  #   ),
+  #   cex.main = 1.5,
+  #   # cex.adj = c(0, -2),
+  #   line = -0.5,
+  #   outer = TRUE
+  # )
+  #
+  # dev.off()
+
+  ZQ_minute_distances[[meetingName]] <- ZQ_m_distance
+  PM_minute_distances[[meetingName]] <- PM_m_distance
+}
+
+
+
+# Set Monday as start of week
+options("lubridate.week.start" = 1)
+
+
+# ------- Plotting trading by day of week -------
+for (meetingName in meetings$meetingMonth) {
+  PM_df <- PM_data_unscaled[[meetingName]]
+  assetNames <- colnames(PM_df)[!(colnames(PM_df) %in% c("time"))]
+
+  # only select ones with bets on Polymarket
+  ZQ_df <- ZQ_Implied_Probs[[meetingName]] |>
+    dplyr::select(time, all_of(assetNames))
+
+  # difference in minutes
+  ZQ_trading_day <- wday(ZQ_df$time)
+  PM_trading_day <- wday(PM_df$time)
+
+  # Where to save plot
+  png(
+    filename = file.path(ROOT_DIR,
+      "outputs/fomc/plots/granger_causality/day_of_week_trading_freq",
+      paste0("FOMC_meeting_", 
+        sub("-", "_", meetingName), ".png")
+    ),
+    width = 1600,
+    height = 600,
+    res = 100,
+    type = "cairo-png",
+    antialias = "subpixel"
+  )
+
+  par(mfrow = c(1, 2), oma = c(0, 0, 3, 0))
+    
+
+  barplot(table(ZQ_trading_day),
+    main = "ZQ trading frequency on days of week",
+    xlab = "day of week",
+  )
+
+  barplot(table(PM_trading_day),
+    main = paste("PM trading frequency on days of week"),
+    xlab = "day of week"
+  )
 
   # Large title for the entire plot
   title(
