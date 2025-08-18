@@ -397,13 +397,13 @@ ROOT_DIR <- dirname(dirname(dirname(getwd())))
 # ------- Plotting every asset in every meeting -------
 for (meetingName in meetings$meetingMonth) {
   # get asset names from current polymarket market
-  PM_df <- PM_data_scaled[[meetingName]]
-  assetNames <- colnames(PM_df)[!(colnames(PM_df) %in% c("time", "unscaled_sum"))]
+  PM_df <- PM_data_unscaled[[meetingName]]
+  assetNames <- colnames(PM_df)[!(colnames(PM_df) == "time")]
 
   # only select ones with bets on Polymarket
   ZQ_IP_df_unfiltered <- ZQ_Implied_Probs[[meetingName]]
   ZQ_IP_df <- ZQ_IP_df_unfiltered |>
-    select(time, all_of(assetNames))
+    dplyr::select(time, all_of(assetNames))
 
 
   # how many rows in plot such that there are always two plots in one row
@@ -512,55 +512,55 @@ for (meetingName in meetings$meetingMonth) {
   PM_toPlot <- log(PM_m_distance)
 
   # Where to save plot
-  # png(
-  #   filename = file.path(ROOT_DIR,
-  #     "outputs/fomc/plots/granger_causality/trading_pauses",
-  #     paste0("FOMC_meeting_", 
-  #       sub("-", "_", meetingName), ".png")
-  #   ),
-  #   width = 1600,
-  #   height = 600,
-  #   res = 100,
-  #   type = "cairo-png",
-  #   antialias = "subpixel"
-  # )
-  #
-  # par(mfrow = c(1, 2), oma = c(0, 0, 3, 0))
-  #
-  #
-  # plot(ZQ_timeIndexToPlot, ZQ_toPlot, type = 'l',
-  #   main = paste("ZQ Minutes distance"),
-  #   xlab = "time",
-  #   yaxt = 'n'
-  # )
-  # ZQ_ticks <- seq(range(as.integer(summary(ZQ_toPlot)))[1], 
-  #   range(as.integer(summary(ZQ_toPlot)))[2],
-  #   by = 2)
-  # axis(side = 2, at = ZQ_ticks, labels = round(exp(ZQ_ticks), 1))
-  #
-  # plot(PM_timeIndexToPlot, PM_toPlot, type = 'l',
-  #   main = paste("PM Minutes distance"),
-  #   xlab = "time",
-  #   yaxt = 'n'
-  # )
-  # PM_ticks <- seq(range(as.integer(summary(PM_toPlot)))[1], 
-  #   range(as.integer(summary(PM_toPlot)))[2],
-  #   by = 2)
-  # axis(side = 2, at = PM_ticks, labels = round(exp(PM_ticks), 1))
-  #
-  # # Large title for the entire plot
-  # title(
-  #   paste(
-  #     "FOMC meeting",
-  #     format(as.Date(paste0(meetingName, "-01")), "%Y %B")
-  #   ),
-  #   cex.main = 1.5,
-  #   # cex.adj = c(0, -2),
-  #   line = -0.5,
-  #   outer = TRUE
-  # )
-  #
-  # dev.off()
+  png(
+    filename = file.path(ROOT_DIR,
+      "outputs/fomc/plots/granger_causality/trading_pauses_with_weekends",
+      paste0("FOMC_meeting_", 
+        sub("-", "_", meetingName), ".png")
+    ),
+    width = 1600,
+    height = 600,
+    res = 100,
+    type = "cairo-png",
+    antialias = "subpixel"
+  )
+
+  par(mfrow = c(1, 2), oma = c(0, 0, 3, 0))
+
+
+  plot(ZQ_timeIndexToPlot, ZQ_toPlot, type = 'l',
+    main = paste("ZQ Minutes distance"),
+    xlab = "time",
+    yaxt = 'n'
+  )
+  ZQ_ticks <- seq(range(as.integer(summary(ZQ_toPlot)))[1], 
+    range(as.integer(summary(ZQ_toPlot)))[2],
+    by = 2)
+  axis(side = 2, at = ZQ_ticks, labels = round(exp(ZQ_ticks), 1))
+
+  plot(PM_timeIndexToPlot, PM_toPlot, type = 'l',
+    main = paste("PM Minutes distance"),
+    xlab = "time",
+    yaxt = 'n'
+  )
+  PM_ticks <- seq(range(as.integer(summary(PM_toPlot)))[1], 
+    range(as.integer(summary(PM_toPlot)))[2],
+    by = 2)
+  axis(side = 2, at = PM_ticks, labels = round(exp(PM_ticks), 1))
+
+  # Large title for the entire plot
+  title(
+    paste(
+      "FOMC meeting",
+      format(as.Date(paste0(meetingName, "-01")), "%Y %B")
+    ),
+    cex.main = 1.5,
+    # cex.adj = c(0, -2),
+    line = -0.5,
+    outer = TRUE
+  )
+
+  dev.off()
 
   ZQ_minute_distances[[meetingName]] <- ZQ_m_distance
   PM_minute_distances[[meetingName]] <- PM_m_distance
@@ -570,7 +570,6 @@ for (meetingName in meetings$meetingMonth) {
 
 # Set Monday as start of week
 options("lubridate.week.start" = 1)
-
 
 # ------- Plotting trading by day of week -------
 for (meetingName in meetings$meetingMonth) {
