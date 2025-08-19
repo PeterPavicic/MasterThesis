@@ -297,7 +297,7 @@ for (meetingName in meetings$meetingMonth) {
 # Creating common timegrid
 # TODO: Turn this into function
 # should be specified in `hours`, `minutes` or `seconds`
-fidelity <- "5 minutes"
+fidelity <- "20 minutes"
 
 fidelity_count <- as.numeric(strsplit(fidelity, " ")[[1]][1])
 fidelity_unit <- strsplit(fidelity, " ")[[1]][2]
@@ -399,10 +399,10 @@ for (meetingName in meetings$meetingMonth) {
 
 
 # ADF test
-# WARNING: some reject stationarity --> what do?
+# WARNING: some reject explosive --> what do?
 adf_test_results <- list()
 for (meetingName in meetings$meetingMonth) {
-  timeseries_df <- log_odds_timeseries[[meetingName]]
+  timeseries_df <- vectorised_timeseries[[meetingName]]
 
   adf_test_results_for_meeting <- list()
 
@@ -419,11 +419,96 @@ for (meetingName in meetings$meetingMonth) {
 }
 
 
-for (df in vectorised_timeseries) {
-  print(any(is.na(df)))
+differenced_timeseries <- list()
+for (meetingName in meetings$meetingMonth) {
+  ts_df <- vectorised_timeseries[[meetingName]]
+
+  rowNum <- nrow(ts_df)
+
+  differenced_df <- ts_df |>
+    mutate(
+      across(-timestamp, ~ c(NA, diff(.)))
+    ) |>
+    filter(if_all(-timestamp, ~ !is.na(.)))
+
+  differenced_timeseries[[meetingName]] <- differenced_df
 }
 
-# TODO: Continue here
+
+# repeat for differenced
+adf_test_results_differenced <- list()
+for (meetingName in meetings$meetingMonth) {
+  timeseries_df <- differenced_timeseries[[meetingName]]
+
+  adf_test_results_for_meeting <- list()
+
+  for (assetName in colnames(timeseries_df)) {
+    if (assetName == "timestamp") {
+      next
+    }
+    else {
+      adf_test_results_for_meeting[[assetName]] <- adf.test(timeseries_df[[assetName]])
+    }
+  }
+
+  adf_test_results_differenced[[meetingName]] <- adf_test_results_for_meeting
+}
+
+adf_test_results_differenced
+
+# all timeseries stationary
+
+# TODO: cointegration check
+
+
+# TODO: VAR fitting
+
+
+
+# FIX: This
+# (multicollinearity)
+
+
+# pairwise granger test
+df_assets_only <- timeseries_df[, -1]
+assetNames <- colnames(df_assets_only)
+
+round(cor(df_assets_only), 2)
+
+filtered_assets <- assetNames[!c(assetNames %in% c("noChange.ZQ"))]
+
+filtered_df <- df_assets_only |>
+  dplyr::select(all_of(filtered_assets))
+
+ca.jo(vectorised_timeseries[[1]][, -1])
+
+
+
+var_select <- VARselect(filtered_df, lag.max = 24)
+lag_choice <- var_select$selection["SC(n)"]
+VAR_model <- VAR(filtered_df, p = lag_choice, type = "const")
+
+causality(VAR_model, cause = "down25.PM")
+causality(VAR_model, cause = "down50.PM")
+causality(VAR_model, cause = "noChange.PM")
+causality(VAR_model, cause = "up25.PM")
+causality(VAR_model, cause = "down25.ZQ")
+causality(VAR_model, cause = "down25.PM")
+
+
+
+granger_test_list <- list()
+for (asset in assetNames) {
+  granger_test <- causality(VAR_model, cause = asset)
+  print(granger_test)
+  granger_test_list[[asset]] <- granger_test
+}
+
+
+
+# boxwise granger test
+
+
 # TODO: rm() loop variables after every `for` loop
 
 PM_grid <- list()
