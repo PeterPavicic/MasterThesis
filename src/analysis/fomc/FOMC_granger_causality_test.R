@@ -398,24 +398,6 @@ for (meetingName in meetings$meetingMonth) {
 }
 
 
-logit <- function(p) log(p / (1 - p))
-# HACK: arbitrarily chosen
-replace_zero <- 1e-4
-log_odds_timeseries <- list()
-for (meetingName in meetings$meetingMonth) {
-  timeseries_df <- vectorised_timeseries[[meetingName]]
-  log_odds_df <- timeseries_df |>
-    mutate(
-      across(!c(timestamp), ~ if_else(. == 0, replace_zero, .))
-    ) |> 
-    mutate(
-      across(!c(timestamp), ~ logit(.))
-    )
-  log_odds_timeseries[[meetingName]] <- log_odds_df
-}
-
-
-
 # ADF test
 # WARNING: some reject stationarity --> what do?
 adf_test_results <- list()
