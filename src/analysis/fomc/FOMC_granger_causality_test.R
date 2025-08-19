@@ -2,12 +2,16 @@ if (!require(dplyr)) install.packages("dplyr")
 if (!require(lubridate)) install.packages("lubridate")
 if (!require(tibble)) install.packages("tibble")
 if (!require(tidyr)) install.packages("tidyr")
+if (!require(tseries)) install.packages("tseries")
+if (!require(urca)) install.packages("urca")
 if (!require(vars)) install.packages("vars")
 
 library(dplyr)
 library(lubridate)
 library(tibble)
 library(tidyr)
+library(tseries)
+library(urca)
 library(vars)
 
 # Set Monday as start of week
@@ -81,6 +85,7 @@ png(
   antialias = "subpixel"
 )
 
+# FIX: Fix this
 plot(trades_num_with_weekend, type = 'l',
   main = "Number of trades in Polymarket's markets",
   ylab = "No. of trades",
@@ -102,6 +107,8 @@ legend(
   "bottomright",
   legend = c("# of trades with weekends included")
 )
+
+dev.off()
 
 # Proportion of datapoints excluded
 (trades_num_with_weekend - trades_num_without_weekend) / trades_num_with_weekend
@@ -270,13 +277,172 @@ PM_avg_trading_freq_stats[, "Mean"]
 PM_df
 test_timePoint <- PM_df$time[4]
 
+
+
+# Which one starts earlier and ends later?
+for (meetingName in meetings$meetingMonth) {
+  PM_df <- PM_filtered[[meetingName]]
+  ZQ_df <- ZQ_filtered[[meetingName]]
+
+  PM_range <- as.numeric(range(PM_df$time))
+  ZQ_range <- as.numeric(range(ZQ_df$time))
+
+  cat("\n\n", meetingName, "\n")
+  cat("Earlier start:", ifelse(PM_range[1] < ZQ_range[1], "Polymarket", ifelse(PM_range[1] == ZQ_range[1], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[1] - ZQ_range[1]) / 60, "minutes", "\n")
+
+  cat("Later end:", ifelse(PM_range[2] > ZQ_range[2], "Polymarket", ifelse(PM_range[2] == ZQ_range[2], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[2] - ZQ_range[2]) / 60, "minutes", "\n")
+}
+
+
+# Creating common timegrid
+# TODO: Turn this into function
+# should be specified in `hours`, `minutes` or `seconds`
+fidelity <- "5 minutes"
+
+fidelity_count <- as.numeric(strsplit(fidelity, " ")[[1]][1])
+fidelity_unit <- strsplit(fidelity, " ")[[1]][2]
+
+fidelity_seconds <- fidelity_count * ifelse(
+  fidelity_unit == "hours", 3600,
+  ifelse(fidelity_unit == "minutes", 60,
+    # seconds
+    1
+  )
+)
+
+
+# unifying to common timegrid
+vectorised_timeseries <- list()
+for (meetingName in meetings$meetingMonth) {
+  PM_df <- PM_filtered[[meetingName]]
+  ZQ_df <- ZQ_filtered[[meetingName]]
+
+  # WARNING: Check if everything correct here
+  time_grid_start <- max(
+    floor_date(min(PM_df$time), fidelity),
+    floor_date(min(ZQ_df$time), fidelity)
+  )
+  time_grid_end <- min(
+    ceiling_date(max(PM_df$time), fidelity),
+    ceiling_date(max(ZQ_df$time), fidelity)
+  )
+  time_grid <- tibble(
+    timestamp = seq(time_grid_start, time_grid_end, by = fidelity_seconds)
+  ) |>
+    mutate(
+      day_of_week = weekdays(timestamp)
+    ) |>
+    filter(
+      !(day_of_week %in% c("Saturday", "Sunday"))
+    ) |>
+    dplyr::select(
+      !day_of_week
+    )
+
+  assetNames <- colnames(PM_df)[!(colnames(PM_df) == "time")]
+
+  PM_aligned <- PM_df |> 
+    mutate(
+      # rounding "up" (to nearest upper) `fidelity`
+      nextBin = ceiling_date(time, fidelity)
+    ) |>
+    mutate(
+      next_grid_point = case_when(
+        # if earlier than grid start, use grid start
+        nextBin < time_grid_start ~ time_grid_start,
+        # if later than grid start, use timepoint
+        nextBin >= time_grid_start ~ nextBin
+      )
+    ) |>
+    dplyr::select(!nextBin) |>
+    group_by(next_grid_point) |>
+    # choose last observation in bin
+    slice_tail(n = 1) |>
+    ungroup()
+
+  ZQ_aligned <- ZQ_df |> 
+    mutate(
+      # rounding "up" (to nearest upper) `fidelity`
+      nextBin = ceiling_date(time, fidelity)
+    ) |>
+    mutate(
+      next_grid_point = case_when(
+        # if earlier than grid start, use grid start
+        nextBin < time_grid_start ~ time_grid_start,
+        # if later than grid start, use timepoint
+        nextBin >= time_grid_start ~ nextBin
+      )
+    ) |>
+    dplyr::select(!nextBin) |>
+    group_by(next_grid_point) |>
+    slice_tail(n = 1) |>
+    ungroup()
+
+  all_aligned <- time_grid |>
+    left_join(PM_aligned, by = join_by(timestamp == next_grid_point)) |>
+    dplyr::select(
+      timestamp,
+      all_of(assetNames)
+    ) |>
+    left_join(ZQ_aligned, by = join_by(timestamp == next_grid_point),
+      suffix = c(".PM", ".ZQ")) |>
+    dplyr::select(!time) |>
+    fill(
+      !timestamp,
+      .direction = "down")
+
+  # TODO: Figure out why this can happen
+  # remove first row if any observations are NA
+  if (any(is.na(all_aligned[1, ]))) all_aligned <- all_aligned[-1, ]
+  vectorised_timeseries[[meetingName]] <- all_aligned
+}
+
+
+logit <- function(p) log(p / (1 - p))
+# HACK: arbitrarily chosen
+replace_zero <- 1e-4
+log_odds_timeseries <- list()
+for (meetingName in meetings$meetingMonth) {
+  timeseries_df <- vectorised_timeseries[[meetingName]]
+  log_odds_df <- timeseries_df |>
+    mutate(
+      across(!c(timestamp), ~ if_else(. == 0, replace_zero, .))
+    ) |> 
+    mutate(
+      across(!c(timestamp), ~ logit(.))
+    )
+  log_odds_timeseries[[meetingName]] <- log_odds_df
+}
+
+
+
+# ADF test
+# WARNING: some reject stationarity --> what do?
+adf_test_results <- list()
+for (meetingName in meetings$meetingMonth) {
+  timeseries_df <- log_odds_timeseries[[meetingName]]
+
+  adf_test_results_for_meeting <- list()
+
+  for (assetName in colnames(timeseries_df)) {
+    if (assetName == "timestamp") {
+      next
+    }
+    else {
+      adf_test_results_for_meeting[[assetName]] <- adf.test(timeseries_df[[assetName]])
+    }
+  }
+
+  adf_test_results[[meetingName]] <- adf_test_results_for_meeting
+}
+
+
+for (df in vectorised_timeseries) {
+  print(any(is.na(df)))
+}
+
 # TODO: Continue here
-
-PM_data_start <- floor_date(min(PM_filtered[[meetingName]]$time), "5 minutes")
-PM_data_end <- floor_date(max())
-
-grid <- data.frame(timestamp = seq(PM_data_start, PM_data_end, by = (60 * 5)))
-
+# TODO: rm() loop variables after every `for` loop
 
 PM_grid <- list()
 for (meetingName in meetings$meetingMonth) {
