@@ -111,8 +111,8 @@ legend(
 
 dev.off()
 
-# Proportion of datapoints excluded
-(trades_num_with_weekend - trades_num_without_weekend) / trades_num_with_weekend
+# # Proportion of datapoints excluded
+# (trades_num_with_weekend - trades_num_without_weekend) / trades_num_with_weekend
 
 
 png(
@@ -157,7 +157,7 @@ for (meetingName in meetings$meetingMonth) {
 
 rm(PM_df, meetingName)
 
-PM_whichLatestZero
+# PM_whichLatestZero
 
 
 # ------- Checking where unscaled sum above certain threshold -------
@@ -179,9 +179,9 @@ rm(PM_latestBelowThreshold, PM_df, meetingName)
 PM_latest_below_matrix <- sapply(c(0.2, 0.3, 0.4, 0.5, 0.6), PM_whichLatestBelowThresHold)
 colnames(PM_latest_below_matrix) <- c(0.2, 0.3, 0.4, 0.5, 0.6)
 
-PM_latest_below_matrix
+# PM_latest_below_matrix
 
-trades_num_without_weekend["2024-01"]
+# trades_num_without_weekend["2024-01"]
 
 
 # The idea now is to remove the observations
@@ -190,20 +190,20 @@ trades_num_without_weekend["2024-01"]
 
 # However:
 
-# 1) In the 2023-12, removing these observations would erase most of the datapoints
-trades_num_without_weekend["2023-12"]
-# 2) In the 2024-01 markets, it would erase 25% of the datapoints
-trades_num_without_weekend["2024-01"]
+# # 1) In the 2023-12, removing these observations would erase most of the datapoints
+# trades_num_without_weekend["2023-12"]
+# # 2) In the 2024-01 markets, it would erase 25% of the datapoints
+# trades_num_without_weekend["2024-01"]
 
-# 3) This data reveals some insights: there is an abnormal period of trading in the March 2025 market:
-(PM_data_scaled_no_weekend$`2025-03`[16510:16515, ])$unscaled_sum
+# # 3) This data reveals some insights: there is an abnormal period of trading in the March 2025 market:
+# (PM_data_scaled_no_weekend$`2025-03`[16510:16515, ])$unscaled_sum
 
-# Removing these observations fixes this:
-max(
-  which(
-    ((PM_data_scaled_no_weekend$`2025-03`[-(16510:16515), ])$unscaled_sum) < 0.2
-  )
-)
+# # Removing these observations fixes this:
+# max(
+#   which(
+#     ((PM_data_scaled_no_weekend$`2025-03`[-(16510:16515), ])$unscaled_sum) < 0.2
+#   )
+# )
 
 # ----- Removing observations below threshold -----
 # It is crucial for this to be executed atomically
@@ -279,16 +279,6 @@ for (meetingName in meetings$meetingMonth) {
 rm(PM_df, ZQ_df, minute_distances, meetingName)
 
 
-
-
-ZQ_avg_trading_freq_stats[, "Mean"]
-PM_avg_trading_freq_stats[, "Mean"]
-
-PM_df
-test_timePoint <- PM_df$time[4]
-
-
-
 # Which one starts earlier and ends later?
 for (meetingName in meetings$meetingMonth) {
   PM_df <- PM_filtered[[meetingName]]
@@ -308,7 +298,7 @@ rm(PM_df, PM_range, ZQ_df, ZQ_range, meetingName)
 # Creating common timegrid
 # TODO: Turn this into function
 # should be specified in `hours`, `minutes` or `seconds`
-fidelity <- "20 minutes"
+fidelity <- "5 minutes"
 
 fidelity_count <- as.numeric(strsplit(fidelity, " ")[[1]][1])
 fidelity_unit <- strsplit(fidelity, " ")[[1]][2]
@@ -485,26 +475,120 @@ for (meetingName in meetings$meetingMonth) {
   adf_test_results_differenced[[meetingName]] <- adf_test_results_for_meeting
 }
 
-rm(adf_test_results_for_meeting, assetName, meetingName)
+rm(adf_test_results_for_meeting, assetName, meetingName, timeseries_df)
 
-adf_test_results_differenced
+# adf_test_results_differenced
 
 # all timeseries stationary
 
 # TODO: cointegration check
 
 
-# TODO: VAR fitting
+# Sometimes all entries are 0 --> this leads to singular matrices
+# and Granger causality test cannot be performed in this case
+filtered_timeseries <- list()
+for (meetingName in meetings$meetingMonth) {
+  timeseries_df <- differenced_timeseries[[meetingName]]
+  df_assets_only <- timeseries_df[, -1]
+  assetNames <- colnames(df_assets_only)
+
+  hasOnlyZeroes <- df_assets_only |> 
+    summarise(across(assetNames, ~all(.x == 0))) |>
+    unlist()
+
+  # select ones that don't only have zeroes
+  filtered_timeseries[[meetingName]] <- df_assets_only |>
+    dplyr::select(names(hasOnlyZeroes)[!hasOnlyZeroes])
+}
 
 
+rm(
+  hasOnlyZeroes,
+  df_assets_only,
+  timeseries_df,
+  meetingName,
+  assetNames
+)
 
-# FIX: This
-# (multicollinearity)
+
+PM_cause_ZQ_pairwise <- list()
+ZQ_cause_PM_pairwise <- list()
+PM_cause_ZQ_boxwise <- list()
+ZQ_cause_PM_boxwise <- list()
+for (meetingName in meetings$meetingMonth) {
+  filtered_df <- filtered_timeseries[[meetingName]]
+  assetNames <- colnames(filtered_df)
+  unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
+
+  # pairwise (bivariate) granger test
+  for (unique_asset in unique_assets) {
+    hasBoth <- sum(startsWith(assetNames, unique_asset)) == 2
+    if (!hasBoth) next
+
+    testing_df <- filtered_df[, startsWith(assetNames, unique_asset)]
+
+    # var model
+    var_select <- VARselect(testing_df, lag.max = 24)
+    lag_choice <- var_select$selection["SC(n)"]
+    VAR_model <- VAR(testing_df, p = lag_choice, type = "const")
+    
+    PM_causing <- causality(VAR_model, cause = paste0(unique_asset, ".PM"))
+    ZQ_causing <- causality(VAR_model, cause = paste0(unique_asset, ".ZQ"))
+
+    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]] <- PM_causing
+    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]] <- ZQ_causing
+  }
 
 
-# pairwise granger test
-df_assets_only <- timeseries_df[, -1]
-assetNames <- colnames(df_assets_only)
+  # boxwise granger test
+  PM_assets <- assetNames[endsWith(assetNames, "PM")]
+  ZQ_assets <- assetNames[endsWith(assetNames, "ZQ")]
+
+  # var model
+  var_select <- VARselect(filtered_df, lag.max = 24)
+  lag_choice <- var_select$selection["SC(n)"]
+  VAR_model <- VAR(filtered_df, p = lag_choice, type = "const")
+
+  # try to perform boxwise causality test, save NULL if fails
+  tryCatch(
+    {
+      PM_causing <- causality(VAR_model, cause = PM_assets)
+      ZQ_causing <- causality(VAR_model, cause = ZQ_assets)
+    },
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
+
+      PM_causing <- NULL
+      ZQ_causing <- NULL
+    },
+    finally = {
+      PM_cause_ZQ_boxwise[[meetingName]] <- PM_causing
+      ZQ_cause_PM_boxwise[[meetingName]] <- ZQ_causing
+    }
+  )
+}
+
+rm(
+  meetingName,
+  assetNames,
+  unique_assets,
+  unique_asset,
+  PM_assets,
+  ZQ_assets,
+  PM_causing,
+  ZQ_causing,
+  hasBoth,
+  var_select,
+  lag_choice,
+  VAR_model,
+  testing_df
+)
+
 
 round(cor(df_assets_only), 2)
 
@@ -539,7 +623,6 @@ for (asset in assetNames) {
 
 
 
-# boxwise granger test
 
 
 PM_grid <- list()
@@ -549,6 +632,8 @@ for (meetingName in meetings$meetingMonth) {
   PM_grid[[meetingName]]
 }
 
+
+rm(PM_df, meetingName)
 
 
 View(PM_data_unscaled$`2024-11`)
