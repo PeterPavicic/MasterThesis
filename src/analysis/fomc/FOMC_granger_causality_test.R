@@ -68,6 +68,7 @@ for (meetingName in meetings$meetingMonth) {
   PM_data_scaled_no_weekend[[meetingName]] <- PM_df_scaled
 }
 
+rm(PM_df_unscaled, PM_df_scaled, meetingName)
 
 # decrease in number of trades
 trades_num_with_weekend <- sapply(PM_data_unscaled, nrow)
@@ -154,6 +155,8 @@ for (meetingName in meetings$meetingMonth) {
   PM_whichLatestZero[meetingName] <- max(which(PM_df$containsZero))
 }
 
+rm(PM_df, meetingName)
+
 PM_whichLatestZero
 
 
@@ -170,6 +173,8 @@ PM_whichLatestBelowThresHold <- function(threshold) {
 
   PM_latestBelowThreshold
 }
+
+rm(PM_latestBelowThreshold, PM_df, meetingName)
 
 PM_latest_below_matrix <- sapply(c(0.2, 0.3, 0.4, 0.5, 0.6), PM_whichLatestBelowThresHold)
 colnames(PM_latest_below_matrix) <- c(0.2, 0.3, 0.4, 0.5, 0.6)
@@ -236,6 +241,8 @@ for (meetingName in meetings$meetingMonth) {
   PM_avg_trading_freq_stats <- rbind(PM_avg_trading_freq_stats, summary(minute_distances))
 }
 
+rm(PM_df, minute_distances, meetingName)
+
 # PM_avg_trading_freq_stats
 
 ZQ_avg_trading_freq_stats <- c()
@@ -269,6 +276,9 @@ for (meetingName in meetings$meetingMonth) {
   ZQ_avg_trading_freq_stats <- rbind(ZQ_avg_trading_freq_stats, summary(minute_distances))
 }
 
+rm(PM_df, ZQ_df, minute_distances, meetingName)
+
+
 
 
 ZQ_avg_trading_freq_stats[, "Mean"]
@@ -293,6 +303,7 @@ for (meetingName in meetings$meetingMonth) {
   cat("Later end:", ifelse(PM_range[2] > ZQ_range[2], "Polymarket", ifelse(PM_range[2] == ZQ_range[2], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[2] - ZQ_range[2]) / 60, "minutes", "\n")
 }
 
+rm(PM_df, PM_range, ZQ_df, ZQ_range, meetingName)
 
 # Creating common timegrid
 # TODO: Turn this into function
@@ -322,10 +333,12 @@ for (meetingName in meetings$meetingMonth) {
     floor_date(min(PM_df$time), fidelity),
     floor_date(min(ZQ_df$time), fidelity)
   )
+
   time_grid_end <- min(
     ceiling_date(max(PM_df$time), fidelity),
     ceiling_date(max(ZQ_df$time), fidelity)
   )
+
   time_grid <- tibble(
     timestamp = seq(time_grid_start, time_grid_end, by = fidelity_seconds)
   ) |>
@@ -397,6 +410,20 @@ for (meetingName in meetings$meetingMonth) {
   vectorised_timeseries[[meetingName]] <- all_aligned
 }
 
+rm(
+  PM_df,
+  ZQ_df,
+  time_grid_start,
+  time_grid,
+  time_grid_end,
+  assetNames,
+  PM_aligned,
+  ZQ_aligned,
+  all_aligned,
+  PM_df,
+  ZQ_df,
+  meetingName
+)
 
 # ADF test
 # WARNING: some reject explosive --> what do?
@@ -418,6 +445,8 @@ for (meetingName in meetings$meetingMonth) {
   adf_test_results[[meetingName]] <- adf_test_results_for_meeting
 }
 
+rm(timeseries_df, adf_test_results_for_meeting, assetName, meetingName)
+
 
 differenced_timeseries <- list()
 for (meetingName in meetings$meetingMonth) {
@@ -433,6 +462,8 @@ for (meetingName in meetings$meetingMonth) {
 
   differenced_timeseries[[meetingName]] <- differenced_df
 }
+
+rm(ts_df, rowNum, differenced_df, meetingName)
 
 
 # repeat for differenced
@@ -453,6 +484,8 @@ for (meetingName in meetings$meetingMonth) {
 
   adf_test_results_differenced[[meetingName]] <- adf_test_results_for_meeting
 }
+
+rm(adf_test_results_for_meeting, assetName, meetingName)
 
 adf_test_results_differenced
 
@@ -508,8 +541,6 @@ for (asset in assetNames) {
 
 # boxwise granger test
 
-
-# TODO: rm() loop variables after every `for` loop
 
 PM_grid <- list()
 for (meetingName in meetings$meetingMonth) {
