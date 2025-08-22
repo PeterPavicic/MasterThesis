@@ -483,9 +483,13 @@ rm(adf_test_results_for_meeting, assetName, meetingName, timeseries_df)
 
 # TODO: cointegration check
 
+# ca.jo(vectorised_timeseries[[1]][, -1])
 
 # Sometimes all entries are 0 --> this leads to singular matrices
 # and Granger causality test cannot be performed in this case
+
+
+# NOTE: should I even filter these out?
 filtered_timeseries <- list()
 for (meetingName in meetings$meetingMonth) {
   timeseries_df <- differenced_timeseries[[meetingName]]
@@ -541,14 +545,18 @@ for (meetingName in meetings$meetingMonth) {
 
 
   # boxwise granger test
-  PM_assets <- assetNames[endsWith(assetNames, "PM")]
-  ZQ_assets <- assetNames[endsWith(assetNames, "ZQ")]
+  PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
+  ZQ_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "ZQ")
+
+  PM_assets <- assetNames[PM_filter]
+  ZQ_assets <- assetNames[ZQ_filter]
 
   # var model
   var_select <- VARselect(filtered_df, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
   VAR_model <- VAR(filtered_df, p = lag_choice, type = "const")
 
+  # FIX: exclude basecase in each
   # try to perform boxwise causality test, save NULL if fails
   tryCatch(
     {
@@ -586,54 +594,15 @@ rm(
   var_select,
   lag_choice,
   VAR_model,
-  testing_df
+  testing_df,
+  PM_filter,
+  ZQ_filter
 )
 
+PM_cause_ZQ_pairwise
+ZQ_cause_PM_pairwise
 
-round(cor(df_assets_only), 2)
+PM_cause_ZQ_boxwise
+ZQ_cause_PM_boxwise
 
-filtered_assets <- assetNames[!c(assetNames %in% c("noChange.ZQ"))]
-
-filtered_df <- df_assets_only |>
-  dplyr::select(all_of(filtered_assets))
-
-ca.jo(vectorised_timeseries[[1]][, -1])
-
-
-
-var_select <- VARselect(filtered_df, lag.max = 24)
-lag_choice <- var_select$selection["SC(n)"]
-VAR_model <- VAR(filtered_df, p = lag_choice, type = "const")
-
-causality(VAR_model, cause = "down25.PM")
-causality(VAR_model, cause = "down50.PM")
-causality(VAR_model, cause = "noChange.PM")
-causality(VAR_model, cause = "up25.PM")
-causality(VAR_model, cause = "down25.ZQ")
-causality(VAR_model, cause = "down25.PM")
-
-
-
-granger_test_list <- list()
-for (asset in assetNames) {
-  granger_test <- causality(VAR_model, cause = asset)
-  print(granger_test)
-  granger_test_list[[asset]] <- granger_test
-}
-
-
-
-
-
-PM_grid <- list()
-for (meetingName in meetings$meetingMonth) {
-  PM_df <- PM_filtered[[meetingName]]
-
-  PM_grid[[meetingName]]
-}
-
-
-rm(PM_df, meetingName)
-
-
-View(PM_data_unscaled$`2024-11`)
+filtered_timeseries$`2023-09`
