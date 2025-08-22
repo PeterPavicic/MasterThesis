@@ -481,9 +481,85 @@ rm(adf_test_results_for_meeting, assetName, meetingName, timeseries_df)
 
 # all timeseries stationary
 
-# TODO: cointegration check
 
-# ca.jo(vectorised_timeseries[[1]][, -1])
+
+
+
+# Cointegration check
+
+
+for (meetingName in meetings$meetingMonth) {
+  timeseries_df <- vectorised_timeseries[[meetingName]][, -1]
+  assetNames <- colnames(timeseries_df)
+  unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
+
+  # pairwise (bivariate) case
+  # Johansen test
+  for (unique_asset in unique_assets) {
+    testing_df <- timeseries_df[, startsWith(assetNames, unique_asset)]
+
+    # linear model
+    linmod1 <- lm(
+      formula = paste0(unique_asset, c(".PM", ".ZQ"), collapse = " ~ "),
+      data = testing_df
+    )
+
+    linmod2 <- lm(
+      formula = paste0(unique_asset, c(".ZQ", ".PM"), collapse = " ~ "),
+      data = testing_df
+    )
+    
+    # check residuals for stationarity
+    adf.test(linmod1$residuals, alternative = "stationary")
+    adf.test(linmod2$residuals, alternative = "stationary")
+    
+    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]] <- PM_causing
+    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]] <- ZQ_causing
+  }
+
+
+  # boxwise granger test
+  PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
+  ZQ_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "ZQ")
+
+  PM_assets <- assetNames[PM_filter]
+  ZQ_assets <- assetNames[ZQ_filter]
+
+  # excludes noChange
+  noBaseCase_df <- filtered_df[, c(PM_assets, ZQ_assets)]
+
+  # var model
+  var_select <- VARselect(noBaseCase_df, lag.max = 24)
+  lag_choice <- var_select$selection["SC(n)"]
+  VAR_model <- VAR(noBaseCase_df, p = lag_choice, type = "const")
+
+  # FIX: exclude basecase in each
+  # try to perform boxwise causality test, save NULL if fails
+  tryCatch(
+    {
+      PM_causing <- causality(VAR_model, cause = PM_assets)
+      ZQ_causing <- causality(VAR_model, cause = ZQ_assets)
+    },
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
+
+      PM_causing <- NULL
+      ZQ_causing <- NULL
+    },
+    finally = {
+      PM_cause_ZQ_boxwise[[meetingName]] <- PM_causing
+      ZQ_cause_PM_boxwise[[meetingName]] <- ZQ_causing
+    }
+  )
+}
+
+
+
 
 # Sometimes all entries are 0 --> this leads to singular matrices
 # and Granger causality test cannot be performed in this case
@@ -551,10 +627,13 @@ for (meetingName in meetings$meetingMonth) {
   PM_assets <- assetNames[PM_filter]
   ZQ_assets <- assetNames[ZQ_filter]
 
+  # excludes noChange
+  noBaseCase_df <- filtered_df[, c(PM_assets, ZQ_assets)]
+
   # var model
-  var_select <- VARselect(filtered_df, lag.max = 24)
+  var_select <- VARselect(noBaseCase_df, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model <- VAR(filtered_df, p = lag_choice, type = "const")
+  VAR_model <- VAR(noBaseCase_df, p = lag_choice, type = "const")
 
   # FIX: exclude basecase in each
   # try to perform boxwise causality test, save NULL if fails
@@ -604,5 +683,9 @@ ZQ_cause_PM_pairwise
 
 PM_cause_ZQ_boxwise
 ZQ_cause_PM_boxwise
+
+length(meetings$meetingMonth)
+
+
 
 filtered_timeseries$`2023-09`
