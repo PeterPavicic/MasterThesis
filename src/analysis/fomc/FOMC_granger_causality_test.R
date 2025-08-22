@@ -607,7 +607,7 @@ for (meetingName in meetings$meetingMonth) {
   }
 
   # boxwise granger test
-  # TODO: write this
+  # FIX: Why is noChange still present below?
   PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
   ZQ_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "ZQ")
 
@@ -680,6 +680,7 @@ asdasdasd <- asdasd$trace
 summary(asdasdasd)
 
 
+# TODO: Continue here, build VECM
 summary(boxed_johansen_test[["2023-02"]][["eigen"]])
 summary(boxed_johansen_test[["2023-02"]][["trace"]])
 summary(boxed_johansen_test[["2023-03"]][["eigen"]])
