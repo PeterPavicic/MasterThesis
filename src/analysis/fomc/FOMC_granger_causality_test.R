@@ -31,13 +31,6 @@ load("./FOMC_Granger_Causality.RData")
 # Logic for using this is that these are (price-implied risk-neutral) probabilities that two traders have agreed on -- if we used midpoints, that would avoid people actually agreeing on probabilities; as a matter of fact the (width of) the spread shows how much people *disagree* on probabilities.
 
 
-# TODO: Check if following reasonable:
-# TODO: Remove observations where not all assets are priced (a.k.a have an unscaled price of 0)
-
-
-
-
-
 # ------ Remove weekends ------
 PM_data_unscaled_no_weekend <- list()
 PM_data_scaled_no_weekend <- list()
@@ -394,8 +387,6 @@ for (meetingName in meetings$meetingMonth) {
       !timestamp,
       .direction = "down")
 
-  # TODO: Figure out why this can happen
-  # remove first row if any observations are NA
   if (any(is.na(all_aligned[1, ]))) all_aligned <- all_aligned[-1, ]
   vectorised_timeseries[[meetingName]] <- all_aligned
 }
@@ -414,6 +405,10 @@ rm(
   ZQ_df,
   meetingName
 )
+
+
+
+# FIX: Need to remove constants first
 
 # ADF test
 # WARNING: some reject explosive --> what do?
@@ -434,6 +429,46 @@ for (meetingName in meetings$meetingMonth) {
 
   adf_test_results[[meetingName]] <- adf_test_results_for_meeting
 }
+
+
+
+stationary_ts <- c()
+NA_ts <- c()
+for (meetingName in meetings$meetingMonth) {
+  adf_results_list <- adf_test_results[[meetingName]]
+  for (assetName in names(adf_results_list)) {
+    if (is.na(adf_results_list[[assetName]]$p.value)) {
+      NA_ts <- rbind(
+        NA_ts,
+        c(meetingName, assetName)
+      )
+    }
+    else if (adf_results_list[[assetName]]$p.value < 0.05) {
+      stationary_ts <- rbind(
+        stationary_ts,
+        c(meetingName, assetName)
+      )
+    }
+  }
+}
+
+rm(adf_results_list)
+
+stationary_ts
+NA_ts
+adf_test_results[["2025-06"]][["down50.ZQ"]]
+all(vectorised_timeseries[["2025-06"]][["down50.ZQ"]] == 0)
+
+
+length(unique(stationary_ts[, 1]))
+
+
+summary(adf_test_results[["2025-07"]][["down50.ZQ"]])
+NA_ts
+
+asd <- adf_test_results$`2023-03`$up25.PM
+
+
 
 rm(timeseries_df, adf_test_results_for_meeting, assetName, meetingName)
 
@@ -481,44 +516,65 @@ rm(adf_test_results_for_meeting, assetName, meetingName, timeseries_df)
 
 # all timeseries stationary
 
-
-
-
-
-# Cointegration check
-
-
+# Johansen test
+bivariate_johansen_test <- list()
+boxed_johansen_test <- list()
 for (meetingName in meetings$meetingMonth) {
   timeseries_df <- vectorised_timeseries[[meetingName]][, -1]
   assetNames <- colnames(timeseries_df)
   unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
 
+
   # pairwise (bivariate) case
-  # Johansen test
+  # FIX: cannot perform ca.jo test
   for (unique_asset in unique_assets) {
     testing_df <- timeseries_df[, startsWith(assetNames, unique_asset)]
 
-    # linear model
-    linmod1 <- lm(
-      formula = paste0(unique_asset, c(".PM", ".ZQ"), collapse = " ~ "),
-      data = testing_df
+    # prob_spread <- testing_df[[paste0(unique_asset, ".PM")]] - testing_df[[paste0(unique_asset, ".ZQ")]]
+    # class(prob_spread)
+    #
+    # adf.test(prob_spread, alternative = "stationary")
+    
+
+    # var model
+    var_select <- VARselect(testing_df, lag.max = 24)
+    lag_choice <- var_select$selection["SC(n)"]
+
+
+    tryCatch(
+      {
+        trace_test <- ca.jo(as.data.frame(testing_df), type = "trace",
+          K = var_select$selection["SC(n)"], ecdet = "const",
+          spec = "longrun")
+
+
+        eigen_test <- ca.jo(as.data.frame(testing_df), type = "eigen",
+          K = var_select$selection["SC(n)"], ecdet = "const",
+          spec = "longrun")
+      },
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nWhile processing:", meetingName,
+          "\non assets:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
+
+        trace_test <- NULL
+        eigen_test <- NULL
+      },
+      finally = {
+        bivariate_johansen_test[[meetingName]][["trace"]] <- trace_test
+        bivariate_johansen_test[[meetingName]][["eigen"]] <- eigen_test
+      }
     )
 
-    linmod2 <- lm(
-      formula = paste0(unique_asset, c(".ZQ", ".PM"), collapse = " ~ "),
-      data = testing_df
-    )
-    
-    # check residuals for stationarity
-    adf.test(linmod1$residuals, alternative = "stationary")
-    adf.test(linmod2$residuals, alternative = "stationary")
-    
-    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]] <- PM_causing
-    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]] <- ZQ_causing
   }
 
 
   # boxwise granger test
+  # TODO: write this
   PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
   ZQ_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "ZQ")
 
@@ -561,11 +617,7 @@ for (meetingName in meetings$meetingMonth) {
 
 
 
-# Sometimes all entries are 0 --> this leads to singular matrices
-# and Granger causality test cannot be performed in this case
-
-
-# NOTE: should I even filter these out?
+# Removing constant timeseries
 filtered_timeseries <- list()
 for (meetingName in meetings$meetingMonth) {
   timeseries_df <- differenced_timeseries[[meetingName]]
