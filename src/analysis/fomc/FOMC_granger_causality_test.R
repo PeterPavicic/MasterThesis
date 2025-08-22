@@ -408,13 +408,35 @@ rm(
 
 
 
-# FIX: Need to remove constants first
-
-# ADF test
-# WARNING: some reject explosive --> what do?
-adf_test_results <- list()
+# Removing constant timeseries
+filtered_timeseries <- list()
 for (meetingName in meetings$meetingMonth) {
   timeseries_df <- vectorised_timeseries[[meetingName]]
+  df_assets_only <- timeseries_df[, -1]
+  assetNames <- colnames(df_assets_only)
+
+  hasOnlyZeroes <- df_assets_only |> 
+    summarise(across(assetNames, ~all(.x == 0))) |>
+    unlist()
+
+  # select ones that don't only have zeroes
+  filtered_timeseries[[meetingName]] <- df_assets_only |>
+    dplyr::select(names(hasOnlyZeroes)[!hasOnlyZeroes])
+}
+
+rm(
+  timeseries_df,
+  df_assets_only,
+  assetNames,
+  hasOnlyZeroes,
+  meetingName
+)
+
+
+# ADF test on original (non-constant) timeseries
+adf_test_results <- list()
+for (meetingName in meetings$meetingMonth) {
+  timeseries_df <- filtered_timeseries[[meetingName]]
 
   adf_test_results_for_meeting <- list()
 
@@ -430,20 +452,15 @@ for (meetingName in meetings$meetingMonth) {
   adf_test_results[[meetingName]] <- adf_test_results_for_meeting
 }
 
+rm(timeseries_df, adf_test_results_for_meeting, assetName, meetingName)
 
 
+# WARNING: some reject explosive --> what do?
 stationary_ts <- c()
-NA_ts <- c()
 for (meetingName in meetings$meetingMonth) {
   adf_results_list <- adf_test_results[[meetingName]]
   for (assetName in names(adf_results_list)) {
-    if (is.na(adf_results_list[[assetName]]$p.value)) {
-      NA_ts <- rbind(
-        NA_ts,
-        c(meetingName, assetName)
-      )
-    }
-    else if (adf_results_list[[assetName]]$p.value < 0.05) {
+    if (adf_results_list[[assetName]]$p.value < 0.05) {
       stationary_ts <- rbind(
         stationary_ts,
         c(meetingName, assetName)
@@ -452,46 +469,28 @@ for (meetingName in meetings$meetingMonth) {
   }
 }
 
-rm(adf_results_list)
+rm(adf_results_list, meetingName, assetName)
 
 stationary_ts
-NA_ts
-adf_test_results[["2025-06"]][["down50.ZQ"]]
-all(vectorised_timeseries[["2025-06"]][["down50.ZQ"]] == 0)
-
-
-length(unique(stationary_ts[, 1]))
-
-
-summary(adf_test_results[["2025-07"]][["down50.ZQ"]])
-NA_ts
-
-asd <- adf_test_results$`2023-03`$up25.PM
-
-
-
-rm(timeseries_df, adf_test_results_for_meeting, assetName, meetingName)
-
 
 differenced_timeseries <- list()
 for (meetingName in meetings$meetingMonth) {
-  ts_df <- vectorised_timeseries[[meetingName]]
-
-  rowNum <- nrow(ts_df)
+  ts_df <- filtered_timeseries[[meetingName]]
 
   differenced_df <- ts_df |>
-    mutate(
-      across(-timestamp, ~ c(NA, diff(.)))
+    dplyr::mutate(
+      across(colnames(ts_df), ~ c(NA, diff(.)))
     ) |>
-    filter(if_all(-timestamp, ~ !is.na(.)))
+    # WARNING: What is this?
+    filter(if_all(colnames(ts_df), ~ !is.na(.)))
 
   differenced_timeseries[[meetingName]] <- differenced_df
 }
 
-rm(ts_df, rowNum, differenced_df, meetingName)
+rm(ts_df, differenced_df, meetingName)
 
 
-# repeat for differenced
+# adf test for differenced
 adf_test_results_differenced <- list()
 for (meetingName in meetings$meetingMonth) {
   timeseries_df <- differenced_timeseries[[meetingName]]
@@ -499,62 +498,98 @@ for (meetingName in meetings$meetingMonth) {
   adf_test_results_for_meeting <- list()
 
   for (assetName in colnames(timeseries_df)) {
-    if (assetName == "timestamp") {
-      next
-    }
-    else {
-      adf_test_results_for_meeting[[assetName]] <- adf.test(timeseries_df[[assetName]])
-    }
+    adf_test_results_for_meeting[[assetName]] <- adf.test(timeseries_df[[assetName]])
   }
 
   adf_test_results_differenced[[meetingName]] <- adf_test_results_for_meeting
 }
 
-rm(adf_test_results_for_meeting, assetName, meetingName, timeseries_df)
+rm(
+  timeseries_df,
+  adf_test_results_for_meeting,
+  assetName,
+  meetingName
+)
 
-# adf_test_results_differenced
 
-# all timeseries stationary
+# Evaluating test results, which one is non-stationary
+non_stationary_differenced_ts <- c()
+for (meetingName in meetings$meetingMonth) {
+  meeting_adf_results <- adf_test_results_differenced[[meetingName]] 
+  assetNames <- names(meeting_adf_results)
+  for (assetName in assetNames) {
+    if (meeting_adf_results[[assetName]]$p.value >= 0.05) {
+      non_stationary_differenced_ts <- rbind(
+        non_stationary_differenced_ts,
+        c(meetingName, assetName)
+      )
+    }
+  }
+}
 
-# Johansen test
+rm(
+  meeting_adf_results,
+  adf_test_results_for_meeting,
+  assetName,
+  assetNames,
+  meetingName
+)
+
+
+
+non_stationary_differenced_ts
+adf_test_results_differenced[["2024-12"]][["down50.ZQ"]]
+filtered_timeseries[["2024-12"]][["down50.ZQ"]]
+
+
+adf_test_results_differenced
+
+# all timeseries stationary except for
+# this one that is kinda stationary anyway
+
+
+# Johansen test (original timeseries)
 bivariate_johansen_test <- list()
 boxed_johansen_test <- list()
 for (meetingName in meetings$meetingMonth) {
-  timeseries_df <- vectorised_timeseries[[meetingName]][, -1]
-  assetNames <- colnames(timeseries_df)
+  filtered_df <- filtered_timeseries[[meetingName]]
+  assetNames <- colnames(filtered_df)
   unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
 
-
   # pairwise (bivariate) case
-  # FIX: cannot perform ca.jo test
   for (unique_asset in unique_assets) {
-    testing_df <- timeseries_df[, startsWith(assetNames, unique_asset)]
-
     # prob_spread <- testing_df[[paste0(unique_asset, ".PM")]] - testing_df[[paste0(unique_asset, ".ZQ")]]
     # class(prob_spread)
     #
     # adf.test(prob_spread, alternative = "stationary")
-    
+
+    hasBoth <- sum(startsWith(assetNames, unique_asset)) == 2
+    if (!hasBoth) next
+
+    testing_df <- filtered_df[, startsWith(assetNames, unique_asset)]
 
     # var model
     var_select <- VARselect(testing_df, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
 
-
     tryCatch(
       {
-        trace_test <- ca.jo(as.data.frame(testing_df), type = "trace",
+        trace_test <- ca.jo(
+          as.data.frame(testing_df), type = "trace",
           K = var_select$selection["SC(n)"], ecdet = "const",
-          spec = "longrun")
+          spec = "longrun"
+        )
 
-
-        eigen_test <- ca.jo(as.data.frame(testing_df), type = "eigen",
+        eigen_test <- ca.jo(
+          as.data.frame(testing_df), type = "eigen",
           K = var_select$selection["SC(n)"], ecdet = "const",
-          spec = "longrun")
+          spec = "longrun"
+        )
       },
       error = function(e) {
         cat(
           "\nAn error occured",
+          "\nin bivariate test",
           "\nWhile processing:", meetingName,
           "\non assets:", unique_asset,
           "\nwith error message:", "\n",
@@ -565,13 +600,11 @@ for (meetingName in meetings$meetingMonth) {
         eigen_test <- NULL
       },
       finally = {
-        bivariate_johansen_test[[meetingName]][["trace"]] <- trace_test
-        bivariate_johansen_test[[meetingName]][["eigen"]] <- eigen_test
+        bivariate_johansen_test[[meetingName]][[unique_asset]][["trace"]] <- trace_test
+        bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]] <- eigen_test
       }
     )
-
   }
-
 
   # boxwise granger test
   # TODO: write this
@@ -587,60 +620,68 @@ for (meetingName in meetings$meetingMonth) {
   # var model
   var_select <- VARselect(noBaseCase_df, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model <- VAR(noBaseCase_df, p = lag_choice, type = "const")
 
-  # FIX: exclude basecase in each
   # try to perform boxwise causality test, save NULL if fails
   tryCatch(
     {
-      PM_causing <- causality(VAR_model, cause = PM_assets)
-      ZQ_causing <- causality(VAR_model, cause = ZQ_assets)
+      trace_test <- ca.jo(as.data.frame(noBaseCase_df), type = "trace",
+        K = var_select$selection["SC(n)"], ecdet = "const",
+        spec = "longrun")
+
+      eigen_test <- ca.jo(as.data.frame(noBaseCase_df), type = "eigen",
+        K = var_select$selection["SC(n)"], ecdet = "const",
+        spec = "longrun")
     },
     error = function(e) {
       cat(
         "\nAn error occured",
+        "\nin boxwise test",
         "\nWhile processing:", meetingName,
         "\nwith error message:", "\n",
         e$message, "\n"
       )
 
-      PM_causing <- NULL
-      ZQ_causing <- NULL
+      trace_test <- NULL
+      eigen_test <- NULL
     },
     finally = {
-      PM_cause_ZQ_boxwise[[meetingName]] <- PM_causing
-      ZQ_cause_PM_boxwise[[meetingName]] <- ZQ_causing
+      boxed_johansen_test[[meetingName]][["trace"]] <- trace_test
+      boxed_johansen_test[[meetingName]][["eigen"]] <- eigen_test
     }
   )
 }
 
-
-
-
-# Removing constant timeseries
-filtered_timeseries <- list()
-for (meetingName in meetings$meetingMonth) {
-  timeseries_df <- differenced_timeseries[[meetingName]]
-  df_assets_only <- timeseries_df[, -1]
-  assetNames <- colnames(df_assets_only)
-
-  hasOnlyZeroes <- df_assets_only |> 
-    summarise(across(assetNames, ~all(.x == 0))) |>
-    unlist()
-
-  # select ones that don't only have zeroes
-  filtered_timeseries[[meetingName]] <- df_assets_only |>
-    dplyr::select(names(hasOnlyZeroes)[!hasOnlyZeroes])
-}
-
-
 rm(
-  hasOnlyZeroes,
-  df_assets_only,
-  timeseries_df,
-  meetingName,
-  assetNames
+  filtered_df,
+  assetNames,
+  unique_assets,
+  unique_asset,
+  hasBoth,
+  testing_df,
+  var_select,
+  lag_choice,
+  PM_filter,
+  ZQ_filter,
+  PM_assets,
+  ZQ_assets,
+  noBaseCase_df,
+  var_select,
+  lag_choice,
+  trace_test,
+  eigen_test
 )
+
+bivariate_johansen_test
+boxed_johansen_test
+
+asd <- bivariate_johansen_test$`2023-02`
+asdasd <- asd$up50
+asdasdasd <- asdasd$trace
+summary(asdasdasd)
+
+
+
+summary()
 
 
 PM_cause_ZQ_pairwise <- list()
