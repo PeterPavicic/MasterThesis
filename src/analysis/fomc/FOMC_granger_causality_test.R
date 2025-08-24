@@ -669,7 +669,7 @@ rm(
   trace_test,
   unique_asset,
   unique_assets,
-  var_select,
+  var_select
 )
 
 # bivariate_johansen_test
