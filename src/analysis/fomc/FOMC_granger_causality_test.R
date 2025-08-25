@@ -167,8 +167,6 @@ PM_whichLatestBelowThresHold <- function(threshold) {
   PM_latestBelowThreshold
 }
 
-rm(PM_latestBelowThreshold, PM_df, meetingName)
-
 PM_latest_below_matrix <- sapply(c(0.2, 0.3, 0.4, 0.5, 0.6), PM_whichLatestBelowThresHold)
 colnames(PM_latest_below_matrix) <- c(0.2, 0.3, 0.4, 0.5, 0.6)
 
@@ -416,7 +414,6 @@ for (meetingName in meetings$meetingMonth) {
   assetNames <- colnames(df_assets_only)
 
   hasOnlyZeroes <- df_assets_only |> 
-    # summarise(across(assetNames, ~all(.x == 0))) |>
     summarise(across(all_of(assetNames), ~all(.x == 0))) |>
     unlist()
 
@@ -540,7 +537,7 @@ rm(
 
 
 
-non_stationary_differenced_ts
+# non_stationary_differenced_ts
 adf_test_results_differenced[["2024-12"]][["down50.ZQ"]]
 filtered_timeseries[["2024-12"]][["down50.ZQ"]]
 
@@ -550,6 +547,33 @@ filtered_timeseries[["2024-12"]][["down50.ZQ"]]
 # all timeseries stationary except for
 # this one that is kinda stationary anyway
 
+
+
+# testing whether there is a trend/drift in levels
+# If there is, ca.jo
+for (meetingName in meetings$meetingMonth) {
+  filtered_df <- filtered_timeseries[[meetingName]]
+
+  cat("\nMeeting:", meetingName)
+
+  for (assetName in colnames(filtered_df)) {
+    t_test_res <- t.test(filtered_df[[assetName]])
+    p_val_res <- ifelse(t_test_res$p.value < 0.05, "reject mean == 0", "cannot reject mean == 0")
+    cat(
+      "\nAsset:", assetName,
+      "\nResult:", p_val_res
+    )
+  }
+
+  cat("\n")
+}
+
+# Conclusion: We use ecdet = 'const' for a constant intercept
+# in the Johansen procedure and test whether a linear trend is allowed
+# in the deterministic term
+
+# # to locate warnings
+# options(warn = 1)
 
 # ----- Johansen test (original timeseries) -----
 bivariate_johansen_test <- list()
@@ -577,22 +601,48 @@ for (meetingName in meetings$meetingMonth) {
 
     tryCatch(
       {
+
+        # # to locate warnings
+        # cat(
+        #   "\nRunning",
+        #   "\nbivariate test",
+        #   "\ntrace test",
+        #   "\nWhile processing:", meetingName,
+        #   "\non assets:", unique_asset,
+        #   "\nwith error message:", "\n"
+        # )
+
+
+        trace_test_failed <- TRUE
+
         trace_test <- ca.jo(
           as.data.frame(testing_df), type = "trace",
-          K = var_select$selection["SC(n)"], ecdet = "const",
-          spec = "longrun"
+          K = lag_choice, ecdet = "const",
+          spec = "transitory" # Determines which formula Gamma is
         )
+
+        trace_test_failed <- FALSE
+
+        # # to locate warnings
+        # cat("\nRunning",
+        #   "\nbivariate test",
+        #   "\neigen test",
+        #   "\nWhile processing:", meetingName,
+        #   "\non assets:", unique_asset,
+        #   "\nwith error message:", "\n"
+        # )
 
         eigen_test <- ca.jo(
           as.data.frame(testing_df), type = "eigen",
-          K = var_select$selection["SC(n)"], ecdet = "const",
-          spec = "longrun"
+          K = lag_choice, ecdet = "const",
+          spec = "transitory" # Determines which formula Gamma is
         )
       },
       error = function(e) {
         cat(
           "\nAn error occured",
           "\nin bivariate test",
+          "\nPerforming:", ifelse(trace_test_failed, "trace", "eigen"), "test",
           "\nWhile processing:", meetingName,
           "\non assets:", unique_asset,
           "\nwith error message:", "\n",
@@ -627,18 +677,41 @@ for (meetingName in meetings$meetingMonth) {
   # try to perform blockwise causality test, save NULL if fails
   tryCatch(
     {
+
+      # # to locate warnings
+      # cat("\nRunning",
+      #   "\nblockwise test",
+      #   "\ntrace test",
+      #   "\nWhile processing:", meetingName,
+      #   "\non assets:", unique_asset,
+      #   "\nwith error message:", "\n"
+      # )
+
       trace_test <- ca.jo(as.data.frame(noBaseCase_df), type = "trace",
-        K = var_select$selection["SC(n)"], ecdet = "const",
-        spec = "longrun")
+        K = lag_choice, ecdet = "const",
+        spec = "transitory" # Determines which formula Gamma is
+      )
+
+
+      # # to locate warnings
+      # cat("\nRunning",
+      #   "\nblockwise test",
+      #   "\neigen test",
+      #   "\nWhile processing:", meetingName,
+      #   "\non assets:", unique_asset,
+      #   "\nwith error message:", "\n"
+      # )
 
       eigen_test <- ca.jo(as.data.frame(noBaseCase_df), type = "eigen",
-        K = var_select$selection["SC(n)"], ecdet = "const",
-        spec = "longrun")
+        K = lag_choice, ecdet = "const",
+        spec = "transitory" # Determines which formula Gamma is
+      )
     },
     error = function(e) {
       cat(
         "\nAn error occured",
         "\nin blockwise test",
+        "\nPerforming:", ifelse(trace_test_failed, "trace", "eigen"), "test",
         "\nWhile processing:", meetingName,
         "\nwith error message:", "\n",
         e$message, "\n"
@@ -654,6 +727,7 @@ for (meetingName in meetings$meetingMonth) {
   )
 }
 
+
 rm(
   PM_assets,
   PM_filter,
@@ -667,10 +741,21 @@ rm(
   noBaseCase_df,
   testing_df,
   trace_test,
+  trace_test_failed,
   unique_asset,
   unique_assets,
   var_select
 )
+
+
+# All 30 warnings happen on:
+# Running bivariate eigen test 
+# While processing: 2023-02 
+# on assets: up50 
+
+# # turn off after locating warnings
+# options(warn = 0) # turn off after locating warnings
+
 
 # bivariate_johansen_test
 # block_johansen_test
@@ -696,9 +781,9 @@ count_cointegrating_rels <- function(jotest, alpha = 0.05) {
 }
 
 
-
-
 # ----- Evaluating Johansen test (original timeseries) -----
+# also testing whether linear trend is allowed in deterministic term
+# If there is, redo Johansen procedure
 vecm_fits_bivariate <- list()
 vecm_fits_blockwise <- list()
 for (meetingName in meetings$meetingMonth) {
@@ -713,19 +798,51 @@ for (meetingName in meetings$meetingMonth) {
     cointegration_count_trace <- count_cointegrating_rels(trace_results)
     cointegration_count_eigen <- count_cointegrating_rels(eigen_results)
 
+    # suppress output by redirecting it to /dev/null
+    sink("/dev/null")
+
+    # Conducts a likelihood ratio test for no inclusion of a linear trend in a VAR.\
+    # H0: is for not including a linear trend and is assigned as ’H2*(r)’. 
+    tryCatch(
+      {
+        lt_trace <- lttest(trace_results, r = cointegration_count_trace)
+        lt_eigen <- lttest(eigen_results, r = cointegration_count_eigen)
+      },
+      error = function(e) {
+        cat("\nError occured", e$message)
+        if (cointegration_count_trace == 0) {
+          lt_trace <- matrix(1)
+          colnames(lt_trace) <- c("p-value") # do not reject
+        }
+        if (cointegration_count_eigen == 0) { # do not reject
+          lt_eigen <- matrix(1)
+          colnames(lt_eigen) <- c("p-value")
+        }
+      }
+    )
+
+
+    # stop suppressing output
+    sink()
+
     cat(
       "\nMeeting: ", meetingName,
       "\nbivariate case, asset:", assetName,
       "\ncointegration count:",
       "\ntrace:", cointegration_count_trace,
       "\neigen:", cointegration_count_eigen,
+      "\nlttest trace:", ifelse(lt_trace[1, "p-value"] < 0.05, "reject", "do not reject"), 
+      "NOT including linear ecdet",
+      "\nlttest eigen:", ifelse(lt_eigen[1, "p-value"] < 0.05, "reject", "do not reject"), 
+      "NOT including linear ecdet",
       "\n"
     )
 
-    if (cointegration_count_trace != 0) {
-      vecm_fits_bivariate[[meetingName]][[assetName]]
-    }
-    
+
+    # # Fit VECM model
+    # if (cointegration_count_trace != 0) {
+    #   vecm_fits_bivariate[[meetingName]][[assetName]]
+    # }
   }
 
   # blockwise granger test
@@ -735,23 +852,61 @@ for (meetingName in meetings$meetingMonth) {
   cointegration_count_trace <- count_cointegrating_rels(trace_results)
   cointegration_count_eigen <- count_cointegrating_rels(eigen_results)
 
+  # suppress output by redirecting it to /dev/null
+  sink("/dev/null")
+
+  # Conducts a likelihood ratio test for no inclusion of a linear trend in a VAR.\
+  # H0: is for not including a linear trend and is assigned as ’H2*(r)’. 
+  tryCatch(
+    {
+      lt_trace <- lttest(trace_results, r = cointegration_count_trace)
+      lt_eigen <- lttest(eigen_results, r = cointegration_count_eigen)
+    },
+    error = function(e) {
+      cat("\nError occured", e$message)
+      if (cointegration_count_trace == 0) {
+        lt_trace <- matrix(1)
+        colnames(lt_trace) <- c("p-value") # do not reject
+      }
+      if (cointegration_count_eigen == 0) { # do not reject
+        lt_eigen <- matrix(1)
+        colnames(lt_eigen) <- c("p-value")
+      }
+    }
+  )
+
+  # stop suppressing output
+  sink()
+
   cat(
     "\nMeeting: ", meetingName,
     "\nblock case",
     "\ncointegration count:",
     "\ntrace:", cointegration_count_trace,
     "\neigen:", cointegration_count_eigen,
+    "\nlttest trace:", ifelse(lt_trace[1, "p-value"] < 0.05, "reject", "do not reject"), 
+    "NOT including linear ecdet",
+    "\nlttest eigen:", ifelse(lt_eigen[1, "p-value"] < 0.05, "reject", "do not reject"), 
+    "NOT including linear ecdet",
     "\n"
   )
 }
 
+
+# Conclusion: not including linear ecdet anywhere
+
+
+is.null(cointegration_count_trace)
+
 rm(
   bivariate_results,
   block_results,
-  trace_results,
-  eigen_results,
-  cointegration_count_trace,
   cointegration_count_eigen
+  cointegration_count_trace,
+  eigen_results,
+  lt_eigen,
+  lt_trace,
+  trace_results,
 )
 
 # Findings:
@@ -773,12 +928,61 @@ rm(
 # summary(vecm_fit$rlm)
 
 count_cointegrating_rels(block_johansen_test[["2023-05"]][["trace"]])
-cajorls_obj <- cajorls(block_johansen_test[["2023-05"]][["trace"]], r = 2)
 
-cajorls_obj$rlm$residuals
-cajorls_obj$beta
+
+# testing whether there is a trend/drift in differences:
+for (meetingName in meetings$meetingMonth) {
+  differenced_df <- differenced_timeseries[[meetingName]]
+
+  cat("\nMeeting:", meetingName)
+
+  for (assetName in colnames(differenced_df)) {
+    t_test_res <- t.test(differenced_df[[assetName]])
+    p_val_res <- ifelse(t_test_res$p.value < 0.05, "reject mean == 0", "cannot reject mean == 0")
+    cat(
+      "\nAsset:", assetName,
+      "\nResult:", p_val_res
+    )
+  }
+
+  cat("\n")
+}
+
+# Conclusion: We use restricted OLS to estimate VECM since
+# null-hypothesis of 0-mean differences cannot be rejected
+# for any timeseries
+
+rm(meetingName, assetName, t_test_res, p_val_res)
+
+
+
+
+cajo_bj <- block_johansen_test[["2023-05"]][["trace"]]
+cajorls_obj <- cajorls(cajo_bj, r = 2)
+cajools_obj <- cajools(cajo_bj, r = 2)
+
+
+class(cajo_bj)
+class(cajorls_obj) 
+class(cajools_obj)
+
+cajools_obj$terms
 
 cajorls_obj
+cajorls_obj$rlm
+cajorls_obj$beta
+
+# restricted VECM
+class(cajorls_obj$rlm)
+
+# normalised cointegrating vectors
+class(cajorls_obj$beta)
+
+vars::VARselect()
+vars::VAR()
+
+urca::cajorls()
+urca::cajools()
 
 
 #  Estimate VECM and Extract the Error Correction Term (ECT) ---
@@ -793,7 +997,7 @@ cajorls_obj
 asd <- block_johansen_test[["2023-05"]][["trace"]]
 asd@spec
 
-showMethods(classes="ca.jo")
+showMethods(classes = "ca.jo")
 
 VAR()
 
