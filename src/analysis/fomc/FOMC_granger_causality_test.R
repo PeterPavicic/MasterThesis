@@ -779,12 +779,28 @@ count_cointegrating_rels <- function(jotest, alpha = 0.05) {
   num_relationships
 }
 
+calculate_ECT <- function(cajo_obj, r) {
+  # taken from cajorls function
+  r <- count_cointegrating_rels(cajo_obj)
+  # beta
+  beta <- matrix(cajo_obj@V[, 1:r], ncol = r)
+  C1 <- diag(r)
+  C2 <- matrix(0, nrow = nrow(beta) - r, ncol = r)
+  C <- rbind(C1, C2)
+  betanorm <- beta %*% solve(t(C) %*% beta)
+  # This is Y: cajo_obj@ZK
+  # Y %*% beta
+  ECT <- cajo_obj@ZK %*% betanorm
+  colnames(ECT) <- paste("ect", 1:r, sep = "")
+
+  ECT
+}
 
 # ----- Evaluating Johansen test (original timeseries) -----
 # also testing whether linear trend is allowed in deterministic term
 # If there is, redo Johansen procedure
-vecm_fits_bivariate <- list()
-vecm_fits_blockwise <- list()
+ECT_bivariate <- list()
+ECT_blockwise <- list()
 for (meetingName in meetings$meetingMonth) {
   bivariate_results <- bivariate_johansen_test[[meetingName]]
   block_results <- block_johansen_test[[meetingName]]
@@ -796,6 +812,27 @@ for (meetingName in meetings$meetingMonth) {
 
     cointegration_count_trace <- count_cointegrating_rels(trace_results)
     cointegration_count_eigen <- count_cointegrating_rels(eigen_results)
+
+    if (cointegration_count_trace == 0) {
+      ECT_trace <- NULL
+    } else {
+      ECT_trace <- calculate_ECT(
+        trace_results,
+        cointegration_count_trace
+      )
+    }
+
+    if (cointegration_count_eigen == 0) {
+      ECT_eigen <- NULL
+    } else {
+      ECT_eigen <- calculate_ECT(
+        eigen_results,
+        cointegration_count_trace
+      )
+    }
+
+    ECT_bivariate[[meetingName]][[assetName]][["trace"]] <- ECT_trace
+    ECT_bivariate[[meetingName]][[assetName]][["eigen"]] <- ECT_eigen
 
     # suppress output by redirecting it to /dev/null
     sink("/dev/null")
@@ -836,12 +873,6 @@ for (meetingName in meetings$meetingMonth) {
       "NOT including linear ecdet",
       "\n"
     )
-
-
-    # # Fit VECM model
-    # if (cointegration_count_trace != 0) {
-    #   vecm_fits_bivariate[[meetingName]][[assetName]]
-    # }
   }
 
   # blockwise granger test
@@ -850,6 +881,27 @@ for (meetingName in meetings$meetingMonth) {
 
   cointegration_count_trace <- count_cointegrating_rels(trace_results)
   cointegration_count_eigen <- count_cointegrating_rels(eigen_results)
+
+  if (cointegration_count_trace == 0) {
+    ECT_trace <- NULL
+  } else {
+    ECT_trace <- calculate_ECT(
+      trace_results,
+      cointegration_count_trace
+    )
+  }
+
+  if (cointegration_count_eigen == 0) {
+    ECT_eigen <- NULL
+  } else {
+    ECT_eigen <- calculate_ECT(
+      eigen_results,
+      cointegration_count_trace
+    )
+  }
+
+  ECT_blockwise[[meetingName]][["trace"]] <- ECT_trace
+  ECT_blockwise[[meetingName]][["eigen"]] <- ECT_eigen
 
   # suppress output by redirecting it to /dev/null
   sink("/dev/null")
@@ -900,7 +952,7 @@ is.null(cointegration_count_trace)
 rm(
   bivariate_results,
   block_results,
-  cointegration_count_eigen
+  cointegration_count_eigen,
   cointegration_count_trace,
   eigen_results,
   lt_eigen,
@@ -915,18 +967,6 @@ rm(
 # TODO: Continue here, build VECM
 
 # NOTE: Using trace test results to build vecm (?)
-
-# # 1. Re-run your Johansen test to get the object
-# johansen_test <- ca.jo(prices_df, type = "trace", ecdet = "const", K = 3)
-#
-# # 2. Estimate the VECM using cajorls()
-# # We set r=1 because a bivariate system can have at most one cointegrating relationship
-# vecm_fit <- cajorls(johansen_test, r = 1)
-#
-# # Look at the summary to find the speed of adjustment coefficients (the alphas)
-# summary(vecm_fit$rlm)
-
-count_cointegrating_rels(block_johansen_test[["2023-05"]][["trace"]])
 
 
 # testing whether there is a trend/drift in differences:
@@ -955,201 +995,14 @@ rm(meetingName, assetName, t_test_res, p_val_res)
 
 
 
-
-cajo_obj <- block_johansen_test[["2023-05"]][["trace"]]
-cajorls_obj <- cajorls(cajo_obj, r = 2)
-
-class(cajo_obj)
-class(cajorls_obj) 
-
-# NOTE: Should I plot these?
-# plot(cajo_obj)
-
-cajo_obj
-summary(cajo_obj)
-cajo_obj@V # Eigenvectors (cointegration relations)
-# 5x5
-# filtered ts
-# t x 4
-
-
-count_cointegrating_rels(cajo_obj)
-
-cajorls
-
-# taken from cajorls function
-r <- count_cointegrating_rels(cajo_obj)
-
-beta <- matrix(cajo_obj@V[, 1:r], ncol = r)
-C1 <- diag(r)
-C2 <- matrix(0, nrow = nrow(beta) - r, ncol = r)
-C <- rbind(C1, C2)
-betanorm <- beta %*% solve(t(C) %*% beta)
-# This is Y
-# cajo_obj@ZK
-# Y %*% beta
-ECT <- cajo_obj@ZK %*% betanorm
-colnames(ECT) <- paste("ect", 1:r, sep = "")
-
-head(ECT)
-
-# supposedly error correction terms, i.e. beta' * Y
-%*% cajo_obj@V[, 1:count_cointegrating_rels(cajo_obj)]
-
-head(cajo_obj@ZK)
-
-as.matrix()
-class(cajo_obj@ZK)
-
-head(cajo_obj@ZK[,1:4])
-head(as.matrix(filtered_timeseries[["2023-05"]][,c(1, 2, 3, 5)]))
-
-all(cajo_obj@ZK[,1:4] == as.matrix(filtered_timeseries[["2023-05"]][-c(1, 8613),c(1, 2, 3, 5)]))
-
-
-
-as.matrix(filtered_timeseries[["2023-05"]][,c(1, 2, 3, 5)]) %*% cajo_obj@V
-
-cajo_obj@V
-
-
-cajorls_obj
-cajorls_obj$rlm
-cajorls_obj$beta
-
-# restricted VECM
-class(cajorls_obj$rlm)
-
-# normalised cointegrating vectors
-class(cajorls_obj$beta)
-
-vars::VARselect()
-vars::VAR()
-
-urca::cajorls()
-urca::cajools()
-
-
-#  Estimate VECM and Extract the Error Correction Term (ECT) ---
-# # This is a crucial new step.
-# vecm_model <- cajorls(johansen_test, r = cointegrating_rank)
-#
-# # The residuals of the rank-restricted regression are the ECTs.
-# # We need to lag it by one period.
-# ect <- vecm_model$rlm$residuals
-
-
-asd <- block_johansen_test[["2023-05"]][["trace"]]
-asd@spec
-
-showMethods(classes = "ca.jo")
-
-VAR()
-
-
-summary(block_johansen_test[["2023-05"]][["trace"]])
-
-# https://www.rdocumentation.org/packages/urca/versions/1.3-4/topics/ca.jo-class
-
-
-head(filtered_timeseries$`2023-05`)
-
-cajorls(block_johansen_test[["2023-05"]][["trace"]], r = 2)
-
-asd <- cajorls(block_johansen_test[["2023-05"]][["trace"]], r = 2)
-
-
-class(asd$rlm)
-
-
-
-
-asd$rlm$residuals
-
-
-summary(cajorls(block_johansen_test[["2023-05"]][["trace"]], r = 2)$rlm)
-
-cajorls(block_johansen_test[["2023-05"]][["trace"]], r = 2)$beta
-
-vec2var(block_johansen_test[["2023-05"]][["trace"]], r = 2)
-
-class(cajorls(block_johansen_test[["2023-05"]][["trace"]], r = 2)$rlm)
-
-
-jo_obj <- block_johansen_test[["2023-05"]][["trace"]]
-
-v2v <- vars::vec2var(jo_obj, r = 2)
-
-sessionInfo()
-
-vars:::causality.vec2var(
-  v2v,
-  cause = colnames(v2v$y)[endsWith(colnames(v2v$y), ".PM")]
-)
-
-vars::causality(
-  asd,
-  cause = colnames(v2v$y)[endsWith(colnames(v2v$y), ".PM")]
-)
-
-summary(block_johansen_test[["2023-05"]][["trace"]])
-
-
-summary(block_johansen_test[["2023-02"]][["eigen"]])
-summary(block_johansen_test[["2023-02"]][["trace"]])
-summary(block_johansen_test[["2023-03"]][["eigen"]])
-summary(block_johansen_test[["2023-03"]][["trace"]])
-summary(block_johansen_test[["2023-05"]][["eigen"]])
-summary(block_johansen_test[["2023-05"]][["trace"]])
-summary(block_johansen_test[["2023-06"]][["eigen"]])
-summary(block_johansen_test[["2023-06"]][["trace"]])
-summary(block_johansen_test[["2023-07"]][["eigen"]])
-summary(block_johansen_test[["2023-07"]][["trace"]])
-summary(block_johansen_test[["2023-09"]][["eigen"]])
-summary(block_johansen_test[["2023-09"]][["trace"]])
-summary(block_johansen_test[["2023-11"]][["eigen"]])
-summary(block_johansen_test[["2023-11"]][["trace"]])
-summary(block_johansen_test[["2023-12"]][["eigen"]])
-summary(block_johansen_test[["2023-12"]][["trace"]])
-summary(block_johansen_test[["2024-01"]][["eigen"]])
-summary(block_johansen_test[["2024-01"]][["trace"]])
-summary(block_johansen_test[["2024-03"]][["eigen"]])
-summary(block_johansen_test[["2024-03"]][["trace"]])
-summary(block_johansen_test[["2024-05"]][["eigen"]])
-summary(block_johansen_test[["2024-05"]][["trace"]])
-summary(block_johansen_test[["2024-06"]][["eigen"]])
-summary(block_johansen_test[["2024-06"]][["trace"]])
-summary(block_johansen_test[["2024-07"]][["eigen"]])
-summary(block_johansen_test[["2024-07"]][["trace"]])
-summary(block_johansen_test[["2024-09"]][["eigen"]])
-summary(block_johansen_test[["2024-09"]][["trace"]])
-summary(block_johansen_test[["2024-11"]][["eigen"]])
-summary(block_johansen_test[["2024-11"]][["trace"]])
-summary(block_johansen_test[["2024-12"]][["eigen"]])
-summary(block_johansen_test[["2024-12"]][["trace"]])
-summary(block_johansen_test[["2025-01"]][["eigen"]])
-summary(block_johansen_test[["2025-01"]][["trace"]])
-summary(block_johansen_test[["2025-03"]][["eigen"]])
-summary(block_johansen_test[["2025-03"]][["trace"]])
-summary(block_johansen_test[["2025-05"]][["eigen"]])
-summary(block_johansen_test[["2025-05"]][["trace"]])
-summary(block_johansen_test[["2025-06"]][["eigen"]])
-summary(block_johansen_test[["2025-06"]][["trace"]])
-summary(block_johansen_test[["2025-07"]][["eigen"]])
-summary(block_johansen_test[["2025-07"]][["trace"]])
-
-
-summary()
-
-
 # ------ Actual granger causality test ------
 PM_cause_ZQ_pairwise <- list()
 ZQ_cause_PM_pairwise <- list()
 PM_cause_ZQ_blockwise <- list()
 ZQ_cause_PM_blockwise <- list()
 for (meetingName in meetings$meetingMonth) {
-  filtered_df <- filtered_timeseries[[meetingName]]
-  assetNames <- colnames(filtered_df)
+  differenced_df <- differenced_timeseries[[meetingName]]
+  assetNames <- colnames(differenced_df)
   unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
 
   # pairwise (bivariate) granger test
@@ -1157,12 +1010,14 @@ for (meetingName in meetings$meetingMonth) {
     hasBoth <- sum(startsWith(assetNames, unique_asset)) == 2
     if (!hasBoth) next
 
-    testing_df <- filtered_df[, startsWith(assetNames, unique_asset)]
+    testing_df <- differenced_df[, startsWith(assetNames, unique_asset)]
 
+    ECT <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
+    
     # var model
     var_select <- VARselect(testing_df, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
-    VAR_model <- VAR(testing_df, p = lag_choice, type = "const")
+    VAR_model <- VAR(testing_df, p = lag_choice, type = "const", exogen = ECT)
     
     PM_causing <- causality(VAR_model, cause = paste0(unique_asset, ".PM"))
     ZQ_causing <- causality(VAR_model, cause = paste0(unique_asset, ".ZQ"))
@@ -1180,12 +1035,15 @@ for (meetingName in meetings$meetingMonth) {
   ZQ_assets <- assetNames[ZQ_filter]
 
   # excludes noChange
-  noBaseCase_df <- filtered_df[, c(PM_assets, ZQ_assets)]
+  noBaseCase_df <- differenced_df[, c(PM_assets, ZQ_assets)]
+
+  ECT <- ECT_blockwise[[meetingName]][["trace"]]
 
   # var model
   var_select <- VARselect(noBaseCase_df, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model <- VAR(noBaseCase_df, p = lag_choice, type = "const")
+  VAR_model <- VAR(noBaseCase_df, p = lag_choice, type = "const", exogen = ECT)
+    
 
   # FIX: exclude basecase in each
   # try to perform blockwise causality test, save NULL if fails
