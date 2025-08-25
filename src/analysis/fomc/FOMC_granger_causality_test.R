@@ -761,7 +761,6 @@ rm(
 # block_johansen_test
 
 count_cointegrating_rels <- function(jotest, alpha = 0.05) {
-
   crit_col <- switch(
     as.character(alpha),
     "0.1" = 1,
@@ -915,7 +914,7 @@ rm(
 
 # TODO: Continue here, build VECM
 
-# NOTE: Using trace test results to build vecm
+# NOTE: Using trace test results to build vecm (?)
 
 # # 1. Re-run your Johansen test to get the object
 # johansen_test <- ca.jo(prices_df, type = "trace", ecdet = "const", K = 3)
@@ -957,16 +956,62 @@ rm(meetingName, assetName, t_test_res, p_val_res)
 
 
 
-cajo_bj <- block_johansen_test[["2023-05"]][["trace"]]
-cajorls_obj <- cajorls(cajo_bj, r = 2)
-cajools_obj <- cajools(cajo_bj, r = 2)
+cajo_obj <- block_johansen_test[["2023-05"]][["trace"]]
+cajorls_obj <- cajorls(cajo_obj, r = 2)
 
-
-class(cajo_bj)
+class(cajo_obj)
 class(cajorls_obj) 
-class(cajools_obj)
 
-cajools_obj$terms
+# NOTE: Should I plot these?
+# plot(cajo_obj)
+
+cajo_obj
+summary(cajo_obj)
+cajo_obj@V # Eigenvectors (cointegration relations)
+# 5x5
+# filtered ts
+# t x 4
+
+
+count_cointegrating_rels(cajo_obj)
+
+cajorls
+
+# taken from cajorls function
+r <- count_cointegrating_rels(cajo_obj)
+
+beta <- matrix(cajo_obj@V[, 1:r], ncol = r)
+C1 <- diag(r)
+C2 <- matrix(0, nrow = nrow(beta) - r, ncol = r)
+C <- rbind(C1, C2)
+betanorm <- beta %*% solve(t(C) %*% beta)
+# This is Y
+# cajo_obj@ZK
+# Y %*% beta
+ECT <- cajo_obj@ZK %*% betanorm
+colnames(ECT) <- paste("ect", 1:r, sep = "")
+
+head(ECT)
+
+# supposedly error correction terms, i.e. beta' * Y
+%*% cajo_obj@V[, 1:count_cointegrating_rels(cajo_obj)]
+
+head(cajo_obj@ZK)
+
+as.matrix()
+class(cajo_obj@ZK)
+
+head(cajo_obj@ZK[,1:4])
+head(as.matrix(filtered_timeseries[["2023-05"]][,c(1, 2, 3, 5)]))
+
+all(cajo_obj@ZK[,1:4] == as.matrix(filtered_timeseries[["2023-05"]][-c(1, 8613),c(1, 2, 3, 5)]))
+
+
+
+as.matrix(filtered_timeseries[["2023-05"]][,c(1, 2, 3, 5)]) %*% cajo_obj@V
+
+cajo_obj@V
+
 
 cajorls_obj
 cajorls_obj$rlm
