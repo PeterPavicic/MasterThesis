@@ -957,7 +957,7 @@ rm(
   eigen_results,
   lt_eigen,
   lt_trace,
-  trace_results,
+  trace_results
 )
 
 # Findings:
@@ -992,6 +992,19 @@ for (meetingName in meetings$meetingMonth) {
 # for any timeseries
 
 rm(meetingName, assetName, t_test_res, p_val_res)
+
+
+
+# ECT_blockwise
+
+names(ECT_bivariate[["2024-09"]][["down25"]])
+head(ECT_bivariate[["2024-09"]][["down25"]][["eigen"]])
+
+names(ECT_bivariate[["2024-09"]][["down25"]])
+
+
+
+names(ECT_blockwise[["2024-09"]])
 
 
 
