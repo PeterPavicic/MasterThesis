@@ -1010,6 +1010,7 @@ names(ECT_blockwise[["2024-09"]])
 
 
 # ------ Actual granger causality test ------
+# FIX: This here
 PM_cause_ZQ_pairwise <- list()
 ZQ_cause_PM_pairwise <- list()
 PM_cause_ZQ_blockwise <- list()
@@ -1030,75 +1031,24 @@ for (meetingName in meetings$meetingMonth) {
     ZQ_asset_name <- paste0(unique_asset, ".ZQ")
 
 
-    # WARNING: Delete these
-
-    count_cointegrating_rels(
-      bivariate_johansen_test[[meetingName]][[unique_asset]][["trace"]]
-    )
-    count_cointegrating_rels(
-      bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]
-    )
-
-    summary(bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]])
-    bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]
-
     ECT_trace <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
     ECT_eigen <- ECT_bivariate[[meetingName]][[unique_asset]][["eigen"]]
-    
-    dim(ECT_trace)
-    dim(ECT_eigen)
-    dim(testing_df)
 
+    # This is the lag that was calculated in the Johansen procedure and the one
+    # the ECT terms are based on
+    lag_from_ETC <- nrow(testing_df) - nrow(ECT_trace)
 
-    Y <- as.matrix(filtered_timeseries[[meetingName]][, c(PM_asset_name, ZQ_asset_name)])
-    ZK <- bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]@ZK[, c(1:2)]
-    # objective: I need to make Y == ZK 
-    # Y is longer
-    dim(Y)
-    dim(testing_df)
-    dim(ZK)
-
-
-    dim(ECT_eigen)
-    # Why am I removing the last one also?
-    all(ZK == Y[-c(1:8, nrow(Y)),])
-
-    head(diff(Y[-c(1:8, nrow(Y)),]), n = 10)
-    nrow(diff(Y[-c(1:8, nrow(Y)),]))
-
-    all(diff(Y[-c(1:8, nrow(Y)), ]) == testing_df[-c(1:8, nrow(testing_df)), ])
-
-
-    diff(ZK)
-
-    lag_choice
-
-
-    all(as.matrix(testing_df) == diff(as.matrix(Y)))
-
-
-
-    # FIX: Figure out how this differs from Y data
-    cajo_obj <- bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]
-
-    cajo_obj@ZK
-    head(cajo_obj@ZK)
-    tail(cajo_obj@ZK)
-
-
-
-    head(testing_df)
-    tail(testing_df)
+    # FIX: Error here
+    # This conforms with error correction terms
+    # Y: vector of variables and their timeseries
+    Y <- testing_df[-c(1:lag_from_ETC, nrow(testing_df)), ]
 
     # var model
-    var_select <- VARselect(testing_df, lag.max = 24)
+    var_select <- VARselect(Y, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
-    VAR_model_trace <- VAR(testing_df, p = lag_choice, type = "const", exogen = ECT_trace)
-    VAR_model_eigen <- VAR(testing_df, p = lag_choice, type = "const", exogen = ECT_eigen)
-    
+    VAR_model_trace <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_trace)
+    VAR_model_eigen <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
-  # FIX: exclude basecase in each
-  # try to perform blockwise causality test, save NULL if fails
   tryCatch(
     {
       PM_trace_failed <- TRUE
@@ -1143,20 +1093,18 @@ for (meetingName in meetings$meetingMonth) {
         e$message, "\n"
       )
 
-      PM_causing <- NULL
-      ZQ_causing <- NULL
-    },
-    finally = {
-      PM_cause_ZQ_blockwise[[meetingName]] <- PM_causing
-      ZQ_cause_PM_blockwise[[meetingName]] <- ZQ_causing
+      # FIX: this
+      PM_causing_trace <- NULL
+      PM_causing_eigen <- NULL
+      ZQ_causing_trace <- NULL
+      ZQ_causing_eigen <- NULL
     }
   )
     
-    PM_causing <- causality(VAR_model, cause = paste0(unique_asset, ".PM"))
-    ZQ_causing <- causality(VAR_model, cause = paste0(unique_asset, ".ZQ"))
-
-    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]] <- PM_causing
-    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]] <- ZQ_causing
+    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]][["trace"]] <- PM_causing_trace
+    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]][["eigen"]] <- PM_causing_eigen
+    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]][["trace"]] <- ZQ_causing_trace
+    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]][["eigen"]] <- ZQ_causing_eigen
   }
 
 
@@ -1173,12 +1121,24 @@ for (meetingName in meetings$meetingMonth) {
   ECT_trace <- ECT_blockwise[[meetingName]][["trace"]]
   ECT_eigen <- ECT_blockwise[[meetingName]][["eigen"]]
 
+
+  ECT_trace <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
+  ECT_eigen <- ECT_bivariate[[meetingName]][[unique_asset]][["eigen"]]
+
+  # This is the lag that was calculated in the Johansen procedure and the one
+  # the ECT terms are based on
+  lag_from_ETC <- nrow(noBaseCase_df) - nrow(ECT_trace)
+
+  # This conforms with error correction terms
+  # Y: vector of variables and their timeseries
+  Y <- noBaseCase_df[-c(1:lag_from_ETC, nrow(noBaseCase_df)), ]
+
   # var model
-  var_select <- VARselect(noBaseCase_df, lag.max = 24)
+  var_select <- VARselect(Y, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model_trace <- VAR(noBaseCase_df, p = lag_choice, type = "const", exogen = ECT_trace)
-  VAR_model_eigen <- VAR(noBaseCase_df, p = lag_choice, type = "const", exogen = ECT_eigen)
-    
+  VAR_model_trace <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_trace)
+  VAR_model_eigen <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+
 
   # FIX: exclude basecase in each
   # try to perform blockwise causality test, save NULL if fails
@@ -1211,7 +1171,7 @@ for (meetingName in meetings$meetingMonth) {
 
       cat(
         "\nAn error occured",
-        "\nin blockwise test", 
+        "\nin boxwise test", 
         "\nPerforming:", 
         switch(
           as.character(failed_num),
@@ -1225,14 +1185,19 @@ for (meetingName in meetings$meetingMonth) {
         e$message, "\n"
       )
 
-      PM_causing <- NULL
-      ZQ_causing <- NULL
-    },
-    finally = {
-      PM_cause_ZQ_blockwise[[meetingName]] <- PM_causing
-      ZQ_cause_PM_blockwise[[meetingName]] <- ZQ_causing
+      # FIX: this
+      PM_causing_trace <- NULL
+      PM_causing_eigen <- NULL
+      ZQ_causing_trace <- NULL
+      ZQ_causing_eigen <- NULL
     }
   )
+
+  PM_cause_ZQ_boxwise[[meetingName]][["trace"]] <- PM_causing_trace
+  PM_cause_ZQ_boxwise[[meetingName]][["eigen"]] <- PM_causing_eigen
+  ZQ_cause_PM_boxwise[[meetingName]][["trace"]] <- ZQ_causing_trace
+  ZQ_cause_PM_boxwise[[meetingName]][["eigen"]] <- ZQ_causing_eigen
+
 }
 
 rm(
