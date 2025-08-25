@@ -1002,7 +1002,8 @@ head(ECT_bivariate[["2024-09"]][["down25"]][["eigen"]])
 
 names(ECT_bivariate[["2024-09"]][["down25"]])
 
-
+ECT_blockwise[["2024-09"]][["trace"]]
+ECT_blockwise[["2024-09"]][["eigen"]]
 
 names(ECT_blockwise[["2024-09"]])
 
@@ -1025,12 +1026,131 @@ for (meetingName in meetings$meetingMonth) {
 
     testing_df <- differenced_df[, startsWith(assetNames, unique_asset)]
 
-    ECT <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
+    PM_asset_name <- paste0(unique_asset, ".PM")
+    ZQ_asset_name <- paste0(unique_asset, ".ZQ")
+
+
+    # WARNING: Delete these
+
+    count_cointegrating_rels(
+      bivariate_johansen_test[[meetingName]][[unique_asset]][["trace"]]
+    )
+    count_cointegrating_rels(
+      bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]
+    )
+
+    summary(bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]])
+    bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]
+
+    ECT_trace <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
+    ECT_eigen <- ECT_bivariate[[meetingName]][[unique_asset]][["eigen"]]
     
+    dim(ECT_trace)
+    dim(ECT_eigen)
+    dim(testing_df)
+
+
+    Y <- as.matrix(filtered_timeseries[[meetingName]][, c(PM_asset_name, ZQ_asset_name)])
+    ZK <- bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]@ZK[, c(1:2)]
+    # objective: I need to make Y == ZK 
+    # Y is longer
+    dim(Y)
+    dim(testing_df)
+    dim(ZK)
+
+
+    dim(ECT_eigen)
+    # Why am I removing the last one also?
+    all(ZK == Y[-c(1:8, nrow(Y)),])
+
+    head(diff(Y[-c(1:8, nrow(Y)),]), n = 10)
+    nrow(diff(Y[-c(1:8, nrow(Y)),]))
+
+    all(diff(Y[-c(1:8, nrow(Y)), ]) == testing_df[-c(1:8, nrow(testing_df)), ])
+
+
+    diff(ZK)
+
+    lag_choice
+
+
+    all(as.matrix(testing_df) == diff(as.matrix(Y)))
+
+
+
+    # FIX: Figure out how this differs from Y data
+    cajo_obj <- bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]]
+
+    cajo_obj@ZK
+    head(cajo_obj@ZK)
+    tail(cajo_obj@ZK)
+
+
+
+    head(testing_df)
+    tail(testing_df)
+
     # var model
     var_select <- VARselect(testing_df, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
-    VAR_model <- VAR(testing_df, p = lag_choice, type = "const", exogen = ECT)
+    VAR_model_trace <- VAR(testing_df, p = lag_choice, type = "const", exogen = ECT_trace)
+    VAR_model_eigen <- VAR(testing_df, p = lag_choice, type = "const", exogen = ECT_eigen)
+    
+
+  # FIX: exclude basecase in each
+  # try to perform blockwise causality test, save NULL if fails
+  tryCatch(
+    {
+      PM_trace_failed <- TRUE
+      PM_eigen_failed <- TRUE
+      ZQ_trace_failed <- TRUE
+      ZQ_eigen_failed <- TRUE
+
+
+      PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
+      PM_trace_failed <- FALSE
+
+      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
+      PM_eigen_failed <- FALSE
+
+      ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
+      ZQ_trace_failed <- FALSE
+
+      ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
+      ZQ_eigen_failed <- FALSE
+    },
+    error = function(e) {
+      failed_num <- sum(c(
+        PM_trace_failed,
+        PM_eigen_failed,
+        ZQ_trace_failed,
+        ZQ_eigen_failed
+      ))
+
+      cat(
+        "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        switch(
+          as.character(failed_num),
+          "4" = "PM trace",
+          "3" = "PM eigen",
+          "2" = "ZQ trace",
+          "1" = "ZQ eigen",
+        ), "causality test",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
+
+      PM_causing <- NULL
+      ZQ_causing <- NULL
+    },
+    finally = {
+      PM_cause_ZQ_blockwise[[meetingName]] <- PM_causing
+      ZQ_cause_PM_blockwise[[meetingName]] <- ZQ_causing
+    }
+  )
     
     PM_causing <- causality(VAR_model, cause = paste0(unique_asset, ".PM"))
     ZQ_causing <- causality(VAR_model, cause = paste0(unique_asset, ".ZQ"))
@@ -1050,24 +1170,56 @@ for (meetingName in meetings$meetingMonth) {
   # excludes noChange
   noBaseCase_df <- differenced_df[, c(PM_assets, ZQ_assets)]
 
-  ECT <- ECT_blockwise[[meetingName]][["trace"]]
+  ECT_trace <- ECT_blockwise[[meetingName]][["trace"]]
+  ECT_eigen <- ECT_blockwise[[meetingName]][["eigen"]]
 
   # var model
   var_select <- VARselect(noBaseCase_df, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model <- VAR(noBaseCase_df, p = lag_choice, type = "const", exogen = ECT)
+  VAR_model_trace <- VAR(noBaseCase_df, p = lag_choice, type = "const", exogen = ECT_trace)
+  VAR_model_eigen <- VAR(noBaseCase_df, p = lag_choice, type = "const", exogen = ECT_eigen)
     
 
   # FIX: exclude basecase in each
   # try to perform blockwise causality test, save NULL if fails
   tryCatch(
     {
-      PM_causing <- causality(VAR_model, cause = PM_assets)
-      ZQ_causing <- causality(VAR_model, cause = ZQ_assets)
+      PM_trace_failed <- TRUE
+      PM_eigen_failed <- TRUE
+      ZQ_trace_failed <- TRUE
+      ZQ_eigen_failed <- TRUE
+
+      PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
+      PM_trace_failed <- FALSE
+
+      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
+      PM_eigen_failed <- FALSE
+
+      ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
+      ZQ_trace_failed <- FALSE
+
+      ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
+      ZQ_eigen_failed <- FALSE
     },
     error = function(e) {
+      failed_num <- sum(c(
+        PM_trace_failed,
+        PM_eigen_failed,
+        ZQ_trace_failed,
+        ZQ_eigen_failed
+      ))
+
       cat(
         "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        switch(
+          as.character(failed_num),
+          "4" = "PM trace",
+          "3" = "PM eigen",
+          "2" = "ZQ trace",
+          "1" = "ZQ eigen",
+        ), "causality test",
         "\nWhile processing:", meetingName,
         "\nwith error message:", "\n",
         e$message, "\n"
