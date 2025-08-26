@@ -14,12 +14,18 @@ library(tseries)
 library(urca)
 library(vars)
 
+
+
+
 # Set Monday as start of week
 options("lubridate.week.start" = 1)
 
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 load("./FOMC_Granger_Causality.RData")
+
+# NOTE: These should be excluded from Granger causality RData
+rm(ZQ_data, tokens)
 
 
 # TODO: Make both IP vars contain data that is also filtered for time 
@@ -61,7 +67,7 @@ for (meetingName in meetings$meetingMonth) {
   PM_data_scaled_no_weekend[[meetingName]] <- PM_df_scaled
 }
 
-rm(PM_df_unscaled, PM_df_scaled, meetingName)
+rm(PM_df_unscaled, PM_df_scaled, meetingName, PM_data_scaled)
 
 # decrease in number of trades
 trades_num_with_weekend <- sapply(PM_data_unscaled, nrow)
@@ -133,6 +139,9 @@ text(x = bp,
 
 dev.off()
 
+
+rm(bp, PM_excluded_proportions)
+
 PM_whichLatestZero <- c()
 
 # ------- Checking which is the last 0 priced asset -------
@@ -148,9 +157,11 @@ for (meetingName in meetings$meetingMonth) {
   PM_whichLatestZero[meetingName] <- max(which(PM_df$containsZero))
 }
 
-rm(PM_df, meetingName)
+rm(PM_df, meetingName, assetNames)
 
 # PM_whichLatestZero
+
+rm(PM_whichLatestZero)
 
 
 # ------- Checking where unscaled sum above certain threshold -------
@@ -171,6 +182,8 @@ PM_latest_below_matrix <- sapply(c(0.2, 0.3, 0.4, 0.5, 0.6), PM_whichLatestBelow
 colnames(PM_latest_below_matrix) <- c(0.2, 0.3, 0.4, 0.5, 0.6)
 
 # PM_latest_below_matrix
+
+rm(PM_whichLatestBelowThresHold, PM_latest_below_matrix)
 
 # trades_num_without_weekend["2024-01"]
 
