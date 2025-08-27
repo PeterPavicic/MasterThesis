@@ -15,8 +15,6 @@ library(urca)
 library(vars)
 
 
-
-
 # Set Monday as start of week
 options("lubridate.week.start" = 1)
 
@@ -24,13 +22,6 @@ options("lubridate.week.start" = 1)
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 load("./FOMC_Granger_Causality.RData")
 
-# NOTE: These should be excluded from Granger causality RData
-rm(ZQ_data, tokens)
-
-
-# TODO: Make both IP vars contain data that is also filtered for time 
-# (match time, PM_data should have reasonable unscaled_sum)
-# PM_IP should not contain unscaled_sum anymore
 
 # NOTE: We filter timeseries to skip weekends (due to ZQ unavailability) ==> assumption of no weekend effect since lags are worth the same as between workdays
 # NOTE: Using unscaled Polymarket data ==> probabilities almost never add up to 1
@@ -40,7 +31,7 @@ rm(ZQ_data, tokens)
 # ------ Remove weekends ------
 PM_data_unscaled_no_weekend <- list()
 PM_data_scaled_no_weekend <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   PM_df_unscaled <- PM_data_unscaled[[meetingName]] |>
     mutate(
       day_of_week = weekdays(time)
@@ -140,12 +131,12 @@ text(x = bp,
 dev.off()
 
 
-rm(bp, PM_excluded_proportions)
+rm(bp, PM_excluded_proportions, PM_data_unscaled, trades_num_with_weekend)
 
 PM_whichLatestZero <- c()
 
 # ------- Checking which is the last 0 priced asset -------
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   PM_df <- PM_data_unscaled_no_weekend[[meetingName]]
   assetNames <- colnames(PM_df)[!(colnames(PM_df) %in% c("time"))]
   
@@ -167,7 +158,7 @@ rm(PM_whichLatestZero)
 # ------- Checking where unscaled sum above certain threshold -------
 PM_whichLatestBelowThresHold <- function(threshold) {
   PM_latestBelowThreshold <- c()
-  for (meetingName in meetings$meetingMonth) {
+  for (meetingName in meetingMonths) {
     PM_df <- PM_data_scaled_no_weekend[[meetingName]]
 
     PM_latestBelowThreshold[meetingName] <- max(
@@ -183,7 +174,7 @@ colnames(PM_latest_below_matrix) <- c(0.2, 0.3, 0.4, 0.5, 0.6)
 
 # PM_latest_below_matrix
 
-rm(PM_whichLatestBelowThresHold, PM_latest_below_matrix)
+rm(PM_whichLatestBelowThresHold)
 
 # trades_num_without_weekend["2024-01"]
 
@@ -217,7 +208,7 @@ rm(PM_whichLatestBelowThresHold, PM_latest_below_matrix)
   PM_filtered <- PM_data_unscaled_no_weekend
   PM_filtered$`2025-03` <- PM_filtered$`2025-03`[-(16510:16515), ]
 
-  for (meetingName in meetings$meetingMonth) {
+  for (meetingName in meetingMonths) {
     PM_df <- PM_filtered[[meetingName]]
     filterBy <- first_observations_filter[meetingName]
 
@@ -232,10 +223,23 @@ rm(PM_whichLatestBelowThresHold, PM_latest_below_matrix)
 
 # PM_filtered
 
+# PM_latest_below_matrix
+
+
+
+rm(
+  PM_data_scaled_no_weekend,
+  PM_data_unscaled_no_weekend,
+  PM_latest_below_matrix,
+  filterBy,
+  first_observations_filter,
+  trades_num_without_weekend
+)
+
 
 # ----- Deciding which timegrid to use (measuring breaks in trading) -----
 PM_avg_trading_freq_stats <- c()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   PM_df <- PM_filtered[[meetingName]]
 
   minute_distances <- diff(as.numeric(PM_df$time)) / 60
@@ -245,14 +249,15 @@ for (meetingName in meetings$meetingMonth) {
   PM_avg_trading_freq_stats <- rbind(PM_avg_trading_freq_stats, summary(minute_distances))
 }
 
-rm(PM_df, minute_distances, meetingName)
-
 # PM_avg_trading_freq_stats
+
+rm(PM_df, minute_distances, meetingName, PM_avg_trading_freq_stats)
+
 
 ZQ_avg_trading_freq_stats <- c()
 ZQ_filtered <- list()
 
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   PM_df <- PM_filtered[[meetingName]]
 
   assetNames <- colnames(PM_df)[!(colnames(PM_df) %in% c("time"))]
@@ -280,29 +285,29 @@ for (meetingName in meetings$meetingMonth) {
   ZQ_avg_trading_freq_stats <- rbind(ZQ_avg_trading_freq_stats, summary(minute_distances))
 }
 
-rm(PM_df, ZQ_df, minute_distances, meetingName)
+# ZQ_avg_trading_freq_stats
+
+rm(PM_df, ZQ_df, minute_distances, meetingName, ZQ_Implied_Probs, ZQ_avg_trading_freq_stats)
 
 
 # Which one starts earlier and ends later?
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   PM_df <- PM_filtered[[meetingName]]
   ZQ_df <- ZQ_filtered[[meetingName]]
 
   PM_range <- as.numeric(range(PM_df$time))
   ZQ_range <- as.numeric(range(ZQ_df$time))
 
-  cat("\n\n", meetingName, "\n")
-  cat("Earlier start:", ifelse(PM_range[1] < ZQ_range[1], "Polymarket", ifelse(PM_range[1] == ZQ_range[1], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[1] - ZQ_range[1]) / 60, "minutes", "\n")
-
-  cat("Later end:", ifelse(PM_range[2] > ZQ_range[2], "Polymarket", ifelse(PM_range[2] == ZQ_range[2], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[2] - ZQ_range[2]) / 60, "minutes", "\n")
+  # cat("\n\n", meetingName, "\n")
+  # cat("Earlier start:", ifelse(PM_range[1] < ZQ_range[1], "Polymarket", ifelse(PM_range[1] == ZQ_range[1], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[1] - ZQ_range[1]) / 60, "minutes", "\n")
+  #
+  # cat("Later end:", ifelse(PM_range[2] > ZQ_range[2], "Polymarket", ifelse(PM_range[2] == ZQ_range[2], "equal", "ZQ_implied")), "\t\t", "by:", abs(PM_range[2] - ZQ_range[2]) / 60, "minutes", "\n")
 }
 
 rm(PM_df, PM_range, ZQ_df, ZQ_range, meetingName)
 
 # Creating common timegrid
-# TODO: Turn this into function
-# should be specified in `hours`, `minutes` or `seconds`
-fidelity <- "5 minutes"
+fidelity <- "1 minutes"
 
 fidelity_count <- as.numeric(strsplit(fidelity, " ")[[1]][1])
 fidelity_unit <- strsplit(fidelity, " ")[[1]][2]
@@ -315,14 +320,15 @@ fidelity_seconds <- fidelity_count * ifelse(
   )
 )
 
+rm(fidelity_unit, fidelity_count)
+
 
 # unifying to common timegrid
 vectorised_timeseries <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   PM_df <- PM_filtered[[meetingName]]
   ZQ_df <- ZQ_filtered[[meetingName]]
 
-  # WARNING: Check if everything correct here
   time_grid_start <- max(
     floor_date(min(PM_df$time), fidelity),
     floor_date(min(ZQ_df$time), fidelity)
@@ -403,25 +409,27 @@ for (meetingName in meetings$meetingMonth) {
 }
 
 rm(
+  PM_aligned,
   PM_df,
+  PM_filtered,
+  ZQ_aligned,
   ZQ_df,
-  time_grid_start,
+  ZQ_filtered,
+  all_aligned,
+  assetNames,
+  fidelity,
+  fidelity_seconds,
+  meetingName,
   time_grid,
   time_grid_end,
-  assetNames,
-  PM_aligned,
-  ZQ_aligned,
-  all_aligned,
-  PM_df,
-  ZQ_df,
-  meetingName
+  time_grid_start
 )
 
 
 
 # ----- Removing constant timeseries -----
 filtered_timeseries <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   timeseries_df <- vectorised_timeseries[[meetingName]]
   df_assets_only <- timeseries_df[, -1]
   assetNames <- colnames(df_assets_only)
@@ -440,13 +448,14 @@ rm(
   df_assets_only,
   assetNames,
   hasOnlyZeroes,
-  meetingName
+  meetingName,
+  vectorised_timeseries
 )
 
 
 # ----- ADF test on original (non-constant) timeseries -----
 adf_test_results <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   timeseries_df <- filtered_timeseries[[meetingName]]
 
   adf_test_results_for_meeting <- list()
@@ -466,9 +475,8 @@ for (meetingName in meetings$meetingMonth) {
 rm(timeseries_df, adf_test_results_for_meeting, assetName, meetingName)
 
 
-# WARNING: some reject explosive --> what do?
 stationary_ts <- c()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   adf_results_list <- adf_test_results[[meetingName]]
   for (assetName in names(adf_results_list)) {
     if (adf_results_list[[assetName]]$p.value < 0.05) {
@@ -487,25 +495,24 @@ rm(adf_results_list, meetingName, assetName)
 
 # ----- Creating differenced timeseries -----
 differenced_timeseries <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   ts_df <- filtered_timeseries[[meetingName]]
 
   differenced_df <- ts_df |>
     dplyr::mutate(
       across(colnames(ts_df), ~ c(NA, diff(.)))
     ) |>
-    # WARNING: What is this?
     filter(if_all(colnames(ts_df), ~ !is.na(.)))
 
   differenced_timeseries[[meetingName]] <- differenced_df
 }
 
-rm(ts_df, differenced_df, meetingName)
+rm(ts_df, differenced_df, meetingName, stationary_ts)
 
 
 # ----- ADF test on differenced timeseries -----
 adf_test_results_differenced <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   timeseries_df <- differenced_timeseries[[meetingName]]
 
   adf_test_results_for_meeting <- list()
@@ -527,7 +534,7 @@ rm(
 
 # ----- Evaluating ADF test on differenced timeseries -----
 non_stationary_differenced_ts <- c()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   meeting_adf_results <- adf_test_results_differenced[[meetingName]] 
   assetNames <- names(meeting_adf_results)
   for (assetName in assetNames) {
@@ -557,14 +564,12 @@ filtered_timeseries[["2024-12"]][["down50.ZQ"]]
 
 # adf_test_results_differenced
 
-# all timeseries stationary except for
-# this one that is kinda stationary anyway
-
+# all timeseries stationary except for this one
 
 
 # testing whether there is a trend/drift in levels
-# If there is, ca.jo
-for (meetingName in meetings$meetingMonth) {
+# If there is, ca.jo would need to be reestimated with trend constant
+for (meetingName in meetingMonths) {
   filtered_df <- filtered_timeseries[[meetingName]]
 
   cat("\nMeeting:", meetingName)
@@ -591,7 +596,9 @@ for (meetingName in meetings$meetingMonth) {
 # ----- Johansen test (original timeseries) -----
 bivariate_johansen_test <- list()
 block_johansen_test <- list()
-for (meetingName in meetings$meetingMonth) {
+lag_choices_blockwise <- list()
+lag_choices_bivariate <- list()
+for (meetingName in meetingMonths) {
   filtered_df <- filtered_timeseries[[meetingName]]
   assetNames <- colnames(filtered_df)
   unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
@@ -612,9 +619,12 @@ for (meetingName in meetings$meetingMonth) {
     var_select <- VARselect(testing_df, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
 
+    lag_choices_bivariate[[meetingName]][[unique_asset]] <- lag_choice
+
+
+    # try trace test
     tryCatch(
       {
-
         # # to locate warnings
         # cat(
         #   "\nRunning",
@@ -625,17 +635,34 @@ for (meetingName in meetings$meetingMonth) {
         #   "\nwith error message:", "\n"
         # )
 
-
-        trace_test_failed <- TRUE
-
         trace_test <- ca.jo(
           as.data.frame(testing_df), type = "trace",
           K = lag_choice, ecdet = "const",
           spec = "transitory" # Determines which formula Gamma is
         )
 
-        trace_test_failed <- FALSE
+        bivariate_johansen_test[[meetingName]][[unique_asset]][["trace"]] <- trace_test
 
+      },
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin bivariate test",
+          "\nPerforming:", "trace", "test",
+          "\nWhile processing:", meetingName,
+          "\non assets:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
+
+        bivariate_johansen_test[[meetingName]][[unique_asset]][["trace"]] <- NULL
+      }
+    )
+
+
+    # try eigen test
+    tryCatch(
+      {
         # # to locate warnings
         # cat("\nRunning",
         #   "\nbivariate test",
@@ -650,30 +677,27 @@ for (meetingName in meetings$meetingMonth) {
           K = lag_choice, ecdet = "const",
           spec = "transitory" # Determines which formula Gamma is
         )
+
+        bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]] <- eigen_test
       },
       error = function(e) {
+
         cat(
           "\nAn error occured",
           "\nin bivariate test",
-          "\nPerforming:", ifelse(trace_test_failed, "trace", "eigen"), "test",
+          "\nPerforming:", "eigen", "test",
           "\nWhile processing:", meetingName,
           "\non assets:", unique_asset,
           "\nwith error message:", "\n",
           e$message, "\n"
         )
 
-        trace_test <- NULL
-        eigen_test <- NULL
-      },
-      finally = {
-        bivariate_johansen_test[[meetingName]][[unique_asset]][["trace"]] <- trace_test
-        bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]] <- eigen_test
+        bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]] <- NULL
       }
     )
   }
 
   # blockwise granger test
-  # FIX: Why is noChange still present below?
   PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
   ZQ_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "ZQ")
 
@@ -687,9 +711,22 @@ for (meetingName in meetings$meetingMonth) {
   var_select <- VARselect(noBaseCase_df, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
 
+  lag_choices_blockwise[[meetingName]] <- lag_choice
+
+
   # try to perform blockwise causality test, save NULL if fails
+
+  # try trace test
   tryCatch(
     {
+      cat(
+        "\nan error occured",
+        "\nin blockwise test",
+        "\nperforming:", "trace", "test",
+        "\nwhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
 
       # # to locate warnings
       # cat("\nRunning",
@@ -705,7 +742,16 @@ for (meetingName in meetings$meetingMonth) {
         spec = "transitory" # Determines which formula Gamma is
       )
 
+      block_johansen_test[[meetingName]][["trace"]] <- trace_test
+    },
+    error = function(e) {
+      block_johansen_test[[meetingName]][["trace"]] <- NULL
+    }
+  )
 
+  # try eigen test
+  tryCatch(
+    {
       # # to locate warnings
       # cat("\nRunning",
       #   "\nblockwise test",
@@ -719,25 +765,23 @@ for (meetingName in meetings$meetingMonth) {
         K = lag_choice, ecdet = "const",
         spec = "transitory" # Determines which formula Gamma is
       )
+
+      block_johansen_test[[meetingName]][["eigen"]] <- eigen_test
     },
     error = function(e) {
       cat(
-        "\nAn error occured",
+        "\nan error occured",
         "\nin blockwise test",
-        "\nPerforming:", ifelse(trace_test_failed, "trace", "eigen"), "test",
-        "\nWhile processing:", meetingName,
+        "\nperforming:", "eigen", "test",
+        "\nwhile processing:", meetingName,
         "\nwith error message:", "\n",
         e$message, "\n"
       )
 
-      trace_test <- NULL
-      eigen_test <- NULL
-    },
-    finally = {
-      block_johansen_test[[meetingName]][["trace"]] <- trace_test
-      block_johansen_test[[meetingName]][["eigen"]] <- eigen_test
+      block_johansen_test[[meetingName]][["eigen"]] <- NULL
     }
   )
+
 }
 
 
@@ -746,12 +790,15 @@ rm(
   PM_filter,
   ZQ_assets,
   ZQ_filter,
+  adf_test_results,
+  adf_test_results_differenced,
   assetNames,
   eigen_test,
   filtered_df,
   hasBoth,
   lag_choice,
   noBaseCase_df,
+  non_stationary_differenced_ts,
   testing_df,
   trace_test,
   trace_test_failed,
@@ -774,6 +821,9 @@ rm(
 # block_johansen_test
 
 count_cointegrating_rels <- function(jotest, alpha = 0.05) {
+  # HACK: This should do something else or be checked for elsewhere
+  if (is.null(jotest)) return(0)
+
   crit_col <- switch(
     as.character(alpha),
     "0.1" = 1,
@@ -801,20 +851,22 @@ calculate_ECT <- function(cajo_obj, r) {
   C2 <- matrix(0, nrow = nrow(beta) - r, ncol = r)
   C <- rbind(C1, C2)
   betanorm <- beta %*% solve(t(C) %*% beta)
-  # This is Y: cajo_obj@ZK
-  # Y %*% beta
+  # This is Y_{t-1}, lagged: cajo_obj@ZK
+  # Y_{t-1} %*% beta (transpose of beta %*% Y_{t-1}, due to ts conventions in code)
   ECT <- cajo_obj@ZK %*% betanorm
   colnames(ECT) <- paste("ect", 1:r, sep = "")
 
   ECT
 }
 
+
+
 # ----- Evaluating Johansen test (original timeseries) -----
 # also testing whether linear trend is allowed in deterministic term
 # If there is, redo Johansen procedure
 ECT_bivariate <- list()
 ECT_blockwise <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   bivariate_results <- bivariate_johansen_test[[meetingName]]
   block_results <- block_johansen_test[[meetingName]]
 
@@ -869,7 +921,6 @@ for (meetingName in meetings$meetingMonth) {
         }
       }
     )
-
 
     # stop suppressing output
     sink()
@@ -977,13 +1028,8 @@ rm(
 # There is a lot of cointegration
 
 
-# TODO: Continue here, build VECM
-
-# NOTE: Using trace test results to build vecm (?)
-
-
 # testing whether there is a trend/drift in differences:
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   differenced_df <- differenced_timeseries[[meetingName]]
 
   cat("\nMeeting:", meetingName)
@@ -1006,29 +1052,12 @@ for (meetingName in meetings$meetingMonth) {
 
 rm(meetingName, assetName, t_test_res, p_val_res)
 
-
-
-# ECT_blockwise
-
-names(ECT_bivariate[["2024-09"]][["down25"]])
-head(ECT_bivariate[["2024-09"]][["down25"]][["eigen"]])
-
-names(ECT_bivariate[["2024-09"]][["down25"]])
-
-ECT_blockwise[["2024-09"]][["trace"]]
-ECT_blockwise[["2024-09"]][["eigen"]]
-
-names(ECT_blockwise[["2024-09"]])
-
-
-
 # ------ Actual granger causality test ------
-# FIX: This here
-PM_cause_ZQ_pairwise <- list()
-ZQ_cause_PM_pairwise <- list()
+PM_cause_ZQ_bivariate <- list()
+ZQ_cause_PM_bivariate <- list()
 PM_cause_ZQ_blockwise <- list()
 ZQ_cause_PM_blockwise <- list()
-for (meetingName in meetings$meetingMonth) {
+for (meetingName in meetingMonths) {
   differenced_df <- differenced_timeseries[[meetingName]]
   assetNames <- colnames(differenced_df)
   unique_assets <- unique(substring(assetNames, 1, nchar(assetNames) - 3))
@@ -1043,81 +1072,123 @@ for (meetingName in meetings$meetingMonth) {
     PM_asset_name <- paste0(unique_asset, ".PM")
     ZQ_asset_name <- paste0(unique_asset, ".ZQ")
 
-
     ECT_trace <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
     ECT_eigen <- ECT_bivariate[[meetingName]][[unique_asset]][["eigen"]]
 
     # This is the lag that was calculated in the Johansen procedure and the one
     # the ECT terms are based on
-    lag_from_ETC <- nrow(testing_df) - nrow(ECT_trace)
+    lag_from_ECT <- lag_choices_bivariate[[meetingName]][[unique_asset]]
 
-    # FIX: Error here
     # This conforms with error correction terms
-    # Y: vector of variables and their timeseries
-    Y <- testing_df[-c(1:lag_from_ETC, nrow(testing_df)), ]
+    # delta_Y: matrix of differenced, lagged timeseries
+    delta_Y <- as.matrix(testing_df[lag_from_ECT:nrow(testing_df), ])
 
     # var model
-    var_select <- VARselect(Y, lag.max = 24)
+    var_select <- VARselect(delta_Y, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
-    VAR_model_trace <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_trace)
-    VAR_model_eigen <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+    VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
+    VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
-  tryCatch(
-    {
-      PM_trace_failed <- TRUE
-      PM_eigen_failed <- TRUE
-      ZQ_trace_failed <- TRUE
-      ZQ_eigen_failed <- TRUE
+    # PM --> ZQ, trace
+    tryCatch(
+      {
+        PM_causing_trace <- causality(VAR_model_trace, cause = PM_asset_name)
+        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- PM_causing_trace
+      },
+      {
+        error = function(e) {
+          cat(
+            "\nAn error occured",
+            "\nin bivariate test", 
+            "\nPerforming:", 
+            "PM --> ZQ",
+            "trace test",
+            "\nWhile processing:", meetingName,
+            "\nasset:", unique_asset,
+            "\nwith error message:", "\n",
+            e$message, "\n"
+          )
 
+          PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
+        }
+      }
+    )
 
-      PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
-      PM_trace_failed <- FALSE
+    # PM --> ZQ, eigen
+    tryCatch(
+      {
+        PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_asset_name)
+        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- PM_causing_eigen
+      },
+      {
+        error = function(e) {
+          cat(
+            "\nAn error occured",
+            "\nin bivariate test", 
+            "\nPerforming:", 
+            "PM --> ZQ",
+            "eigen test",
+            "\nWhile processing:", meetingName,
+            "\nasset:", unique_asset,
+            "\nwith error message:", "\n",
+            e$message, "\n"
+          )
 
-      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
-      PM_eigen_failed <- FALSE
+          PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
+        }
+      }
+    )
 
-      ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
-      ZQ_trace_failed <- FALSE
+    # ZQ --> PM, trace
+    tryCatch(
+      {
+        ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_asset_name)
+        ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- ZQ_causing_trace
+      },
+      {
+        error = function(e) {
+          cat(
+            "\nAn error occured",
+            "\nin bivariate test", 
+            "\nPerforming:", 
+            "ZQ --> PM",
+            "trace test",
+            "\nWhile processing:", meetingName,
+            "\nasset:", unique_asset,
+            "\nwith error message:", "\n",
+            e$message, "\n"
+          )
 
-      ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
-      ZQ_eigen_failed <- FALSE
-    },
-    error = function(e) {
-      failed_num <- sum(c(
-        PM_trace_failed,
-        PM_eigen_failed,
-        ZQ_trace_failed,
-        ZQ_eigen_failed
-      ))
+          ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
+        }
+      }
+    )
 
-      cat(
-        "\nAn error occured",
-        "\nin blockwise test", 
-        "\nPerforming:", 
-        switch(
-          as.character(failed_num),
-          "4" = "PM trace",
-          "3" = "PM eigen",
-          "2" = "ZQ trace",
-          "1" = "ZQ eigen",
-        ), "causality test",
-        "\nWhile processing:", meetingName,
-        "\nwith error message:", "\n",
-        e$message, "\n"
-      )
+    # ZQ --> PM, eigen
+    tryCatch(
+      {
+        ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_asset_name)
+        ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- ZQ_causing_eigen
+      },
+      {
+        error = function(e) {
+          cat(
+            "\nAn error occured",
+            "\nin bivariate test", 
+            "\nPerforming:", 
+            "ZQ --> PM",
+            "eigen test",
+            "\nWhile processing:", meetingName,
+            "\nasset:", unique_asset,
+            "\nwith error message:", "\n",
+            e$message, "\n"
+          )
 
-      # FIX: this
-      PM_causing_trace <- NULL
-      PM_causing_eigen <- NULL
-      ZQ_causing_trace <- NULL
-      ZQ_causing_eigen <- NULL
-    }
-  )
-    
-    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]][["trace"]] <- PM_causing_trace
-    PM_cause_ZQ_pairwise[[meetingName]][[unique_asset]][["eigen"]] <- PM_causing_eigen
-    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]][["trace"]] <- ZQ_causing_trace
-    ZQ_cause_PM_pairwise[[meetingName]][[unique_asset]][["eigen"]] <- ZQ_causing_eigen
+          ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
+        }
+      }
+    )
+
   }
 
 
@@ -1134,111 +1205,228 @@ for (meetingName in meetings$meetingMonth) {
   ECT_trace <- ECT_blockwise[[meetingName]][["trace"]]
   ECT_eigen <- ECT_blockwise[[meetingName]][["eigen"]]
 
-
-  ECT_trace <- ECT_bivariate[[meetingName]][[unique_asset]][["trace"]]
-  ECT_eigen <- ECT_bivariate[[meetingName]][[unique_asset]][["eigen"]]
-
   # This is the lag that was calculated in the Johansen procedure and the one
   # the ECT terms are based on
-  lag_from_ETC <- nrow(noBaseCase_df) - nrow(ECT_trace)
+  lag_from_ECT <- lag_choices_blockwise[[meetingName]]
 
   # This conforms with error correction terms
-  # Y: vector of variables and their timeseries
-  Y <- noBaseCase_df[-c(1:lag_from_ETC, nrow(noBaseCase_df)), ]
+  # delta_Y: vector of variables and their timeseries
+  delta_Y <- noBaseCase_df[lag_from_ECT:nrow(noBaseCase_df), ]
 
   # var model
-  var_select <- VARselect(Y, lag.max = 24)
+  var_select <- VARselect(delta_Y, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model_trace <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_trace)
-  VAR_model_eigen <- VAR(Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+  VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
+  VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
-
-  # FIX: exclude basecase in each
-  # try to perform blockwise causality test, save NULL if fails
   tryCatch(
     {
-      PM_trace_failed <- TRUE
-      PM_eigen_failed <- TRUE
-      ZQ_trace_failed <- TRUE
-      ZQ_eigen_failed <- TRUE
-
       PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
-      PM_trace_failed <- FALSE
-
-      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
-      PM_eigen_failed <- FALSE
-
-      ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
-      ZQ_trace_failed <- FALSE
-
-      ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
-      ZQ_eigen_failed <- FALSE
+      PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- PM_causing_trace
     },
-    error = function(e) {
-      failed_num <- sum(c(
-        PM_trace_failed,
-        PM_eigen_failed,
-        ZQ_trace_failed,
-        ZQ_eigen_failed
-      ))
+    {
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin blockwise test", 
+          "\nPerforming:", 
+          "PM --> ZQ",
+          "trace test",
+          "\nWhile processing:", meetingName,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
 
-      cat(
-        "\nAn error occured",
-        "\nin boxwise test", 
-        "\nPerforming:", 
-        switch(
-          as.character(failed_num),
-          "4" = "PM trace",
-          "3" = "PM eigen",
-          "2" = "ZQ trace",
-          "1" = "ZQ eigen",
-        ), "causality test",
-        "\nWhile processing:", meetingName,
-        "\nwith error message:", "\n",
-        e$message, "\n"
-      )
-
-      # FIX: this
-      PM_causing_trace <- NULL
-      PM_causing_eigen <- NULL
-      ZQ_causing_trace <- NULL
-      ZQ_causing_eigen <- NULL
+        PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- NULL
+      }
     }
   )
 
-  PM_cause_ZQ_boxwise[[meetingName]][["trace"]] <- PM_causing_trace
-  PM_cause_ZQ_boxwise[[meetingName]][["eigen"]] <- PM_causing_eigen
-  ZQ_cause_PM_boxwise[[meetingName]][["trace"]] <- ZQ_causing_trace
-  ZQ_cause_PM_boxwise[[meetingName]][["eigen"]] <- ZQ_causing_eigen
+  tryCatch(
+    {
+      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
+      PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- PM_causing_eigen
+    },
+    {
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin blockwise test", 
+          "\nPerforming:", 
+          "PM --> ZQ",
+          "eigen test",
+          "\nWhile processing:", meetingName,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
+
+        PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- NULL
+      }
+    }
+  )
+
+  tryCatch(
+    {
+      ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
+      ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- ZQ_causing_trace
+    },
+    {
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin blockwise test", 
+          "\nPerforming:", 
+          "ZQ --> PM",
+          "trace test",
+          "\nWhile processing:", meetingName,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
+
+        ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- NULL
+      }
+    }
+  )
+
+  tryCatch(
+    {
+      ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
+      ZQ_cause_PM_blockwise[[meetingName]][["eigen"]] <- ZQ_causing_eigen
+    },
+    {
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin blockwise test", 
+          "\nPerforming:", 
+          "ZQ --> PM",
+          "eigen test",
+          "\nWhile processing:", meetingName,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
+
+        ZQ_cause_PM_blockwise[[meetingName]][["eigen"]] <- NULL
+      }
+    }
+  )
 
 }
 
 rm(
-  meetingName,
-  assetNames,
-  unique_assets,
-  unique_asset,
+  ECT_eigen,
+  ECT_trace,
   PM_assets,
-  ZQ_assets,
   PM_causing,
-  ZQ_causing,
-  hasBoth,
-  var_select,
-  lag_choice,
-  VAR_model,
-  testing_df,
   PM_filter,
-  ZQ_filter
+  VAR_model,
+  ZQ_assets,
+  ZQ_causing,
+  ZQ_filter,
+  assetNames,
+  hasBoth,
+  lag_choice,
+  meetingName,
+  testing_df,
+  unique_asset,
+  unique_assets,
+  var_select,
+  differenced_df
 )
 
-PM_cause_ZQ_pairwise
-ZQ_cause_PM_pairwise
-
-PM_cause_ZQ_blockwise
-ZQ_cause_PM_blockwise
-
-length(meetings$meetingMonth)
+# PM_cause_ZQ_bivariate
+# ZQ_cause_PM_bivariate
+# PM_cause_ZQ_blockwise
+# ZQ_cause_PM_blockwise
 
 
+# ------ Evaluate granger causality test ------
+# --- Blockwise ---
+# --- PM --> ZQ ---
+for (meetingName in meetingMonths) {
+  eigen_results <- PM_cause_ZQ_blockwise[[meetingName]]$eigen$Granger
+  trace_results <- PM_cause_ZQ_blockwise[[meetingName]]$trace$Granger
 
-filtered_timeseries$`2023-09`
+  eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
+  trace_rejects <- ifelse(trace_results$p.value < 0.05, "rejects", "does not reject")
+
+  cat(
+    "\n\nMeeting", meetingName,
+    "\nEigen result:", eigen_rejects,
+    "\nwith p-value:", eigen_results$p.value,
+    "\nTrace result:", trace_rejects,
+    "\nwith p-value:", trace_results$p.value,
+    "\nThe two methods:", ifelse(eigen_rejects == trace_rejects, "AGREE", "DISAGREE"),
+    "\n"
+  )
+}
+
+# TODO: Check if these run fine, add more print statements in running code beginning-to-end
+
+# --- ZQ --> PM ---
+for (meetingName in meetingMonths) {
+  eigen_results <- ZQ_cause_PM_blockwise[[meetingName]]$eigen$Granger
+  trace_results <- ZQ_cause_PM_blockwise[[meetingName]]$trace$Granger
+
+  eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
+  trace_rejects <- ifelse(trace_results$p.value < 0.05, "rejects", "does not reject")
+
+  cat(
+    "\n\nMeeting", meetingName,
+    "\nEigen result:", eigen_rejects,
+    "\nwith p-value:", eigen_results$p.value,
+    "\nTrace result:", trace_rejects,
+    "\nwith p-value:", trace_results$p.value,
+    "\nThe two methods:", ifelse(eigen_rejects == trace_rejects, "AGREE", "DISAGREE"),
+    "\n"
+  )
+}
+
+
+# --- Bivariate ---
+# --- PM --> ZQ ---
+for (meetingName in meetingMonths) {
+  assetNames <- names(PM_cause_ZQ_bivariate)
+
+  cat("\n\nMeeting:", meetingName)
+
+  for (unique_asset in assetNames) {
+    eigen_results <- PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]]$eigen$Granger
+    trace_results <- PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]]$trace$Granger
+    eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
+    trace_rejects <- ifelse(trace_results$p.value < 0.05, "rejects", "does not reject")
+    cat(
+      "\nasset:", unique_asset,
+      "\nEigen result:", eigen_rejects,
+      "\nwith p-value:", eigen_results$p.value,
+      "\nTrace result:", trace_rejects,
+      "\nwith p-value:", trace_results$p.value,
+      "\nThe two methods:", ifelse(eigen_rejects == trace_rejects, "AGREE", "DISAGREE"),
+      "\n\n"
+    )
+  }
+}
+
+# --- ZQ --> PM ---
+for (meetingName in meetingMonths) {
+  assetNames <- names(PM_cause_ZQ_bivariate)
+
+  cat("\n\nMeeting:", meetingName)
+
+  for (unique_asset in assetNames) {
+    eigen_results <- ZQ_cause_PM_bivariate[[meetingName]]$eigen$Granger
+    trace_results <- ZQ_cause_PM_bivariate[[meetingName]]$trace$Granger
+    eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
+    trace_rejects <- ifelse(trace_results$p.value < 0.05, "rejects", "does not reject")
+
+    cat(
+      "\nasset:", unique_asset,
+      "\nEigen result:", eigen_rejects,
+      "\nwith p-value:", eigen_results$p.value,
+      "\nTrace result:", trace_rejects,
+      "\nwith p-value:", trace_results$p.value,
+      "\nThe two methods:", ifelse(eigen_rejects == trace_rejects, "AGREE", "DISAGREE"),
+      "\n\n"
+    )
+  }
+}
