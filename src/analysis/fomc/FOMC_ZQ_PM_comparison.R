@@ -381,13 +381,14 @@ rm(i, PM_df)
 
 names(PM_data_scaled) <- names(PM_data_unscaled)
 
+meetingMonths <- meetings$meetingMonth
+
+
 save(
-  meetings,
-  tokens,
   PM_data_scaled,
   PM_data_unscaled,
-  ZQ_data,
   ZQ_Implied_Probs,
+  meetingMonths,
   file = "./FOMC_Granger_Causality.RData"
 )
 
