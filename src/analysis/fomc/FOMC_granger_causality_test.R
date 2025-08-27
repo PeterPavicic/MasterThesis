@@ -695,6 +695,8 @@ for (meetingName in meetingMonths) {
         bivariate_johansen_test[[meetingName]][[unique_asset]][["eigen"]] <- NULL
       }
     )
+
+    invisible(gc())
   }
 
   # blockwise granger test
@@ -719,14 +721,6 @@ for (meetingName in meetingMonths) {
   # try trace test
   tryCatch(
     {
-      cat(
-        "\nan error occured",
-        "\nin blockwise test",
-        "\nperforming:", "trace", "test",
-        "\nwhile processing:", meetingName,
-        "\nwith error message:", "\n",
-        e$message, "\n"
-      )
 
       # # to locate warnings
       # cat("\nRunning",
@@ -745,6 +739,16 @@ for (meetingName in meetingMonths) {
       block_johansen_test[[meetingName]][["trace"]] <- trace_test
     },
     error = function(e) {
+
+      cat(
+        "\nan error occured",
+        "\nin blockwise test",
+        "\nperforming:", "trace", "test",
+        "\nwhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
+
       block_johansen_test[[meetingName]][["trace"]] <- NULL
     }
   )
@@ -782,6 +786,7 @@ for (meetingName in meetingMonths) {
     }
   )
 
+  invisible(gc())
 }
 
 
@@ -937,6 +942,8 @@ for (meetingName in meetingMonths) {
       "NOT including linear ecdet",
       "\n"
     )
+
+    invisible(gc()) 
   }
 
   # blockwise granger test
@@ -1005,6 +1012,8 @@ for (meetingName in meetingMonths) {
     "NOT including linear ecdet",
     "\n"
   )
+
+  invisible(gc())
 }
 
 
@@ -1095,22 +1104,20 @@ for (meetingName in meetingMonths) {
         PM_causing_trace <- causality(VAR_model_trace, cause = PM_asset_name)
         PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- PM_causing_trace
       },
-      {
-        error = function(e) {
-          cat(
-            "\nAn error occured",
-            "\nin bivariate test", 
-            "\nPerforming:", 
-            "PM --> ZQ",
-            "trace test",
-            "\nWhile processing:", meetingName,
-            "\nasset:", unique_asset,
-            "\nwith error message:", "\n",
-            e$message, "\n"
-          )
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin bivariate test", 
+          "\nPerforming:", 
+          "PM --> ZQ",
+          "trace test",
+          "\nWhile processing:", meetingName,
+          "\nasset:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
 
-          PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
-        }
+        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
       }
     )
 
@@ -1120,22 +1127,20 @@ for (meetingName in meetingMonths) {
         PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_asset_name)
         PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- PM_causing_eigen
       },
-      {
-        error = function(e) {
-          cat(
-            "\nAn error occured",
-            "\nin bivariate test", 
-            "\nPerforming:", 
-            "PM --> ZQ",
-            "eigen test",
-            "\nWhile processing:", meetingName,
-            "\nasset:", unique_asset,
-            "\nwith error message:", "\n",
-            e$message, "\n"
-          )
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin bivariate test", 
+          "\nPerforming:", 
+          "PM --> ZQ",
+          "eigen test",
+          "\nWhile processing:", meetingName,
+          "\nasset:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
 
-          PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
-        }
+        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
       }
     )
 
@@ -1145,22 +1150,20 @@ for (meetingName in meetingMonths) {
         ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_asset_name)
         ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- ZQ_causing_trace
       },
-      {
-        error = function(e) {
-          cat(
-            "\nAn error occured",
-            "\nin bivariate test", 
-            "\nPerforming:", 
-            "ZQ --> PM",
-            "trace test",
-            "\nWhile processing:", meetingName,
-            "\nasset:", unique_asset,
-            "\nwith error message:", "\n",
-            e$message, "\n"
-          )
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin bivariate test", 
+          "\nPerforming:", 
+          "ZQ --> PM",
+          "trace test",
+          "\nWhile processing:", meetingName,
+          "\nasset:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
 
-          ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
-        }
+        ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
       }
     )
 
@@ -1170,25 +1173,24 @@ for (meetingName in meetingMonths) {
         ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_asset_name)
         ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- ZQ_causing_eigen
       },
-      {
-        error = function(e) {
-          cat(
-            "\nAn error occured",
-            "\nin bivariate test", 
-            "\nPerforming:", 
-            "ZQ --> PM",
-            "eigen test",
-            "\nWhile processing:", meetingName,
-            "\nasset:", unique_asset,
-            "\nwith error message:", "\n",
-            e$message, "\n"
-          )
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin bivariate test", 
+          "\nPerforming:", 
+          "ZQ --> PM",
+          "eigen test",
+          "\nWhile processing:", meetingName,
+          "\nasset:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
 
-          ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
-        }
+        ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
       }
     )
 
+   invisible(gc()) 
   }
 
 
@@ -1224,21 +1226,19 @@ for (meetingName in meetingMonths) {
       PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
       PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- PM_causing_trace
     },
-    {
-      error = function(e) {
-        cat(
-          "\nAn error occured",
-          "\nin blockwise test", 
-          "\nPerforming:", 
-          "PM --> ZQ",
-          "trace test",
-          "\nWhile processing:", meetingName,
-          "\nwith error message:", "\n",
-          e$message, "\n"
-        )
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        "PM --> ZQ",
+        "trace test",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
 
-        PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- NULL
-      }
+      PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- NULL
     }
   )
 
@@ -1247,21 +1247,19 @@ for (meetingName in meetingMonths) {
       PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
       PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- PM_causing_eigen
     },
-    {
-      error = function(e) {
-        cat(
-          "\nAn error occured",
-          "\nin blockwise test", 
-          "\nPerforming:", 
-          "PM --> ZQ",
-          "eigen test",
-          "\nWhile processing:", meetingName,
-          "\nwith error message:", "\n",
-          e$message, "\n"
-        )
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        "PM --> ZQ",
+        "eigen test",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
 
-        PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- NULL
-      }
+      PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- NULL
     }
   )
 
@@ -1270,21 +1268,19 @@ for (meetingName in meetingMonths) {
       ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
       ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- ZQ_causing_trace
     },
-    {
-      error = function(e) {
-        cat(
-          "\nAn error occured",
-          "\nin blockwise test", 
-          "\nPerforming:", 
-          "ZQ --> PM",
-          "trace test",
-          "\nWhile processing:", meetingName,
-          "\nwith error message:", "\n",
-          e$message, "\n"
-        )
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        "ZQ --> PM",
+        "trace test",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
 
-        ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- NULL
-      }
+      ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- NULL
     }
   )
 
@@ -1293,24 +1289,23 @@ for (meetingName in meetingMonths) {
       ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
       ZQ_cause_PM_blockwise[[meetingName]][["eigen"]] <- ZQ_causing_eigen
     },
-    {
-      error = function(e) {
-        cat(
-          "\nAn error occured",
-          "\nin blockwise test", 
-          "\nPerforming:", 
-          "ZQ --> PM",
-          "eigen test",
-          "\nWhile processing:", meetingName,
-          "\nwith error message:", "\n",
-          e$message, "\n"
-        )
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        "ZQ --> PM",
+        "eigen test",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
 
         ZQ_cause_PM_blockwise[[meetingName]][["eigen"]] <- NULL
       }
-    }
   )
 
+  invisible(gc()) 
 }
 
 rm(
@@ -1338,6 +1333,7 @@ rm(
 # ZQ_cause_PM_bivariate
 # PM_cause_ZQ_blockwise
 # ZQ_cause_PM_blockwise
+
 
 
 # ------ Evaluate granger causality test ------
