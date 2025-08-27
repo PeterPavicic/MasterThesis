@@ -1362,6 +1362,7 @@ for (meetingName in meetingMonths) {
 }
 
 # TODO: Check if these run fine, add more print statements in running code beginning-to-end
+# TODO: Try addig garbage collection to see if code can run at 1 minute fidelity
 
 # --- ZQ --> PM ---
 for (meetingName in meetingMonths) {
