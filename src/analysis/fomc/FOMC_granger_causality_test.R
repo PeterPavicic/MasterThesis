@@ -1061,6 +1061,9 @@ for (meetingName in meetingMonths) {
 
 rm(meetingName, assetName, t_test_res, p_val_res)
 
+
+# TODO: Rewrite order such that only one VAR in memory at the same time
+
 # ------ Actual granger causality test ------
 PM_cause_ZQ_bivariate <- list()
 ZQ_cause_PM_bivariate <- list()
@@ -1098,6 +1101,9 @@ for (meetingName in meetingMonths) {
     VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
     VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
+
+    rm(hasBoth, testing_df, ECT_trace, ECT_eigen, lag_from_ECT, delta_Y, var_select, lag_choice)
+
     # PM --> ZQ, trace
     tryCatch(
       {
@@ -1120,6 +1126,9 @@ for (meetingName in meetingMonths) {
         PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
       }
     )
+
+    rm(PM_causing_trace)
+    invisible(gc()) 
 
     # PM --> ZQ, eigen
     tryCatch(
@@ -1144,6 +1153,9 @@ for (meetingName in meetingMonths) {
       }
     )
 
+    rm(PM_causing_eigen)
+    invisible(gc()) 
+
     # ZQ --> PM, trace
     tryCatch(
       {
@@ -1166,6 +1178,9 @@ for (meetingName in meetingMonths) {
         ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
       }
     )
+
+    rm(ZQ_causing_trace)
+    invisible(gc()) 
 
     # ZQ --> PM, eigen
     tryCatch(
@@ -1190,7 +1205,8 @@ for (meetingName in meetingMonths) {
       }
     )
 
-   invisible(gc()) 
+    rm(ZQ_causing_eigen)
+    invisible(gc()) 
   }
 
 
@@ -1221,6 +1237,8 @@ for (meetingName in meetingMonths) {
   VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
   VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
+  rm(PM_filter, ZQ_filter, noBaseCase_df, ECT_trace, ECT_eigen, lag_from_ECT, delta_Y, var_select, lag_choice)
+
   tryCatch(
     {
       PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
@@ -1241,6 +1259,9 @@ for (meetingName in meetingMonths) {
       PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- NULL
     }
   )
+
+  rm(PM_causing_trace)
+  invisible(gc())
 
   tryCatch(
     {
@@ -1263,6 +1284,9 @@ for (meetingName in meetingMonths) {
     }
   )
 
+  rm(PM_causing_eigen)
+  invisible(gc())
+
   tryCatch(
     {
       ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
@@ -1283,6 +1307,9 @@ for (meetingName in meetingMonths) {
       ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- NULL
     }
   )
+
+  rm(ZQ_causing_trace, VAR_model_trace)
+  invisible(gc())
 
   tryCatch(
     {
@@ -1305,6 +1332,7 @@ for (meetingName in meetingMonths) {
       }
   )
 
+  rm(ZQ_causing_eigen)
   invisible(gc()) 
 }
 
