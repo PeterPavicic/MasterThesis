@@ -1379,7 +1379,11 @@ rm(
 # PM_cause_ZQ_blockwise
 # ZQ_cause_PM_blockwise
 
-
+save(PM_cause_ZQ_bivariate,
+  ZQ_cause_PM_bivariate,
+  PM_cause_ZQ_blockwise,
+  ZQ_cause_PM_blockwise,
+  file = "./FOMC_granger_results_1_min.RData")
 
 # ------ Evaluate granger causality test ------
 # --- Blockwise ---
