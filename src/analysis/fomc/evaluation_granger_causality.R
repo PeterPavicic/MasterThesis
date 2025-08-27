@@ -5,7 +5,12 @@ library(knitr)
 load("FOMC_granger_results_1_min.RData")
 # load("FOMC_granger_results_5_min.RData")
 
+options(scipen = 9999)
 
+pi
+
+prettyNum
+sprintf("%.4f", as.numeric(0.00004938))
 
 # Initialise empty tables
 blockwise_PM_cause_ZQ_table_trace <- data.frame(
@@ -25,7 +30,7 @@ blockwise_PM_cause_ZQ_table_eigen <- data.frame(
 )
 
 blockwise_ZQ_cause_PM_table_trace <- data.frame(
-  f_stat = rep(NA, length(meetingMonths)),
+  F_stat = rep(NA, length(meetingMonths)),
   df1 = rep(NA, length(meetingMonths)),
   df2 = rep(NA, length(meetingMonths)),
   p_value = rep(NA, length(meetingMonths)),
@@ -49,6 +54,8 @@ rownames(blockwise_ZQ_cause_PM_table_eigen) <- meetingMonths
 get_significance_stars <- function(p_value) {
   if (p_value == "None") "None"
   else {
+    p_value <- as.numeric(p_value)
+
     stars <- ifelse(
       0.1 < p_value,
       " ",
@@ -102,6 +109,18 @@ for (meetingName in meetingMonths) {
   eigen_df2 <- drop(eigen_results$parameter[2])
   eigen_p_value <- drop(eigen_results$p.value)
   eigen_significance <- get_significance_stars(eigen_p_value)
+
+  if (trace_F_stat != "None") trace_F_stat <- sprintf("%.4f", as.numeric(trace_F_stat))
+  if (trace_df1 != "None") trace_df1 <- sprintf("%.4f", as.numeric(trace_df1))
+  if (trace_df2 != "None") trace_df2 <- sprintf("%.4f", as.numeric(trace_df2))
+  if (trace_p_value != "None") trace_p_value <- sprintf("%.4f", as.numeric(trace_p_value))
+  if (trace_significance != "None") trace_significance <- get_significance_stars(trace_p_value)
+
+  if (eigen_F_stat != "None") eigen_F_stat <- sprintf("%.4f", as.numeric(eigen_F_stat))
+  if (eigen_df1 != "None") eigen_df1 <- sprintf("%.4f", as.numeric(eigen_df1))
+  if (eigen_df2 != "None") eigen_df2 <- sprintf("%.4f", as.numeric(eigen_df2))
+  if (eigen_p_value != "None") eigen_p_value <- sprintf("%.4f", as.numeric(eigen_p_value))
+  if (eigen_significance != "None") eigen_significance <- get_significance_stars(eigen_p_value)
 
   blockwise_PM_cause_ZQ_table_trace[meetingName, "F_stat"] <- trace_F_stat
   blockwise_PM_cause_ZQ_table_trace[meetingName, "df1"] <- trace_df1
@@ -157,11 +176,24 @@ for (meetingName in meetingMonths) {
   trace_p_value <- drop(trace_results$p.value)
   trace_significance <- get_significance_stars(trace_p_value)
 
+
   eigen_F_stat <- drop(eigen_results$statistic)
   eigen_df1 <- drop(eigen_results$parameter[1])
   eigen_df2 <- drop(eigen_results$parameter[2])
   eigen_p_value <- drop(eigen_results$p.value)
   eigen_significance <- get_significance_stars(eigen_p_value)
+
+  if (trace_F_stat != "None") trace_F_stat <- sprintf("%.4f", as.numeric(trace_F_stat))
+  if (trace_df1 != "None") trace_df1 <- sprintf("%.4f", as.numeric(trace_df1))
+  if (trace_df2 != "None") trace_df2 <- sprintf("%.4f", as.numeric(trace_df2))
+  if (trace_p_value != "None") trace_p_value <- sprintf("%.4f", as.numeric(trace_p_value))
+  if (trace_significance != "None") trace_significance <- get_significance_stars(trace_p_value)
+
+  if (eigen_F_stat != "None") eigen_F_stat <- sprintf("%.4f", as.numeric(eigen_F_stat))
+  if (eigen_df1 != "None") eigen_df1 <- sprintf("%.4f", as.numeric(eigen_df1))
+  if (eigen_df2 != "None") eigen_df2 <- sprintf("%.4f", as.numeric(eigen_df2))
+  if (eigen_p_value != "None") eigen_p_value <- sprintf("%.4f", as.numeric(eigen_p_value))
+  if (eigen_significance != "None") eigen_significance <- get_significance_stars(eigen_p_value)
 
   blockwise_ZQ_cause_PM_table_trace[meetingName, "F_stat"] <- trace_F_stat
   blockwise_ZQ_cause_PM_table_trace[meetingName, "df1"] <- trace_df1
@@ -191,11 +223,17 @@ for (meetingName in meetingMonths) {
 
 
 
-blockwise_PM_cause_ZQ_table_eigen
 blockwise_PM_cause_ZQ_table_trace
+blockwise_PM_cause_ZQ_table_eigen
+blockwise_ZQ_cause_PM_table_trace
+blockwise_ZQ_cause_PM_table_eigen
 
-kable(blockwise_PM_cause_ZQ_table_eigen, digits = 4)
-kable(blockwise_PM_cause_ZQ_table_trace, digits = 4)
+
+knitr::kable(blockwise_PM_cause_ZQ_table_eigen, format = "latex")
+knitr::kable(blockwise_PM_cause_ZQ_table_trace, format = "latex")
+
+knitr::kable(blockwise_ZQ_cause_PM_table_trace, format = "latex")
+knitr::kable(blockwise_ZQ_cause_PM_table_eigen, format = "latex")
 
 
 blockwise_ZQ_cause_PM_table_eigen
