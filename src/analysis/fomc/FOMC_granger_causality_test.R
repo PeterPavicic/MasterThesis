@@ -594,6 +594,7 @@ for (meetingName in meetingMonths) {
 # options(warn = 1)
 
 # ----- Johansen test (original timeseries) -----
+print("Performing Johansen test")
 bivariate_johansen_test <- list()
 block_johansen_test <- list()
 lag_choices_blockwise <- list()
@@ -620,7 +621,6 @@ for (meetingName in meetingMonths) {
     lag_choice <- var_select$selection["SC(n)"]
 
     lag_choices_bivariate[[meetingName]][[unique_asset]] <- lag_choice
-
 
     # try trace test
     tryCatch(
@@ -659,7 +659,6 @@ for (meetingName in meetingMonths) {
       }
     )
 
-
     # try eigen test
     tryCatch(
       {
@@ -696,6 +695,7 @@ for (meetingName in meetingMonths) {
       }
     )
 
+    rm(hasBoth, testing_df, var_select, lag_choice, trace_test, eigen_test)
     invisible(gc())
   }
 
@@ -786,8 +786,11 @@ for (meetingName in meetingMonths) {
     }
   )
 
+  rm(filtered_df, noBaseCase_df, var_select, lag_choice, trace_test, eigen_test)
   invisible(gc())
 }
+
+print("Finished performing Johansen test")
 
 
 rm(
@@ -865,12 +868,14 @@ calculate_ECT <- function(cajo_obj, r) {
 }
 
 
-
 # ----- Evaluating Johansen test (original timeseries) -----
-# also testing whether linear trend is allowed in deterministic term
-# If there is, redo Johansen procedure
+# Also testing whether linear trend should be included in deterministic term (H0: not included)
+# If H0 rejected, redo Johansen procedure
+# If H0 failed to be rejected, calculate ECT (error correction terms)
+
 ECT_bivariate <- list()
 ECT_blockwise <- list()
+print("Evaluating Johansen test")
 for (meetingName in meetingMonths) {
   bivariate_results <- bivariate_johansen_test[[meetingName]]
   block_results <- block_johansen_test[[meetingName]]
@@ -1015,12 +1020,10 @@ for (meetingName in meetingMonths) {
 
   invisible(gc())
 }
-
+print("Finished evaluating Johansen test")
 
 # Conclusion: not including linear ecdet anywhere
 
-
-is.null(cointegration_count_trace)
 
 rm(
   bivariate_results,
@@ -1062,8 +1065,13 @@ for (meetingName in meetingMonths) {
 rm(meetingName, assetName, t_test_res, p_val_res)
 
 
-# TODO: Rewrite order such that only one VAR in memory at the same time
+# TODO: Check if cases of errors/0 cointegration being handled correctly:
+# 1. Are errors in running below section handled correctly
+# 2. Are errors in Johansen procedure being handled correctly
+# (should be NULL ca.jo objects, 0 cointegration)
+# 3. Cases where cointegration rank is 0
 
+print("Performing Granger causality test")
 # ------ Actual granger causality test ------
 PM_cause_ZQ_bivariate <- list()
 ZQ_cause_PM_bivariate <- list()
@@ -1099,11 +1107,10 @@ for (meetingName in meetingMonths) {
     var_select <- VARselect(delta_Y, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
     VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
-    VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
+    rm(hasBoth, testing_df, ECT_trace, lag_from_ECT, var_select)
 
-    rm(hasBoth, testing_df, ECT_trace, ECT_eigen, lag_from_ECT, delta_Y, var_select, lag_choice)
-
+    # -- Trace methods --
     # PM --> ZQ, trace
     tryCatch(
       {
@@ -1126,35 +1133,8 @@ for (meetingName in meetingMonths) {
         PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
       }
     )
-
     rm(PM_causing_trace)
-    invisible(gc()) 
-
-    # PM --> ZQ, eigen
-    tryCatch(
-      {
-        PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_asset_name)
-        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- PM_causing_eigen
-      },
-      error = function(e) {
-        cat(
-          "\nAn error occured",
-          "\nin bivariate test", 
-          "\nPerforming:", 
-          "PM --> ZQ",
-          "eigen test",
-          "\nWhile processing:", meetingName,
-          "\nasset:", unique_asset,
-          "\nwith error message:", "\n",
-          e$message, "\n"
-        )
-
-        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
-      }
-    )
-
-    rm(PM_causing_eigen)
-    invisible(gc()) 
+    # invisible(gc()) 
 
     # ZQ --> PM, trace
     tryCatch(
@@ -1178,8 +1158,36 @@ for (meetingName in meetingMonths) {
         ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["trace"]] <- NULL
       }
     )
+    rm(ZQ_causing_trace, VAR_model_trace)
+    invisible(gc()) 
 
-    rm(ZQ_causing_trace)
+    # -- Eigen methods --
+    VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+    rm(delta_Y, lag_choice, ECT_eigen)
+
+    # PM --> ZQ, eigen
+    tryCatch(
+      {
+        PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_asset_name)
+        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- PM_causing_eigen
+      },
+      error = function(e) {
+        cat(
+          "\nAn error occured",
+          "\nin bivariate test", 
+          "\nPerforming:", 
+          "PM --> ZQ",
+          "eigen test",
+          "\nWhile processing:", meetingName,
+          "\nasset:", unique_asset,
+          "\nwith error message:", "\n",
+          e$message, "\n"
+        )
+
+        PM_cause_ZQ_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
+      }
+    )
+    rm(PM_causing_eigen)
     invisible(gc()) 
 
     # ZQ --> PM, eigen
@@ -1204,11 +1212,11 @@ for (meetingName in meetingMonths) {
         ZQ_cause_PM_bivariate[[meetingName]][[unique_asset]][["eigen"]] <- NULL
       }
     )
-
-    rm(ZQ_causing_eigen)
+    rm(ZQ_causing_eigen, VAR_model_eigen)
     invisible(gc()) 
   }
 
+  rm(unique_asset, unique_assets)
 
   # blockwise granger test
   PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
@@ -1216,6 +1224,8 @@ for (meetingName in meetingMonths) {
 
   PM_assets <- assetNames[PM_filter]
   ZQ_assets <- assetNames[ZQ_filter]
+
+  rm(PM_filter, ZQ_filter, assetNames)
 
   # excludes noChange
   noBaseCase_df <- differenced_df[, c(PM_assets, ZQ_assets)]
@@ -1231,14 +1241,17 @@ for (meetingName in meetingMonths) {
   # delta_Y: vector of variables and their timeseries
   delta_Y <- noBaseCase_df[lag_from_ECT:nrow(noBaseCase_df), ]
 
+  rm(noBaseCase_df)
+
   # var model
   var_select <- VARselect(delta_Y, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
   VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
-  VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
 
-  rm(PM_filter, ZQ_filter, noBaseCase_df, ECT_trace, ECT_eigen, lag_from_ECT, delta_Y, var_select, lag_choice)
+  rm(PM_filter, ZQ_filter, noBaseCase_df, ECT_trace, lag_from_ECT, var_select)
 
+  # -- Trace methods --
+  # PM --> ZQ, trace
   tryCatch(
     {
       PM_causing_trace <- causality(VAR_model_trace, cause = PM_assets)
@@ -1259,34 +1272,10 @@ for (meetingName in meetingMonths) {
       PM_cause_ZQ_blockwise[[meetingName]][["trace"]] <- NULL
     }
   )
-
   rm(PM_causing_trace)
-  invisible(gc())
+  # invisible(gc())
 
-  tryCatch(
-    {
-      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
-      PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- PM_causing_eigen
-    },
-    error = function(e) {
-      cat(
-        "\nAn error occured",
-        "\nin blockwise test", 
-        "\nPerforming:", 
-        "PM --> ZQ",
-        "eigen test",
-        "\nWhile processing:", meetingName,
-        "\nwith error message:", "\n",
-        e$message, "\n"
-      )
-
-      PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- NULL
-    }
-  )
-
-  rm(PM_causing_eigen)
-  invisible(gc())
-
+  # ZQ --> PM, trace
   tryCatch(
     {
       ZQ_causing_trace <- causality(VAR_model_trace, cause = ZQ_assets)
@@ -1307,10 +1296,38 @@ for (meetingName in meetingMonths) {
       ZQ_cause_PM_blockwise[[meetingName]][["trace"]] <- NULL
     }
   )
-
   rm(ZQ_causing_trace, VAR_model_trace)
   invisible(gc())
 
+  # -- Eigen methods --
+  VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+  rm(delta_Y, lag_choice, ECT_eigen)
+
+  # PM --> ZQ, eigen
+  tryCatch(
+    {
+      PM_causing_eigen <- causality(VAR_model_eigen, cause = PM_assets)
+      PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- PM_causing_eigen
+    },
+    error = function(e) {
+      cat(
+        "\nAn error occured",
+        "\nin blockwise test", 
+        "\nPerforming:", 
+        "PM --> ZQ",
+        "eigen test",
+        "\nWhile processing:", meetingName,
+        "\nwith error message:", "\n",
+        e$message, "\n"
+      )
+
+      PM_cause_ZQ_blockwise[[meetingName]][["eigen"]] <- NULL
+    }
+  )
+  rm(PM_causing_eigen)
+  # invisible(gc())
+
+  # ZQ --> PM, eigen
   tryCatch(
     {
       ZQ_causing_eigen <- causality(VAR_model_eigen, cause = ZQ_assets)
@@ -1331,10 +1348,10 @@ for (meetingName in meetingMonths) {
         ZQ_cause_PM_blockwise[[meetingName]][["eigen"]] <- NULL
       }
   )
-
-  rm(ZQ_causing_eigen)
-  invisible(gc()) 
+  rm(ZQ_causing_eigen, VAR_model_eigen)
+  invisible(gc())
 }
+print("Finished performing Granger causality test")
 
 rm(
   ECT_eigen,
