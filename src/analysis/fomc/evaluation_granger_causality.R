@@ -1,5 +1,75 @@
+if (!require(knitr)) install.packages("knitr")
+
+library(knitr)
+
 load("FOMC_granger_results_1_min.RData")
 # load("FOMC_granger_results_5_min.RData")
+
+
+
+# Initialise empty tables
+blockwise_PM_cause_ZQ_table_trace <- data.frame(
+  F_stat = rep(NA, length(meetingMonths)),
+  df1 = rep(NA, length(meetingMonths)),
+  df2 = rep(NA, length(meetingMonths)),
+  p_value = rep(NA, length(meetingMonths)),
+  significance = rep(NA, length(meetingMonths))
+)
+
+blockwise_PM_cause_ZQ_table_eigen <- data.frame(
+  F_stat = rep(NA, length(meetingMonths)),
+  df1 = rep(NA, length(meetingMonths)),
+  df2 = rep(NA, length(meetingMonths)),
+  p_value = rep(NA, length(meetingMonths)),
+  significance = rep(NA, length(meetingMonths))
+)
+
+blockwise_ZQ_cause_PM_table_trace <- data.frame(
+  f_stat = rep(NA, length(meetingMonths)),
+  df1 = rep(NA, length(meetingMonths)),
+  df2 = rep(NA, length(meetingMonths)),
+  p_value = rep(NA, length(meetingMonths)),
+  significance = rep(NA, length(meetingMonths))
+)
+
+blockwise_ZQ_cause_PM_table_eigen <- data.frame(
+  F_stat = rep(NA, length(meetingMonths)),
+  df1 = rep(NA, length(meetingMonths)),
+  df2 = rep(NA, length(meetingMonths)),
+  p_value = rep(NA, length(meetingMonths)),
+  significance = rep(NA, length(meetingMonths))
+)
+
+rownames(blockwise_PM_cause_ZQ_table_trace) <- meetingMonths
+rownames(blockwise_PM_cause_ZQ_table_eigen) <- meetingMonths
+rownames(blockwise_ZQ_cause_PM_table_trace) <- meetingMonths
+rownames(blockwise_ZQ_cause_PM_table_eigen) <- meetingMonths
+
+
+get_significance_stars <- function(p_value) {
+  if (p_value == "None") "None"
+  else {
+    stars <- ifelse(
+      0.1 < p_value,
+      " ",
+      ifelse(
+        0.05 < p_value,
+        ".",
+        ifelse(
+          0.01 < p_value,
+          "*",
+          ifelse(
+            0.001 < p_value,
+            "**",
+            "***"
+          )
+        )
+      )
+    )
+
+    stars
+  }
+}
 
 
 # ------ Evaluate granger causality test ------
@@ -8,9 +78,46 @@ load("FOMC_granger_results_1_min.RData")
 for (meetingName in meetingMonths) {
   eigen_results <- PM_cause_ZQ_blockwise[[meetingName]]$eigen$Granger
   trace_results <- PM_cause_ZQ_blockwise[[meetingName]]$trace$Granger
+  
+  if (is.null(eigen_results)) eigen_results <- list(
+    statistic = "None",
+    parameter = c("None", "None"),
+    p.value = "None"
+  )
 
-  eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
+  if (is.null(trace_results)) trace_results <- list(
+    statistic = "None",
+    parameter = c("None", "None"),
+    p.value = "None"
+  )
+
+  trace_F_stat <- drop(trace_results$statistic)
+  trace_df1 <- drop(trace_results$parameter[1])
+  trace_df2 <- drop(trace_results$parameter[2])
+  trace_p_value <- drop(trace_results$p.value)
+  trace_significance <- get_significance_stars(trace_p_value)
+
+  eigen_F_stat <- drop(eigen_results$statistic)
+  eigen_df1 <- drop(eigen_results$parameter[1])
+  eigen_df2 <- drop(eigen_results$parameter[2])
+  eigen_p_value <- drop(eigen_results$p.value)
+  eigen_significance <- get_significance_stars(eigen_p_value)
+
+  blockwise_PM_cause_ZQ_table_trace[meetingName, "F_stat"] <- trace_F_stat
+  blockwise_PM_cause_ZQ_table_trace[meetingName, "df1"] <- trace_df1
+  blockwise_PM_cause_ZQ_table_trace[meetingName, "df2"] <- trace_df2
+  blockwise_PM_cause_ZQ_table_trace[meetingName, "p_value"] <- trace_p_value
+  blockwise_PM_cause_ZQ_table_trace[meetingName, "significance"] <- trace_significance
+
+  blockwise_PM_cause_ZQ_table_eigen[meetingName, "F_stat"] <- eigen_F_stat
+  blockwise_PM_cause_ZQ_table_eigen[meetingName, "df1"] <- eigen_df1
+  blockwise_PM_cause_ZQ_table_eigen[meetingName, "df2"] <- eigen_df2
+  blockwise_PM_cause_ZQ_table_eigen[meetingName, "p_value"] <- eigen_p_value
+  blockwise_PM_cause_ZQ_table_eigen[meetingName, "significance"] <- eigen_significance
+
   trace_rejects <- ifelse(trace_results$p.value < 0.05, "rejects", "does not reject")
+  eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
+
 
   cat(
     "\n\nMeeting", meetingName,
@@ -31,6 +138,43 @@ for (meetingName in meetingMonths) {
   eigen_results <- ZQ_cause_PM_blockwise[[meetingName]]$eigen$Granger
   trace_results <- ZQ_cause_PM_blockwise[[meetingName]]$trace$Granger
 
+  
+  if (is.null(eigen_results)) eigen_results <- list(
+    statistic = "None",
+    parameter = c("None", "None"),
+    p.value = "None"
+  )
+
+  if (is.null(trace_results)) trace_results <- list(
+    statistic = "None",
+    parameter = c("None", "None"),
+    p.value = "None"
+  )
+
+  trace_F_stat <- drop(trace_results$statistic)
+  trace_df1 <- drop(trace_results$parameter[1])
+  trace_df2 <- drop(trace_results$parameter[2])
+  trace_p_value <- drop(trace_results$p.value)
+  trace_significance <- get_significance_stars(trace_p_value)
+
+  eigen_F_stat <- drop(eigen_results$statistic)
+  eigen_df1 <- drop(eigen_results$parameter[1])
+  eigen_df2 <- drop(eigen_results$parameter[2])
+  eigen_p_value <- drop(eigen_results$p.value)
+  eigen_significance <- get_significance_stars(eigen_p_value)
+
+  blockwise_ZQ_cause_PM_table_trace[meetingName, "F_stat"] <- trace_F_stat
+  blockwise_ZQ_cause_PM_table_trace[meetingName, "df1"] <- trace_df1
+  blockwise_ZQ_cause_PM_table_trace[meetingName, "df2"] <- trace_df2
+  blockwise_ZQ_cause_PM_table_trace[meetingName, "p_value"] <- trace_p_value
+  blockwise_ZQ_cause_PM_table_trace[meetingName, "significance"] <- trace_significance
+                                   
+  blockwise_ZQ_cause_PM_table_eigen[meetingName, "F_stat"] <- eigen_F_stat
+  blockwise_ZQ_cause_PM_table_eigen[meetingName, "df1"] <- trace_df1
+  blockwise_ZQ_cause_PM_table_eigen[meetingName, "df2"] <- trace_df2
+  blockwise_ZQ_cause_PM_table_eigen[meetingName, "p_value"] <- eigen_p_value
+  blockwise_ZQ_cause_PM_table_eigen[meetingName, "significance"] <- eigen_significance
+
   eigen_rejects <- ifelse(eigen_results$p.value < 0.05, "rejects", "does not reject")
   trace_rejects <- ifelse(trace_results$p.value < 0.05, "rejects", "does not reject")
 
@@ -44,6 +188,19 @@ for (meetingName in meetingMonths) {
     "\n"
   )
 }
+
+
+
+blockwise_PM_cause_ZQ_table_eigen
+blockwise_PM_cause_ZQ_table_trace
+
+kable(blockwise_PM_cause_ZQ_table_eigen, digits = 4)
+kable(blockwise_PM_cause_ZQ_table_trace, digits = 4)
+
+
+blockwise_ZQ_cause_PM_table_eigen
+blockwise_ZQ_cause_PM_table_trace
+
 
 
 # --- Bivariate ---
@@ -70,6 +227,7 @@ for (meetingName in meetingMonths) {
   }
 }
 
+
 # --- ZQ --> PM ---
 for (meetingName in meetingMonths) {
   assetNames <- names(PM_cause_ZQ_bivariate)
@@ -93,3 +251,13 @@ for (meetingName in meetingMonths) {
     )
   }
 }
+
+rm(
+  eigen_rejects,
+  eigen_stars,
+  trace_stars,
+  eigen_results,
+  meetingName,
+  trace_rejects,
+  trace_results
+)
