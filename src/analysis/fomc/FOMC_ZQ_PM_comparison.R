@@ -529,7 +529,8 @@ for (meetingName in meetings$meetingMonth) {
   par(mfrow = c(1, 2), oma = c(0, 0, 3, 0))
 
 
-  plot(ZQ_timeIndexToPlot, ZQ_toPlot, type = 'l',
+  plot(
+    ZQ_timeIndexToPlot, ZQ_toPlot, type = 'l',
     main = paste("ZQ Minutes distance"),
     xlab = "time",
     yaxt = 'n'
@@ -539,7 +540,8 @@ for (meetingName in meetings$meetingMonth) {
     by = 2)
   axis(side = 2, at = ZQ_ticks, labels = round(exp(ZQ_ticks), 1))
 
-  plot(PM_timeIndexToPlot, PM_toPlot, type = 'l',
+  plot(
+    PM_timeIndexToPlot, PM_toPlot, type = 'l',
     main = paste("PM Minutes distance"),
     xlab = "time",
     yaxt = 'n'
@@ -614,8 +616,6 @@ rbind(
   summary(PM_minute_distances[[20]]),
   summary(PM_minute_distances[[21]])
 )
-
-
 
 
 # Set Monday as start of week

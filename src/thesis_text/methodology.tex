@@ -1,2 +1,229 @@
-\section{Metholodogy}
+\section{Methodology} \label{sec:methodology}
+
+This section develops the econometric framework used, that is examining whether prediction-market risk-neutral probabilities and futures-implied risk-neutral probabilities around Federal Open Market Committee (FOMC) decisions could be useful to predict one another.
+The notation and explanation of this section, unless indicated otherwise, follows \textcite{lutkepohl_new_2005} and \textcite{Verbeek_modern_2017}.
+The analysis proceeds for both the per-event and pooled datasets mentioned in Section \ref{sec:consolidated_data}.
+In the per-event dataset, for each FOMC event, a multivariate system is formed which contains between one and for outcome each for Polymarket and the 30-Day Federal Funds Rate futures (ZQ), aligned at one-minute frequency.
+Meanwhile the pooled dataset concatenates all event windows into a four-variable system (with the Polymarket and ZQ timeseries for the highest-probability decisions according to ZQ futures throughout the lifetime of the corresponding Polymarket event).
+
+\subsection{VAR and VECM} \label{sec:VAR_and_VECM}
+
+Let $Y_t\in\mathbb{R}^{K}$ denote observations at time $t$ within a given event window, partitioned by source as
+\begin{equation}
+Y_t
+=
+\begin{pmatrix}
+Y_t^{(PM)} \\
+Y_t^{(ZQ)}
+\end{pmatrix},\qquad
+Y_t^{(PM)}\in\mathbb{R}^{m}, \qquad Y_t^{(ZQ)}\in\mathbb{R}^{n}, \qquad K=m+n
+\end{equation}
+
+where $m\in{1,\dots,4}$ and $n\in{1,\dots,4}$ are the numbers of non-constant outcome series retained (after the filtering explained in Section \ref{sec:removing_constant}) from Polymarket (PM) and ZQ, respectively.
+Typical outcomes include up25, noChange, down25, and down50.
+
+For the pooled analysis, the system consists of $K=4$ with two Polymarket ($n = 2$) and two ZQ ($m = 2$) series.
+
+The general $\text{VAR}(p)$ representation for data in levels is
+
+\begin{equation} \label{eq:VAR}
+Y_t = A_1 Y_{t-1} + \cdots + A_p Y_{t-p} + \Phi D_t + u_t,\qquad
+u_t\sim WN(0,\Sigma_u)
+\end{equation}
+
+where $A_i\in\mathbb{R}^{K\times K}$ are autoregressive coefficient matrices, $D_t$ denotes deterministic terms, and $u_t$ are innovations with covariance $\Sigma_u$.
+When components of $Y_t$ are integrated and cointegrated, the equivalent VECM representation is
+
+\begin{equation} \label{eq:VECM}
+\Delta Y_t
+=
+\Pi Y_{t-1} + \sum_{i=1}^{p-1}\Gamma_i \Delta Y_{t-i} + \Phi^\ast D_t + u_t,\qquad
+\Pi=\alpha\beta', \qquad \mathrm{rank}(\Pi)=:r
+\end{equation}
+
+with $\beta\in\mathbb{R}^{K\times r}$ the cointegrating vectors, $\alpha\in\mathbb{R}^{K\times r}$ the adjustment coefficients, and $r$ the cointegration rank.
+
+The methodological sequence performed on the two datasets is as follows:
+
+\begin{enumerate}
+  \item Removal of constant series
+  \item Integration order estimation
+  \item VAR model selection (lag order, inclusion of deterministic terms)
+  \item * Cointegration rank determination by Johansen’s maximum eigenvalue method
+  \item * Estimation of error correction terms (ECTs) 
+  \item * Model reselection for VECM (lag order, deterministic terms)
+  \item * Construction of VECM
+  \item Granger causality testing in both directions
+  \item Instantaneous causality testing
+  \item Rolling-window Granger causality testing to determine the extent of Granger Causality in each direction
+  \item Robustness checks
+\end{enumerate}
+
+where the steps marked with * are left out for the pooled dataset. In this case, the Granger causality test is performed on the estimated VAR, while for the event-level dataset, it is performed on the VECM.
+
+\subsection{Removing Constant Series} \label{sec:removing_constant}
+
+Within some event windows, certain outcome series are exactly constant. Most commonly these are Polymarket outcomes in early markets which never trade and remain at zero, or (more common) ZQ-implied outcomes which remain flat throughout the event windows. Exactly constant series are removed before any testing. The reason is purely mathematical: the sample second-moment matrices that enter the reduced-rank eigenvalue problem must be non-singular. Including a constant column would result in singular matrices. This also makes sense economically, since constant series do not carry additional information, their removal has no effect on inference about the remaining variables.
+
+\subsection{Integration Order, Lag Order and Deterministic Terms}
+
+The order of integration determines whether inference proceeds in levels or differences and whether checking for cointegration is relevant.
+In each event-level system, ADF-tests show that retained series are overwhelmingly non-stationary in levels and stationary in first differences.
+This matches economic intuition: As the true outcome becomes more and more obvious, the timeseries for the realised outcome tend toward a probability of 1 and toward 0 for the rest.
+The differenced data, however, does not display such properties, making them once-integrated or $I(1)$.
+For reasons of simplicity and uniformity, all series in every event window of this type of data are treated as $I(1)$.
+$\Delta Y_t$ is stationary and a VECM is the appropriate vehicle for inference in this case. Since the levels are non-stationary, a check for cointegration is in order.
+For the pooled dataset, the concatenated timeseries are stationary in levels.
+In this case, the series are accordingly treated as $I(0)$ and a VAR is sufficient for modelling. Cointegration is not relevant in this case.
+ 
+Lag orders for all VAR and VECM models are chosen using the Schwarz Information Criterion (aka BIC).
+
+The inclusion of deterministic terms in relevant VAR and VECM models is determined gradually. First, a t-test is performed in each case to determine whether constant terms should be included at all. Second, a likelihood-ratio test is performed to determine whether a trend deterministic component is to be included in each model.
+% The description of this latter LR test is beyond the scope of this thesis.
+For the event-level systems, in the VAR and VECM on levels used in the Johansen procedure, a constant intercept is included, while for the fitted VECM on the differenced data, no intercept is used. In the pooled VAR, a level intercept is included and trends are excluded.
+
+\subsection{Johansen’s Procedure for Cointegration}
+
+Because all event-level series are treated as $I(1)$, cointegration testing is performed for this dataset.
+This follows the maximum-likelihood approach of
+\textcite{johansen_maximum_1990, johansen_estimation_1991}
+for Gaussian VARs, explained below.
+The idea is to transform the VAR estimated by this point (see the methodological sequence in Section \ref{sec:VAR_and_VECM}) into the equivalent VECM form, where the cointegration rank $r$ is tested. For the underlying mathematics of this step, see Equations \ref{eq:VAR} and \ref{eq:VECM}.
+
+Let $R_0$ be the residuals from regressing $\Delta Y_t$ on $\Delta Y_{t-1},\dots,\Delta Y_{t-p+1}$ and $D_t$, and $R_1$ the residuals from regressing $Y_{t-1}$ on the same set.
+The main idea is that in this case, the short-run lags and deterministic terms have been stripped out, and the long-term dynamics can be examined.
+Define the sample covariance matrices
+
+\begin{equation}
+S_{00}=T^{-1}R_0'R_0,\quad
+S_{11}=T^{-1}R_1'R_1,\quad
+S_{01}=T^{-1}R_0'R_1,\quad
+S_{10}=S_{01}'
+\end{equation}
+
+Cointegration rank testing then reduces to the eigenvalue problem
+
+\begin{equation}
+S_{10} S_{00}^{-1} S_{01} v = \lambda S_{11} v
+\end{equation}
+
+Where the ordered eigenvalues $\hat\lambda_1\ge\cdots\ge\hat\lambda_K\in[0,1)$ are obtained.
+
+The maximum-eigenvalue statistic $\Lambda_{\max}(r_0) = -T \ln(1-\hat\lambda_{r_0+1})$ is then used to test
+
+\begin{align}
+  H_0 &: \mathrm{rank}(\Pi)=r_0 \\
+  H_A &: \mathrm{rank}(\Pi)=r_0+1
+\end{align}
+
+% with a nonstandard asymptotic null distribution that depends on the deterministic specification.
+Sequential testing then proceeds from $r_0=0$ until the first non-rejection. Then the last rejecting cointegration rank $\hat{r}$ is obtained.
+Empirically, every event consistently indicates $\hat{r} \ge 1$, meaning cointegration is present for the data in every event window.
+
+The $\hat{r}$ largest eigenvalues' $\hat \lambda_1, \dots \hat{\lambda}_{\hat{r}}$ associated eigenvectors are then normalised to form $\hat\beta$.
+This lets the error-correction terms be defined:
+
+\begin{equation}
+ECT_t=\hat\beta'Y_t
+\end{equation}
+
+which are used in the VECM to control for long-run information when modelling in differences.
+
+\subsection{Event-level Data: VECM}
+
+With rank $\hat{r}$ and error correction terms determined, a VECM is used to model event-level data in first differences $\Delta Y_t$:
+
+\begin{equation}
+\Delta Y_t
+=
+\alpha ECT_{t-1}
++
+\sum_{i=1}^{p-1}\Gamma_i \Delta Y_{t-i}
+% +
+% \mu^\ast + u_t
+\end{equation}
+
+where $ECT_{t-1}=\hat\beta'Y_{t-1}$.
+The $\Gamma_i$ in this formula capture short-run lagged effects, which is the focus of studying in the Granger causality test.
+
+\subsection{Pooled Data: VAR}
+
+For the pooled dataset, stationarity in levels allows direct estimation of a $\text{VAR}(p)$:
+
+\begin{equation}
+Y_t
+=
+c+\sum_{i=1}^{p}\Phi_i Y_{t-i} + u_t
+\end{equation}
+
+There is no need for error correction as cointegration does not play a role.
+
+\subsection{Directional Granger Causality Testing}
+
+The null of directional blockwise Granger non-causality is tested in the VECM and VAR equations.
+
+For the event-level dataset, the short-run matrices $\Gamma_i$ can be partitioned into blocks: $\Gamma_i=\begin{pmatrix}\Gamma_{i,PP}&\Gamma_{i,PZ} \\ \Gamma_{i,ZP}&\Gamma_{i,ZZ}\end{pmatrix}$, where $\Gamma_{i,ZP}\in\mathbb{R}^{n\times m}$ relates lagged Polymarket differences to ZQ differences. The null that Polymarket does not Granger-cause ZQ in the short run is
+
+\begin{equation}
+H_0:\ \Gamma_{1,ZP}=\cdots=\Gamma_{p-1,ZP}=0
+\end{equation}
+
+jointly across all lags and equations. The null of the reverse direction is formulated analogously as $\Gamma_{i,PZ}=0$ for all $i$.
+In the pooled VAR, the same logic applies with the lag matrices $\Phi_i$.
+
+Rejection in both cases indicates that other than the information from the lagged values of the target block (and the error correction terms), the other block
+contains incremental information useful to forecasting the future values of the target block.
+
+\subsection{Instantaneous Causality}
+
+Mathematically, instantaneous causality is a statement about the innovation terms' covariance ($u$ in Equations \ref{eq:VECM} and \ref{eq:VAR}).
+
+Analogously to Granger causality testing, partition $\Sigma_u$ into blocks
+as $\Sigma_u=\begin{pmatrix}\Sigma_{PP}&\Sigma_{PZ} \\ \Sigma_{ZP}&\Sigma_{ZZ}\end{pmatrix}$.
+The null of no instantaneous cross-source causality is then
+
+\begin{equation}
+H_0:\ \Sigma_{PZ}=0\quad(\text{equivalently } \Sigma_{ZP}=0)
+\end{equation}
+
+
+which is tested jointly. In the multivariate setting this is a set of $mn$ covariances.
+Rejection here suggests that, even after controlling for lagged dynamics and error correction, there remains co-movement within the same one-minute interval, consistent with common shocks and simultaneous movement in both blocks.
+
+\subsection{Rolling-window Granger causality (“which lags which”)}
+
+To examine and compare the extent of Granger causality, a rolling-window Granger causality analysis is conducted on both the event-level and pooled datasets.
+A fixed window length of 1440 minutes (1 day) is slid across the relevant datasets.
+
+In each window, the model is re-estimated (VECM at the event level, VAR in the pooled case) with the same deterministic specification and lag order selection rules, and the two blockwise Granger causality tests (Polymarket $\longrightarrow$ ZQ and ZQ $\longrightarrow$ Polymarket) are performed.
+This produces a time series of test statistics for each direction. For the purposes of this thesis, only the share of windows in which each null is rejected is examined.
+
+\subsection{Robustness Checks}
+
+Two main robustness checks are performed to analyse whether calendar effects or high-frequency artifacts could drive the main results. Both robustness exercises repeat the full empirical empirical process from data-alignment to blockwise Granger causality testing, just as in the main analysis.
+
+The first exercise targets a potential \enquote{weekend effect}. Classic evidence for the traditional equity market, such as in 
+\textcite{french_stock_1980}
+shows that Monday’s return distribution empirically differs from other trading days, with negative average Monday returns over long samples.
+In his paper, the author documents this for S\&P composite returns for the timeperiod between 1953-1977 and interprets it as a weekend-specific pattern rather than a generic \enquote{market closed} effect.
+
+Following this idea, the minute-level dataset is rebuilt by excluding all Monday observations in addition to the removal of Saturdays and Sundays.
+The objective is to rule out the possibility that Monday-specific return data, in particular for the ZQ dataset,
+might influence lead-lag patterns between Polymarket and ZQ.
+Exclusion of Monday data is applied uniformly to both sources before unificiation, and remaining Tuesday-Friday data is untouched within each event window and in the pooled dataset.
+The entire methodology is then re-run on the Monday-filtered sample.
+
+The second robustness check addresses frequency sensitivity. Instead of 1-minute fidelity, all timeseries are reaggregated to five-minute bars and the analysis is repeated.
+The idea is that this reduces potential microstructure noise that can occur at the one-minute horizon from singular trades,
+while also lowering the number of observations per event.
+
+As an additional robustness diagnostic, all main results and both robustness checks are also re-estimated using Johansen’s trace statistic instead of the maximum eigenvalue method.
+Here the null and alternative hypothesis differ slightly, with: $H_0:\mathrm{rank}(\Pi)\le r_0$ and $H_1:\mathrm{rank}(\Pi)>r_0$.
+The new trace statistic is then calculated as:
+
+\begin{equation}
+  \Lambda_{\mathrm{trace}}(r_0) = -T \sum_{i=r_0+1}^{K} \ln\bigl(1-\hat\lambda_i\bigr).
+\end{equation}
+
+and the same \enquote{incremental} testing is performed until the cointegration rank $\hat{r}$ is estimated.
 

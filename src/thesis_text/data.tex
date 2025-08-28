@@ -1,1 +1,71 @@
 \section{Data}
+
+This section documents the collection and preparation of the data used in the empirical analysis. This consists of two datasets: transaction-level data from Polymarket for every FOMC event hosted before September 2025 and 30-Day Federal Funds Rate futures (ZQ) data at 1-minute fidelity. These are collected and transformed separately and are then pooled to a common intraday grid to construct aligned price-implied risk-neutral probability timeseries data before unit-root, cointegration and Granger causality testing. These latter procedures are described in Section \ref{sec:methodology}.
+
+\subsection{Polymarket}
+\label{sec:polymarket_data}
+
+\subsubsection{Data Collection}
+
+After trading orders are matched, as described in Section \ref{sec:ordermatching}, trades on Polymarket are recorded on the Polygon blockchain. Since reading raw blocks from a blockchain is rather cumbersome, Polymarket provides \enquote{subgraphs}, which are databases which continuously convert blockchain data into a queryable format. These subgraphs are hosted online by GoldSky, and makes various Polymarket data (users' positions, transactions, users' PnL, market data) available through a public API. This makes it possible to parse blockchain data using the highly abstract GraphQL language without handling low-level blockchain details. The main source for this section is the documentation at the API's link\footnote{\href{https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/0.0.1/gn}{https://api.goldsky.com/api/public/project\_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/}},
+as well as the source code\footnote{\url{https://github.com/Polymarket/polymarket-subgraph}}.
+
+Trade execution on Polymarket’s hybrid CLOB produces distinct on-chain events. All 3 types of order matches described in Section \ref{sec:ordermatching} emit an OrderFilled event. These events are queryable on the \enquote{OrderBook} subgraph. The analysis relies on data acquired from this subgraph since it records every executed trade with a timestamp and token identifier, which are sufficient to reconstruct price series at tick-by-tick frequency.
+
+A Python querying script is implemented to gather OrderFilled events from the \enquote{OrderBook} subgraph via queries written in GraphQL. The script constructs parameterised queries for each FOMC event's markets and each of their two outcome tokens (Yes/No). For every market, the query filters for fills where the outcome token traded is the relevant Yes or No token and requests results be ordered by ascending timestamp.
+At once only up to 1000 OrderFilled events can be fetched, therefore, pagination is implemented by injecting GraphQL variables \enquote{\$skipN} and \enquote{\$firstN} into the query text so that batches of 1000 rows can be fetched iteratively in an automated way. Each page’s raw JSON response is saved to disk to create a complete archive for offline processing.
+
+Since each query's results need to be organised such that they can be linked back to FOMC events and their respective markets,
+a list of relevant markets and tokens is created by accessing market metadata from the Gamma Markets API. The Gamma API is hosted by Polymarket, which organises metadata, such as titles and identifiers for events and markets, internal data, such as event descriptions, icons, as well as metrics of volume, competitiveness, and liquidity, and other information not relevant in the scope of the thesis.
+
+For this, FOMC event identifiers (IDs, known internally as \enquote{slugs}) are collected manually. Metadata (market titles and the ERC-1155 token IDs that identify the Yes and No assets) are then obtained via the Gamma API and used to bind token IDs to human-readable asset names. A table built for this purpose maps each token ID to its human-readable asset name, the event ID, and the human-readable event title.
+
+
+\subsubsection{Data Cleaning and Processing}
+Batches of JSON files with 1000 entries each are converted into combined per-token csv files. These are read and re-aggregated at the market-level and event-level.
+For each FOMC event, trades are sorted chronologically and grouped by market (a pair of Yes-No tokens).
+
+Recorded transactions involving \enquote{No} assets are converted into equivalent trades in the \enquote{Yes} token, to ensure the highest level of fidelity. Duplicate entries (such as in the case of order fills which result from minting new tokens) are removed.
+Since each record contains prices and timestamps for a single trade in a single asset, these are converted into timeseries data, where each observation reflects the last-traded prices in each asset.
+
+The result is a per-event timeseries data with recorded time and the most recent Yes asset's (or converted No asset’s) price measured in dollars. These prices are economically interpreted as risk-neutral probabilities for the given interest rate decision realising at the underlying FOMC meeting.
+
+An interesting feature of the dataset is that, price-implied probabilities of all assets for a given event often exceed 1.
+It can be argued that this happens due to the absence of short-selling, which would incentivise traders to pursue arbitrage trading by selling at market prices and buying the winning outcome back after the FOMC meeting happens, before the market closes.
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[width=0.80\textwidth]{../../outputs/fomc/plots/granger_causality/trades_excluded_PM.png}
+  \end{center}
+  \caption{Proportion of observations removed from each Polymarket event dataset after data cleaning steps}
+  \label{fig:trades_excluded}
+\end{figure}
+
+The futures market is closed on weekends whereas Polymarket trading occurs around the clock, including weekends. To make the sources comparable, weekend observations are removed from the Polymarket timeseries. 
+Since some early minutes in the examined events exhibit very little trading and low sums of asset prices, all observations where the sum of outcome prices falls below a threshold of \$0.2 are additionally discarded.
+This only happens at the beginning of datasets and is done to prevent its influence on the results of the Granger causality tests.
+
+Figure \ref{fig:trades_excluded} shows the proportion of observations excluded after these steps compared to before they are performed. While these steps in some cases reduce the number of observations greatly, the desired statistical tests are not economically interpretable without doing so.
+
+% \subsubsection{Intraday grid and asset selection}
+\subsection{30-Day Federal Funds Futures (ZQ)}
+
+Intraday ZQ historical prices are retrieved from TradingView and Barchart.
+TradingView provide sufficient minute-level data up until September 2024, however, from then onwards until September 2025, early futures data is missing.
+Data from Barchart is therefore used for these markets, and the data available from TradingView is used to check for data completeness and integrity.
+The two sources are manually converted into uniform format with timestamps in New York time and respective closing prices.
+
+The methodology for extracting risk-neutral probabilities from prices of ZQ futures follows Section \ref{sec:fedwatch_method}.
+In the implementation, the contracts relevant for each meeting are first joined into a single table. For each meeting month, start-of-month or end-of-month implied rates are computed as needed. Potential interest rate decisions and their risk-neutral probabilities are calculated for the same set of discrete outcomes used on Polymarket (e.g. up25, noChange, down25).
+
+The resulting dataset contains a table each for the 21 FOMC decisions observed. Each of the tables contains a timeseries of risk-neutral probabilities at tick-by-tick frequency (of the ZQ futures data) on weekdays. Since these are price-implied risk-neutral probabilites, their sum always adds up to 1.
+
+\subsection{Consolidated Data} \label{sec:consolidated_data}
+
+To align data from both sources, a common one-minute timegrid (excluding weekends) is created per observed meeting. The start and end of each grid are set to the timespan of the Polymarket data. Data from both Polymarket and ZQ sources are merged into these datasets in the following way:
+Raw timestamps from each dataset are rounded up to the next full minute. Where multiple observations are present, the last ones are kept. Remaining gaps are filled using last-observation-carried-forward so that every minute contains a probability for each asset from both sources. 
+Every one of the event-level datasets' timeseries is shown in Appendix \ref{appendix:all_timeseries}.
+
+Additionally, a pooled dataset is constructed. This is done by choosing the two decisions for each meeting, which have the highest mean implied probability in the ZQ data over the merged data for that meeting. The data is then pooled by rolling continuously over each dataset, always considering the data for the nearest meeting.
+
+

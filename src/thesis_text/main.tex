@@ -1,60 +1,87 @@
+% FIX: Citations
 
-% General notes 
-
-% 2023-06: last observation at time of meeting
-% [1] "2023-06"
-% Meeting time 2023-06-14 14:00:00 
-% Last observation in PM_df:  2023-06-14 14:00:16 
-% Last observation in ZQ_IP_df:  2023-06-14 14:00:00 
-
-
-% 2023-11 no data after meeting (PM had no further trades)
-% [1] "2023-11"
-% Meeting time 2023-11-01 14:00:00 
-% Last observation in PM_df:  2023-10-31 12:06:41 
-% Last observation in ZQ_IP_df:  2023-10-31 12:06:00 
-
-% business largely normal elsewhere
-
+% Imports
 \documentclass[a4paper,11pt]{article}
-\usepackage[left=3cm,right=2.5cm,top=3cm,bottom=3cm]{geometry}
+\usepackage[left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[ngerman,english]{babel}
-\usepackage{setspace}
-\usepackage{titling}
-\usepackage{parskip}
-\usepackage{helvet}
 \usepackage{amsmath}
-\usepackage{svg}
-\renewcommand{\familydefault}{\sfdefault} % Use sans-serif
+\usepackage{amsfonts}
+\usepackage{booktabs}
+% \usepackage{bookmark}
+\usepackage{float}
 \usepackage{graphicx}
+\usepackage{helvet}
+\usepackage{hyperref}
+\usepackage{relsize}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{svg}
+\usepackage{tabularray}
+\usepackage{titling}
+% \usepackage{pdflscape}
+\usepackage{csquotes}
 \usepackage{xcolor}
+\usepackage{caption}
+\usepackage{extarrows}
+\usepackage[section]{placeins}  % inserts \FloatBarrier at every \section
+\hypersetup{
+    breaklinks=true,
+    citecolor=black,
+    colorlinks,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+\usepackage{codehigh}
+\usepackage[normalem]{ulem}
+\newcommand{\tinytableTabularrayUnderline}[1]{\underline{#1}}
+\newcommand{\tinytableTabularrayStrikeout}[1]{\sout{#1}}
+\NewTableCommand{\tinytableDefineColor}[3]{\definecolor{#1}{#2}{
+#3}}
+\UseTblrLibrary{booktabs}
+\UseTblrLibrary{siunitx}
 
-\setlength{\droptitle}{-5em}
-\onehalfspacing
-
+\usepackage[style=apa, backend=biber]{biblatex}
+\addbibresource{literature.bib}
 
 \begin{document}
 
+% finalised
 \include{cover_page}
 
-
 \tableofcontents
+\newpage
 \listoffigures
 
+% finalised
+\include{abstract}
+
+% finalised
 \include{introduction}
 
+% finalised
 \include{theoretical_framework}
 
+% finalised
 \include{data}
 
+% finalised
 \include{methodology}
 
+% finalised
 \include{results}
 
+% finalised
 \include{discussion}
 
+% finalised
 \include{conclusion}
 
+% finalised
+\include{bibliography}
+
+% finalised
+\include{appendix}
 
 \end{document}

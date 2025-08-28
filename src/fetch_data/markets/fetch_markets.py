@@ -155,8 +155,8 @@ def simplifyEvents(event_file_paths: str | Path | list[str] | list[Path]) -> dic
         return resultDicts[0]
 
 
-
-# TODO: Finish writing this
+# WARNING: Unfinished
+# Finish writing this
 def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], output_dir: str | Path) -> None:
     """
     Downloads full userActivity informations from Polymarket's Gamma API
@@ -209,7 +209,8 @@ def fetch_user_Activity(activityQuery: dict[str, Any] | list[dict[str, Any]], ou
     print(f"Saved all queries to {output_dir}")
 
 
-# TODO: implement filtering for 2022 data
+# WARNING: Unfinished
+# implement filtering for 2022 data
 def generate_token_table() -> None:
     """
     ourse_dir: dir containing json file paths for raw data

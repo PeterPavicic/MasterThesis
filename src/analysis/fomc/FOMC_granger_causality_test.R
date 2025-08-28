@@ -1,3 +1,4 @@
+# ------ IMPORTING LIBRARIES & DATA ------
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(lubridate)) install.packages("lubridate")
 if (!require(tibble)) install.packages("tibble")
@@ -23,11 +24,6 @@ ROOT_DIR <- dirname(dirname(dirname(getwd())))
 load("./FOMC_Granger_Causality.RData")
 
 
-# NOTE: We filter timeseries to skip weekends (due to ZQ unavailability) ==> assumption of no weekend effect since lags are worth the same as between workdays
-# NOTE: Using unscaled Polymarket data ==> probabilities almost never add up to 1
-# Logic for using this is that these are (price-implied risk-neutral) probabilities that two traders have agreed on -- if we used midpoints, that would avoid people actually agreeing on probabilities; as a matter of fact the (width of) the spread shows how much people *disagree* on probabilities.
-
-
 # ------ Remove weekends ------
 PM_data_unscaled_no_weekend <- list()
 PM_data_scaled_no_weekend <- list()
@@ -37,6 +33,7 @@ for (meetingName in meetingMonths) {
       day_of_week = weekdays(time)
     ) |>
     filter(
+      # !(day_of_week %in% c("Saturday", "Sunday", "Monday"))
       !(day_of_week %in% c("Saturday", "Sunday"))
     ) |>
     dplyr::select(
@@ -48,6 +45,7 @@ for (meetingName in meetingMonths) {
       day_of_week = weekdays(time)
     ) |>
     filter(
+      # !(day_of_week %in% c("Saturday", "Sunday", "Monday"))
       !(day_of_week %in% c("Saturday", "Sunday"))
     ) |>
     dplyr::select(
@@ -65,16 +63,16 @@ trades_num_with_weekend <- sapply(PM_data_unscaled, nrow)
 trades_num_without_weekend <- sapply(PM_data_unscaled_no_weekend, nrow)
 
 
-png(
-  filename = file.path(ROOT_DIR,
-    "outputs/fomc/plots/granger_causality/number_of_trades.png"
-  ),
-  width = 800,
-  height = 600,
-  res = 100,
-  type = "cairo-png",
-  antialias = "subpixel"
-)
+# png(
+#   filename = file.path(ROOT_DIR,
+#     "outputs/fomc/plots/granger_causality/number_of_trades.png"
+#   ),
+#   width = 800,
+#   height = 600,
+#   res = 100,
+#   type = "cairo-png",
+#   antialias = "subpixel"
+# )
 
 # FIX: Fix this
 plot(trades_num_with_weekend, type = 'l',
@@ -88,7 +86,8 @@ plot(trades_num_with_weekend, type = 'l',
 )
 
 
-lines(trades_num_without_weekend, type = 'l',
+lines(
+  trades_num_without_weekend, type = 'l',
   main = "Number of trades",
   ylab = "# trades",
   xlab = "market",
@@ -105,27 +104,29 @@ dev.off()
 # (trades_num_with_weekend - trades_num_without_weekend) / trades_num_with_weekend
 
 
-png(
-  filename = file.path(ROOT_DIR,
-    "outputs/fomc/plots/granger_causality/trades_excluded_PM.png"
-  ),
-  width = 800,
-  height = 600,
-  res = 100,
-  type = "cairo-png",
-  antialias = "subpixel"
-)
+# png(
+#   filename = file.path(ROOT_DIR,
+#     "outputs/fomc/plots/granger_causality/trades_excluded_PM.png"
+#   ),
+#   width = 800,
+#   height = 600,
+#   res = 100,
+#   type = "cairo-png",
+#   antialias = "subpixel"
+# )
 
 PM_excluded_proportions <- (trades_num_with_weekend - trades_num_without_weekend) / trades_num_with_weekend
 
 bp <- barplot(PM_excluded_proportions, ylim = c(0, max(PM_excluded_proportions + 0.1)), main = "Proportion of trades excluded")
 
-text(x = bp,
-     y = PM_excluded_proportions,
-     labels = paste0(round(100 * PM_excluded_proportions), '%'),
-     pos = 3,
-     cex = 0.9,
-     col = "black")
+text(
+  x = bp,
+  y = PM_excluded_proportions,
+  labels = paste0(round(100 * PM_excluded_proportions), '%'),
+  pos = 3,
+  cex = 0.9,
+  col = "black"
+)
 
 
 dev.off()
@@ -134,6 +135,7 @@ dev.off()
 rm(bp, PM_excluded_proportions, PM_data_unscaled, trades_num_with_weekend)
 
 PM_whichLatestZero <- c()
+
 
 # ------- Checking which is the last 0 priced asset -------
 for (meetingName in meetingMonths) {
@@ -199,6 +201,7 @@ rm(PM_whichLatestBelowThresHold)
 #     ((PM_data_scaled_no_weekend$`2025-03`[-(16510:16515), ])$unscaled_sum) < 0.2
 #   )
 # )
+
 
 # ----- Removing observations below threshold -----
 # It is crucial for this to be executed atomically
@@ -306,8 +309,10 @@ for (meetingName in meetingMonths) {
 
 rm(PM_df, PM_range, ZQ_df, ZQ_range, meetingName)
 
+
+# ----- CREATING AND UNIFYING TO COMMON TIMEGRID -----
 # Creating common timegrid
-fidelity <- "5 minutes"
+fidelity <- "1 minutes"
 
 fidelity_count <- as.numeric(strsplit(fidelity, " ")[[1]][1])
 fidelity_unit <- strsplit(fidelity, " ")[[1]][2]
@@ -426,7 +431,6 @@ rm(
 )
 
 
-
 # ----- Removing constant timeseries -----
 filtered_timeseries <- list()
 for (meetingName in meetingMonths) {
@@ -442,6 +446,16 @@ for (meetingName in meetingMonths) {
   filtered_timeseries[[meetingName]] <- df_assets_only |>
     dplyr::select(names(hasOnlyZeroes)[!hasOnlyZeroes])
 }
+
+# Additional manual filtering to prevent error due to singular matrices
+filtered_timeseries[["2023-02"]] <- filtered_timeseries[["2023-02"]] |>
+  dplyr::select(-up25.ZQ)
+
+filtered_timeseries[["2025-07"]] <- filtered_timeseries[["2025-07"]] |>
+  dplyr::select(-up25.ZQ)
+
+# NOTE: I should check which columns included and which ones aren't included
+# based on if findings significant or not
 
 rm(
   timeseries_df,
@@ -556,10 +570,9 @@ rm(
 )
 
 
-
-# non_stationary_differenced_ts
-adf_test_results_differenced[["2024-12"]][["down50.ZQ"]]
-filtered_timeseries[["2024-12"]][["down50.ZQ"]]
+# # non_stationary_differenced_ts
+# adf_test_results_differenced[["2024-12"]][["down50.ZQ"]]
+# filtered_timeseries[["2024-12"]][["down50.ZQ"]]
 
 
 # adf_test_results_differenced
@@ -575,6 +588,7 @@ for (meetingName in meetingMonths) {
   cat("\nMeeting:", meetingName)
 
   for (assetName in colnames(filtered_df)) {
+    qqnorm(filtered_df[[assetName]])
     t_test_res <- t.test(filtered_df[[assetName]])
     p_val_res <- ifelse(t_test_res$p.value < 0.05, "reject mean == 0", "cannot reject mean == 0")
     cat(
@@ -592,6 +606,7 @@ for (meetingName in meetingMonths) {
 
 # # to locate warnings
 # options(warn = 1)
+
 
 # ----- Johansen test (original timeseries) -----
 print("Performing Johansen test")
@@ -828,6 +843,7 @@ rm(
 # bivariate_johansen_test
 # block_johansen_test
 
+
 count_cointegrating_rels <- function(jotest, alpha = 0.05) {
   # HACK: This should do something else or be checked for elsewhere
   if (is.null(jotest)) return(0)
@@ -867,6 +883,7 @@ calculate_ECT <- function(cajo_obj, r) {
   ECT
 }
 
+causality
 
 # ----- Evaluating Johansen test (original timeseries) -----
 # Also testing whether linear trend should be included in deterministic term (H0: not included)
@@ -1065,11 +1082,13 @@ for (meetingName in meetingMonths) {
 rm(meetingName, assetName, t_test_res, p_val_res)
 
 
-# TODO: Check if cases of errors/0 cointegration being handled correctly:
-# 1. Are errors in running below section handled correctly
-# 2. Are errors in Johansen procedure being handled correctly
-# (should be NULL ca.jo objects, 0 cointegration)
-# 3. Cases where cointegration rank is 0
+# checking what proportion of differenced data consists of 0s
+for (meetingName in meetingMonths) {
+  differenced_df <- differenced_timeseries[[meetingName]]
+  print(meetingName)
+  print(sum(differenced_df == 0) / prod(dim(differenced_df)))
+}
+
 
 print("Performing Granger causality test")
 # ------ Actual granger causality test ------
@@ -1106,7 +1125,7 @@ for (meetingName in meetingMonths) {
     # var model
     var_select <- VARselect(delta_Y, lag.max = 24)
     lag_choice <- var_select$selection["SC(n)"]
-    VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
+    VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "none", exogen = ECT_trace)
 
     rm(hasBoth, testing_df, ECT_trace, lag_from_ECT, var_select)
 
@@ -1162,7 +1181,7 @@ for (meetingName in meetingMonths) {
     invisible(gc()) 
 
     # -- Eigen methods --
-    VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+    VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "none", exogen = ECT_eigen)
     rm(delta_Y, lag_choice, ECT_eigen)
 
     # PM --> ZQ, eigen
@@ -1216,7 +1235,7 @@ for (meetingName in meetingMonths) {
     invisible(gc()) 
   }
 
-  rm(unique_asset, unique_assets)
+  # rm(unique_asset, unique_assets)
 
   # blockwise granger test
   PM_filter <- !startsWith(assetNames, "noChange") & endsWith(assetNames, "PM")
@@ -1246,7 +1265,7 @@ for (meetingName in meetingMonths) {
   # var model
   var_select <- VARselect(delta_Y, lag.max = 24)
   lag_choice <- var_select$selection["SC(n)"]
-  VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_trace)
+  VAR_model_trace <- VAR(delta_Y, p = lag_choice, type = "none", exogen = ECT_trace)
 
   rm(PM_filter, ZQ_filter, noBaseCase_df, ECT_trace, lag_from_ECT, var_select)
 
@@ -1300,7 +1319,7 @@ for (meetingName in meetingMonths) {
   invisible(gc())
 
   # -- Eigen methods --
-  VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "const", exogen = ECT_eigen)
+  VAR_model_eigen <- VAR(delta_Y, p = lag_choice, type = "none", exogen = ECT_eigen)
   rm(delta_Y, lag_choice, ECT_eigen)
 
   # PM --> ZQ, eigen
@@ -1379,9 +1398,15 @@ rm(
 # PM_cause_ZQ_blockwise
 # ZQ_cause_PM_blockwise
 
-save(PM_cause_ZQ_bivariate,
+save(
+  PM_cause_ZQ_bivariate,
   ZQ_cause_PM_bivariate,
   PM_cause_ZQ_blockwise,
   ZQ_cause_PM_blockwise,
   meetingMonths,
-  file = "./FOMC_granger_results_5_min.RData")
+  # file = "./FOMC_granger_results_1_min.RData"
+  # file = "./FOMC_granger_results_5_min.RData"
+  # file = "./FOMC_granger_results_1_min_no_monday.RData"
+  # file = "./FOMC_granger_results_5_min_no_monday.RData"
+)
+gc()

@@ -114,7 +114,8 @@ def getTransactions(queryName: str, marketsList: list[dict[str, dict[str, str]]]
     print(f"Done getting {queryName} orderbook data")
 
 
-# TODO: Rewrite this for fetching data from raw market json
+# WARNING: Unfinished
+# Rewrite this for fetching data from raw market json
 def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], startPages: int | list[int] = 0) -> None:
     """
     Gets all userPnLs from list of user IDs (which are strings)
@@ -164,8 +165,9 @@ def getUserPnLs(queryName: str, marketsList: list[dict[str, dict[str, str]]], st
     myQuery.run_query(True)
     print(f"Done getting {queryName} orderbook data")
 
-
-# TODO: Rewrite this so data taken from csv, turned into df
+ 
+# WARNING: Unfinished
+# Rewrite this so data taken from csv, turned into df
 def getTokenActivity(queryName: str, conditionList, startPages: int | list[int] = 0) -> None:
     """
     Get splits and merges from a dataframe of tokens (subqueries are events, not markets)
