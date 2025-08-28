@@ -1,5 +1,7 @@
 if (!require(knitr)) install.packages("knitr")
 
+
+
 library(knitr)
 
 load("FOMC_granger_results_1_min.RData")
@@ -236,9 +238,39 @@ knitr::kable(blockwise_ZQ_cause_PM_table_trace, format = "latex")
 knitr::kable(blockwise_ZQ_cause_PM_table_eigen, format = "latex")
 
 
-blockwise_ZQ_cause_PM_table_eigen
-blockwise_ZQ_cause_PM_table_trace
 
+knitr::kable(
+  blockwise_PM_cause_ZQ_table_eigen,
+  format = "latex",
+  align = c('l', 'c', 'c', 'c', 'c', ''),
+  caption = "CAPTION"
+)
+knitr::kable(
+  blockwise_PM_cause_ZQ_table_trace,
+  format = "latex",
+  align = c('l', 'c', 'c', 'c', 'c', ''),
+  caption = "CAPTION" 
+)
+knitr::kable(
+  blockwise_ZQ_cause_PM_table_trace,
+  format = "latex",
+  align = c('l', 'c', 'c', 'c', 'c', ''),
+  caption = "CAPTION" 
+)
+knitr::kable(
+  blockwise_ZQ_cause_PM_table_eigen,
+  format = "latex",
+  align = c('l', 'c', 'c', 'c', 'c', ''),
+  caption = "CAPTION"  
+)
+
+
+modelsummary(blockwise_ZQ_cause_PM_table_trace)
+
+datasummary_df(blockwise_ZQ_cause_PM_table_trace, output = "latex")
+datasummary_df(blockwise_ZQ_cause_PM_table_trace, output = "latex")
+datasummary_df(blockwise_ZQ_cause_PM_table_trace, output = "latex")
+datasummary_df(blockwise_ZQ_cause_PM_table_trace, output = "latex")
 
 
 # --- Bivariate ---
