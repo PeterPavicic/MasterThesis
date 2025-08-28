@@ -1,4 +1,302 @@
+\def\Yes{\text{Yes}}
+\def\No{\text{No}}
+\def\YesPrice{P_i(\Yes)}
+\def\NoPrice{P_i(\No)}
+
+
 \section{Theoretical Framework}
+
+\subsection{Prediction Markets} \label{sec:prediction_markets}
+
+For the purposes of this thesis, prediction markets are defined as financial markets designed to forecast future events. Participants of prediction markets trade state-contingent claims whose payoff depends on how those future events unfold.
+While different types of prediction markets have been designed, the scope of this thesis is limited to \enquote{winner-take-all} prediction markets as defined in \textcite{wolfers_prediction_2004}.
+These markets are typically structured in the following way: a claim costs $\$p$ today and pays $\$1$ if and only if the stated event occurs, and $\$0$ otherwise. This structure implies two participants agreeing on the price $\$p$ which one of the participants pays, the other putting up $\$(1 - p)$, with the winner receiving the \$1 put up in collateral as their payoff.
+
+Through price discovery, traditional financial markets aggregate information about the value of assets. Following \textcite{berg_prediction_2008}, prediction markets’ primary purpose is leveraging this role of markets for forecasting. Under the Efficient Markets Hypothesis, the market price on prediction markets should reflect the risk-neutral probabilities of the event in question, encompassing all available information.
+As indicated in Section \ref{sec:introduction}, this thesis examines the prices of the modern prediction market Polymarket in its analysis to infer the degree of price discovery by comparing its price movements to those in traditional futures data.
 
 \subsection{Polymarket}
 
+\subsubsection{Introduction and Terminology}
+
+This section introduces concepts and terminology used on Polymarket. Unless indicated otherwise, the sources for this information are the Polymarket website\footnote{\url{https://polymarket.com/}} itself, or the site's documentation\footnote{\url{https://docs.polymarket.com/}}.
+
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=0.80\textwidth]{figures/Polymarket_front_page.png}
+  \end{center}
+  \captionsetup{width=0.80\textwidth}
+  \caption[Polymarket front page on September 3rd, 2025]{The Polymarket front page as of September 3rd, 2025}
+  \label{fig:front_page}
+\end{figure}
+
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[!ht]
+  \begin{center}
+    \includegraphics[width=0.80\textwidth]{figures/FOMC_event_September.png}
+  \end{center}
+  \captionsetup{width=0.80\textwidth}
+  \caption{September FOMC event on Polymarket as of September 3rd, 2025}
+  \caption*{The figure shows Polymarket's September FOMC event page. This event contains 4 possible markets. Each market related to possible interest rate decisions (50+ bps increase, 25 bps decrease, No change, 25+ bps decrease) is grouped here, making it simpler for traders to compare prices across markets.}
+  \label{fig:FOMC_event_september}
+\end{figure}
+
+
+Polymarket, depicted in Figure \ref{fig:front_page}, is one of the world's largest prediction market-hosting platforms.
+On it, prediction markets are grouped into \enquote{events}, which contain different \enquote{markets} related to a single topic/occasion.
+While anyone can propose an event through social media channels such as Discord and Twitter/X, Polymarket retains the right to create events themselves.
+Each \enquote{market} is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}, and concerns itself with exactly one \enquote{question} regarding the outcome of the event it is a part of. Market participants can trade on these questions by buying or selling existing shares in binary \enquote{Yes} and \enquote{No} claims i.e. $C \in \{\Yes, \No\}$ (called \enquote{outcomes} or \enquote{outcome shares}), with prices for each of these shares, $P(C) \in \$[0, 1]$.
+When an event concludes, its markets are \enquote{resolved}, meaning the claims of the outcome which realised in the world $C^*$ in each market can be converted to \$1 per claim, with claims in the opposite outcome, $(C^*)'$, realising a \$0 payoff.
+This resolution happens according to rules stipulated for every event, which are designed to provide clarification on the markets' questions, in order to avoid situations where no market could resolve to a \enquote{Yes} outcome, despite being designed in such way.
+
+Figure \ref{fig:FOMC_event_september} shows the FOMC interest rate decision event for September, 2025, which features 4 markets regarding the potential interest rate decisions. These markets are non-overlapping and exhaustive, meaning one and only one of the markets will resolve to \enquote{Yes}, while the other markets resolve to \enquote{No}. This is ensured by the rules, which for this market are the following:
+
+% September market rules
+\begin{quote}
+  {
+    \smaller[1]
+    \linespread{0.3}
+    \raggedright
+    The FED interest rates are defined in this market by the upper bound of the target federal funds range. The decisions on the target federal fund range are made by the Federal Open Market Committee (FOMC) meetings.
+    This market will resolve to the amount of basis points the upper bound of the target federal funds rate is changed by versus the level it was prior to the Federal Reserve's September 2025 meeting.
+    If the target federal funds rate is changed to a level not expressed in the displayed options, the change will be rounded up to the nearest 25 and will resolve to the relevant bracket. (e.g. if there's a cut/increase of 12.5 bps it will be considered to be 25 bps)
+    The resolution source for this market is the FOMC’s statement after its meeting scheduled for September 16 - 17, 2025 according to the official calendar:
+    % \linebreak
+    https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.
+
+    The level and change of the target federal funds rate is also published at the official website of the Federal Reserve at
+    % \linebreak
+    https://www.federalreserve.gov/monetarypolicy/openmarket.htm.
+
+    This market may resolve as soon as the FOMC’s statement for their September meeting with relevant data is issued. If no statement is released by the end date of the next scheduled meeting, this market will resolve to the "No change" bracket.
+  }
+\end{quote}
+
+
+\subsubsection{Order Matching}
+\label{sec:ordermatching}
+
+As Figure \ref{fig:FOMC_event_september} shows, market participants can submit limit or market orders to buy or sell Yes or No claims.
+While buying is allowed at any quantity, short selling is not permitted on Polymarket, and only owned shares can be sold.
+This results in some price-inefficiencies, such as in Figure \ref{fig:FOMC_event_september}, where despite the exhaustive set of markets, for each market $i$ in the set of markets in that event, $I$, the bid prices exhibit $\sum_{i \in I} \YesPrice \ne \$1$, $\sum_{i \in I} \NoPrice \ne \$3$, as well as $\sum_{i \in I} (\YesPrice + \NoPrice) \ne \$4$. This, however, is not exploitable due to lack of short-selling.
+As explained in Section \ref{sec:prediction_markets}, a trade is only possible if two individual market participants agree on a price, which is why on Polymarket, it is mechanically ensured that $P(C) + P(C') = \$1$ for any two complementary claims (opposite outcomes).
+This guarantees that every pair of claims $(C, C') \in \{\Yes, \No\}$ is necessarily fully collateralised by \$1, put up by the holders of the \enquote{Yes} and \enquote{No} shares, ensuring the successful resolution of the market.
+
+\begin{figure}[!ht]
+  \begin{center}
+    \includegraphics[width=0.80\textwidth]{figures/polymarket_continuous_double_auction_Yes.png}
+  \end{center}
+  \captionsetup{width=0.80\textwidth}
+  \caption{Continuous double auction in a market of the September FOMC event}
+  \caption*{This figure shows the limit order book for Polymarket's prediction market for the event that in September 2025, the FOMC decides to lower the upper bound federal funds rate by 25 basis points. Each row specifies the prices in the limit order book, the number of shares which can be traded at the given price or closer to the midpoint(in the Shares column), as well as the cumulative totals of the orders (in the Total column)}
+  \label{fig:continuous_double_auction}
+\end{figure}
+
+Trading on Polymarket takes form in a continuous double auction, with no halts in trading between a market's opening and its resolution.
+This is shown in Figure \ref{fig:continuous_double_auction}, with resting bid and ask limit orders being displayed for \enquote{Yes} outcome claims in the market for the FOMC meeting in September to conclude with a 25 bps decrease in the upper bound of the target federal funds range.
+
+Mechanically, this is realised on Polymarket's centralised limit order book (CLOB) which has a \enquote{hybrid} organisation of off-chain order matching, and on-chain settlement.
+This entails that market participants' orders are submitted to the CLOB, hosted on Polymarket servers, where they are matched into trades. Once a trade has been recorded on the servers, the actual settlement, execution, and recording of transactions takes place on the Polygon blockchain.
+While an in-depth description of the blockchain mechanism is beyond the scope of this thesis, the key implication is that all trades on Polymarket are publicly available, with identifiable users.
+Internally, pairs of opposing outcome shares $(C, C')$ are represented by pairs of \enquote{binary outcome tokens}, which are pairs of $\Yes$ and $\No$ claims in the same market, created upon being exchanged for and collateralised by the same nominal amount of \enquote{USDC}, the underlying currency for all exchange taking place on Polymarket.
+USDC is a cryptocurrency (a stablecoin), which is pegged to the United States dollar, and has been since 2021 accepted in transaction settlement by payment services provider Visa \parencite{hussain_exclusive_2021}.
+For the purposes of this thesis, \enquote{USDC} will be referred to in terms of US dollars (1 USDC = 1 USD), while the term \enquote{outcome token} may be used to refer to digital assets representing a single share in a claim.
+The effects of Polymarket's internal mechanisms on data acquisition is elaborated on in Section \ref{sec:polymarket_data}.
+
+There are three distinct possibilities by which market participants' orders are matched. This is established in the Polymarket exchange's source code\footnote{\url{https://github.com/Polymarket/ctf-exchange/}} and follows the terminology of \textcite{saguillo_unravelling_2025}:
+
+\paragraph{Direct trade} A marketable order (by a liquidity taker) in a given claim $C$ matches resting liquidity providing (maker) orders in the same claim $C$. Here, one side is selling the claim $C$, while their counterparty in the trade is buying that same claim.
+Internally, settlement is a straightforward token-for-USDC swap at the matched price.
+% On-chain, these transactions are recorded as \enquote{OrderFilled} events.
+This order-matching mechanism is essentially identical to the one familiar from traditional equities markets.
+
+
+\paragraph{Minting new tokens} Because a pair of opposite outcome tokens $(C, C')$ are always backed by \$1 of collateral,
+two buy orders from opposite-token orderbooks can also be matched if they agree on the price.
+In this case, new sets of binary outcome tokens are created, a process referred to as 'minting', where each pair of outcome tokens $(C, C')$ is backed by \$1 put up cumulatively by the counterparties of the trade.
+Terminologically it can also be said that each dollar of collateral is 'split' into a pair of outcome tokens.
+This happens when there exists a resting limit buy order (a bid) for the claim $C$ with price $P(C) =: p$, which is then matched with an incoming marketable buy (another bid) of the same size for the opposite claim $C'$ with price $P(C') = 1 - p$.
+
+\paragraph{Burning tokens} The reverse operation of minting, this operation eliminates a set of outcome tokens $(C, C')$ from the market and releases the collateral which was used to back it.
+This happens when two sell orders in opposite tokens' orderbooks sum such that the number of pairs of outcome tokens matches the amount of USDC cumulatively demanded, for them, i.e. when a resting sell order (an ask) for $C$ wishes to sell at price $P(C) =: p$, which is matched by an incoming marketable sell order of $C'$ of the same size at price $P(C') =: 1 - p$.
+The set of tokens $(C, C')$ are burned (or 'merged'), and each side receives the collateral that had been initially put up when the tokens were minted.
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[htb]
+  \begin{center}
+    \includegraphics[width=0.80\textwidth]{figures/polymarket_orderbook.png}
+  \end{center}
+  \captionsetup{width=0.80\textwidth}
+  \caption{A Polymarket market's orderbook}
+  \caption*{The figure shows a collage of the limit order book in the \enquote{25 bps decrease} market for the September FOMC decision event on Polymarket, taken on September 3rd, 2025. The collage contains the limit order book of both the Yes and No tokens, at the 8 nearest prices to the midpoint. The \enquote{Shares} column shows the number of tokens which could be traded at the price given by \enquote{Price} or closer to the midpoint. Similarly, the \enquote{Total} columns show the cumulative USDC value of open interest at or at prices closer to the midpoint than the corresponding row's price.}
+  \label{fig:polymarket_orderbook}
+\end{figure}
+
+Visually, as shown in Figure \ref{fig:polymarket_orderbook}, limit orders in orderbooks of a pair of outcome tokens $(C, C')$ are represented symmetrically, i.e. bids (resp. asks) in $C$ will be shown as asks (resp. bids) in $C'$, and vice versa. This follows the logic described above, since any of the three options for order matching appear the same to market participants.
+It can be seen that nearest to the spread, opposite-side orders in opposite outcome tokens are equal in amount and their total sums to the number of shares involved. This is explained by the fact that bid orders in \enquote{Yes} tokens are also listed as ask orders in \enquote{No} tokens and vice versa. While this observation only holds for best bid and best ask entries, it can be shown that this is the same deeper into the limit order book. This is not immediately obvious as the \enquote{Total} column displays the total amounts cumulatively, i.e. the amount that can be spent to get the respective shares at the respestive prices or at better prices, e.g. If one sells \enquote{No} orders, \$5885.25 can be sold above the price of 84 cents.
+
+Each of the order-matching mechanisms work based on the necessary condition that $P(C) + P(C') = \$1$, which underlies winner-take-all markets.
+It is important to note that this is the only arbitrage-eliminating mechanism implemented internally, and that this only works on the level of markets, not events.
+Since events are just collections of markets, there is no internal mechanism to prevent arbitrage across markets, such as
+$\sum_{i \in I} \YesPrice \le \$1$, $\sum_{i \in I} \NoPrice \le \$N - 1$, as well as $\sum_{i \in I} (\YesPrice + \NoPrice) \le \$N$,
+where $i$ is a market in the set of markets for a given event $I$ which contains $N$ number of markets.
+
+Additionally, the split/merge operations (minting and burning tokens) are not restricted to order matching.
+Users may themselves at any time during the market's lifetime split units of USDC into pairs of binary outcome tokens $(C, C')$, 'buying' each for \$0.50, or merge a pair of tokens to receive the underlying collateral.
+The former can be useful to market participants who wish to act as market makers, while the latter can be used to liquidate large positions over time without moving markets too heavily.
+
+\subsection{FedWatch Methodology} \label{sec:fedwatch_method}
+
+This section explains the methodology for arriving at the futures market's price-implied risk-neutral probabilities of FOMC decisions for each scheduled meeting. This is referred to as the CME \enquote{FedWatch} methodology, described on the relevant website\footnote{\url{https://www.cmegroup.com/articles/2023/understanding-the-cme-group-fedwatch-tool-methodology.html}} by the Chicago Mercantile Exchange, which is the main source for this section, unless specified otherwise.
+
+\def\EFFRAvg{\mathbb{E}_t[\bar{r}_T]}
+
+\subsubsection{Effective Federal Funds Rate (EFFR)}
+The effective federal funds rate (EFFR) is the volume-weighted median interest rate on uncollateralised overnight loans of US dollar reserve balances between depository institutions in the United States. The Federal Reserve Bank of New York computes the EFFR and publishes it on their website\footnote{\url{https://www.newyorkfed.org/markets/reference-rates/effr}} for the previous business day at approximately 9:00AM New York time every day. The monthly arithmetic average of this benchmark rate is the underlying asset of the Chicago Mercantile Exchange’s (CME's) 30-Day Federal Funds futures. 
+
+
+\subsubsection{CME 30-Day Federal Funds Futures}
+CME 30-Day Federal Funds futures are futures contracts traded on the ZQ ticker, which trade on the realised monthly arithmetic average EFFR for a given month. They are monthly contracts listed for 60 months in advance, with the intended purpose (as per CME\footnote{\url{https://www.cmegroup.com/markets/interest-rates/stirs/30-day-federal-fund.html}}) of hedging short-term interest rate risk.
+Trading of a contract stops on the last business day of the maturity month, and settlement occurs in cash on the next business day.
+ZQ futures prices are quoted in International Monetary Market (IMM) index terms, where the price is given as 100 minus the implied average daily EFFR in the contract’s calendar month.
+Formally, let $P_t^T$ denote the price of the futures contract for month $T$ at timepoint $t$. Then:
+% the implied expected monthly average is
+
+\begin{equation}
+\EFFRAvg = 100 - P_t^T
+  \label{eq:fomc_price}
+\end{equation}
+
+$\bar{r}_T$ denotes the arithmetic average of daily EFFR realisations during month $T$, while
+$\mathbb{E}_t[\cdot]$ denotes $\mathbb{E}[\cdot | \mathcal{F}_t]$, i.e. the risk-neutral conditional expectation of the argument $\cdot$ given the filtration at timepoint $t$ (the information available at $t$). 
+$\EFFRAvg$ here is the risk-neutral expectation of the underlying implied by the price $P_t^T$.
+
+
+
+\subsubsection{Assumptions} \label{sec:fedwatch_assumptions}
+To translate ZQ prices into risk-neutral probabilities of outcomes of FOMC meetings, the CME has developed its \enquote{FedWatch} tool, which performs this exact calculation based on daily closing prices. These probabilities are often reported in financial news and media when reporting markets' expectations regarding upcoming FOMC meetings' outcomes. 
+
+% This thesis replicates the FedWatch tool methodology to work with minutely prices
+The tool adopts five core assumptions:
+
+\begin{enumerate}
+  \item Interest rate changes happen only at scheduled FOMC meetings (no surprise meetings). There is either no meeting or one meeting in a month.
+  \item Interest rate changes occur in uniform 25 basis point increments, i.e. in amounts divisible by 25 basis points (bps).
+  \item The EFFR adjusts proportionally to the target change. This implies if there is a change of $\Delta$ in the Federal Reserve's target range, the EFFR also changes by $\Delta$, where $\Delta$ must be divisible by 25 bps.
+  \item Within a meeting month, the EFFR is piecewise constant: it equals a pre-meeting level up to the decision’s effective date, and a post-meeting level thereafter.
+  \item The EFFR at the end of a given month equals the EFFR at the start of the month thereafter. Formally, for any month $T$: $r_{T} ^ \text{End} = r_{T+1} ^ \text{Start}$
+\end{enumerate}
+
+
+Under these assumptions, the FedWatch tool calculates a risk-neutral expectation of the future path of the EFFR from the prices of the 30-Day Federal Funds futures at different maturities.
+The jumps in this discontinuous expected path signify changes in the EFFR, and therefore changes in the Federal Reserve's target range.
+For expected jumps that are not in exact 25 bp increments, the jump amount is written as the linear interpolation of two possible jumps, where the weights represent the risk-neutral implied probabilities.
+This method is elaborated in the next sections.
+
+This thesis replicates this FedWatch methodology for use on minute-by-minute data.
+
+\subsubsection{Months without an FOMC Meeting}
+In any month with no scheduled FOMC meeting, under the assumptions outlined in
+Section \ref{sec:fedwatch_assumptions},
+the Federal Reserve's target range and therefore the EFFR do not change for the entire calendar month.
+The FedWatch method calls these months without a meeting \enquote{anchor months}.
+Let $r_{T} ^ \text{Start}$ and $r_{T} ^ \text{End}$ denote the EFFR at the start resp., at the end of month $T$.
+For an anchor month $T$ it holds that:
+
+% \EFFRAvg
+\begin{equation}
+  \mathbb{E}_t[r_{T-1} ^ \text{End}] = \EFFRAvg = \mathbb{E}_t[r_{T+1} ^ \text{Start}]
+  \label{eq:fomc_ir_propagation}
+\end{equation}
+
+Since $\EFFRAvg = 100 - P_t^T$ is known, Equation \ref{eq:fomc_ir_propagation} explains how
+price-implied expected rates can propagate to preceding and succeeding months given the price of the futures contract which for month $T$.
+
+In applying the methodology for month $T$, one identifies the nearest anchor month, determines the implied expected rate from its ZQ futures price using Equation \ref{eq:fomc_price}, sets the expected rates for the end of the prior month and the start of the following month to that level, and then propagates these values backward and forward as needed when solving adjacent meeting months.
+% This anchoring provides the initial step for the system of month-by-month equations.
+
+\subsubsection{Months with an FOMC Meeting}
+
+For a meeting month $T$, let $n_T$ denote the number of calendar days before the interest rate policy decision made at the meeting becomes effective for a full day.
+Since FOMC meetings last two days, and the meeting's interest rate decision is announced on the second day of the meeting at 14:00 Eastern Time, $n_T$ includes both the first and the second day of the meeting.
+Let $m_t$ denote the remaining number of calendar days in the month, such that $n_T + m_T$ gives the number of calendar days of month $T$.
+
+Note that since there can only be one meeting per month,
+the pre-meeting EFFR level is unchanged from the end of the previous month, $r_{T-1}^{\text{End}}$
+and the post-meeting level would remain until the start of the next month, $r_{T+1}^{\text{Start}}$ .
+
+Because $\EFFRAvg$ is the expected arithmetic monthly average, it can be written as a linear interpolation of the pre- and post-meeting levels:
+
+\def\weightStart{\omega_T}
+\def\weightEnd{1 - \omega_T}
+\def\EFFRPreMeeting{\mathbb{E}_t[r_{T-1}^{\text{End}}]}
+\def\EFFRPostMeeting{\mathbb{E}_t[r_{T+1}^{\text{Start}}]}
+
+\begin{equation}
+  \EFFRAvg = \weightStart \EFFRPreMeeting + (\weightEnd) \EFFRPostMeeting, \qquad \weightStart := \frac{n_T}{n_T + m_T}
+  \label{eq:fomc_ir_calc}
+\end{equation}
+
+
+Rearranging for the expected pre-meeting (beginning-of-month) resp., post-meeting (end-of-month) level gives:
+
+\begin{align}
+  \EFFRPreMeeting &= \frac{1}{\weightStart} \left( \EFFRAvg - (\weightEnd) \EFFRPostMeeting \right) \\
+  \EFFRPostMeeting &= \frac{1}{\weightEnd} \left( \EFFRAvg - \weightStart \EFFRPreMeeting \right)
+\end{align}
+
+When the following month $T+1$ is an anchor, using Equations \ref{eq:fomc_ir_propagation} and \ref{eq:fomc_price}:
+
+\begin{equation}
+\EFFRPostMeeting \xlongequal{\text{Eq.} \ref{eq:fomc_ir_propagation}} \mathbb{E}_t[\bar{r}_{T+1}] \xlongequal{\text{Eq.} \ref{eq:fomc_price}} 100 - P_t^{T+1}
+\end{equation}
+
+The same logic applies when the previous month $T-1$ is an anchor, with
+\begin{equation}
+\EFFRPreMeeting = \mathbb{E}_t[\bar{r}_{T-1}] = 100 - P_t^{T-1}
+\end{equation}
+
+Since ZQ futures prices are available for every month, $\EFFRAvg = 100 - P_t^T$ is known for all months $T$.
+This means Equation \ref{eq:fomc_ir_calc} can always be solved for either $\EFFRPreMeeting$ or $\EFFRPostMeeting$, in case either the previous or following month is an anchor month. This is due to the fact that of the three risk-neutral expected rates, two can always be backed out from futures prices using Equation \ref{eq:fomc_price}.
+
+When neither the following, nor the previous months are anchor months,
+the nearest anchor month in the future $T_A$ is found. Then Equations \ref{eq:fomc_ir_propagation} and \ref{eq:fomc_ir_calc} are used to solve for $\mathbb{E}_t[r_{T_{A-1}}^{\text{Start}}]$. According to the assumptions explained in Section \ref{sec:fedwatch_assumptions}, $\mathbb{E}_t[r_{T_{A-1}}^{\text{Start}}] = \mathbb{E}_t[r_{T_{A-2}}^{\text{End}}]$ and using Equation \ref{eq:fomc_ir_calc}, this process is repeated until the current month $T$ is reached.
+
+Given the term structure of the futures contracts then, for all meeting months $T$, the pre- and post-meeting levels can be computed. This means the jump induced by the FOMC meeting's decision can be estimated, which is the risk-neutral expected change in the EFFR.
+
+\subsubsection{Risk-Neutral Probability Calculations}
+
+The FedWatch method employs a method referred to as \enquote{characteristic-mantissa method} to arrive at the risk-neutral probabilities of the rate cuts possible under the FedWatch assumptions (in 25 bp increments).
+The essence of this method lies in thinking of the risk-neutral expected change as a linear interpolation of the two nearest full 25 bp increment changes. The weight of each is then the risk-neutral probability associated with that possible change.
+As an example, if the expected change is 29 basis points, this is written as $29 = P^*(\text{change} = 25) 25 + P^*(\text{change} = 50) 50 = \frac{4}{25} 25 + \frac{21}{25} 50 \implies P^*(\text{change} = 25) = \frac{4}{25}, \quad P^*(\text{change} = 50) = \frac{21}{25}$. 
+
+More formally, define the risk-neutral expected change in EFFR over the meeting month as
+
+\begin{equation}
+\Delta_T^{*} := \mathbb{E}_t[r_T^\text{End}] - \mathbb{E}_t[r_T^\text{Start}] = \EFFRPostMeeting - \EFFRPreMeeting
+\end{equation}
+
+Express this in units of 25 bps, $k_T^{*} := \Delta_T^{*}/0.0025$.
+Decompose $k_T^{*}$ into its characteristic (integer) and mantissa (fractional) parts:
+
+\begin{equation}
+k_T^{*} = k_T + y_T, \qquad k_T \in \mathbb{Z}, 0 \le y_T < 1.
+\end{equation}
+
+This is achieved by setting:
+
+\begin{equation}
+k_T := \left\lfloor {k_T^{*} / 25} \right\rfloor
+\end{equation}
+
+\begin{equation}
+y_T := k_T^{*} - k_T
+\end{equation}
+
+Where $k_T$ is the lower bound for the number of 25 bp rate changes, and $k_T + 1$ is the upper bound.
+
+The two possible outcomes at the meeting in month $T$ are then: a change of $k_T \cdot 25$ bps with risk-neutral probability $1 - y_T$,
+and a change of $(k_T + 1) \cdot 25$ bps with risk-neutral probability $y_T$.

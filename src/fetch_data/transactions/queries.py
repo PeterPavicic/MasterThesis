@@ -13,7 +13,8 @@ import requests
 FILE_LOCATION = Path(__file__)
 ROOT_DIR = FILE_LOCATION.parent.parent.parent.parent
 
-# TODO: Implement logging for queries, e.g. at the top of the event download folder
+# WARNING: Unfinished
+# Implement logging for queries, e.g. at the top of the event download folder
 
 def cleanStringForGraphql(s: str) -> str:
     """
@@ -34,7 +35,8 @@ class SG(StrEnum):
     PNL_SG = "https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/pnl-subgraph/0.0.14/gn"
 
 
-# TODO: Also implement duplicates here, maybe in separate classses?
+# WARNING: Unfinished
+# Also implement duplicates here, maybe in separate classses?
 
 # Define Enum where we specify each type of query & the corresponding
 # queryName, and variables returned by the query
