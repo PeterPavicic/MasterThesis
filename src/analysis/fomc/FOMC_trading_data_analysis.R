@@ -11,6 +11,20 @@ library(ggplot2)
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
+# loading data
+SMART_CONTRACTS <- c(
+  GNOSIS_CONTRACT = "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",	# Conditional Tokens Framework (CTF)
+  CTF_EXCHANGE = "0x4bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",	# CTF Exchange
+  NR_CTF_EXCHANGE = "0xc5d563a36ae78145c45a50134d48a1215220f80a",	# NegRisk_CTFExchange
+  NR_ADAPTER = "0xd91e80cf2e7be2e162c6513ced06f1dd0da35296",	# NegRiskAdapter
+  USDC.e = "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",	# USDC.e (Collateral)
+  UMA_V2 = "0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74",	# UMA Oracle (V2)
+  GNOSIS_PROXY_WALLET_FACTORY = "0xaacfeea03eb1561c4e67d661e40682bd20e3541b",	# Gnosis Safe Proxy Factory
+  POLYMARKET_PROXY_WALLET_FACTORY = "0xab45c5a4b0c941a2f231c04c3f49182e1a254052",	# Polymarket Proxy Factory
+  NR_FEE_MODULE = "0x78769d50be1763ed1ca0d5e878d93f05aabff29e"	# Polymarket: Neg Risk Fee Module
+)
+
+
 # Load all RData from specified directory into varList list
 aggregateRDataVars <- function(directoryPath) {
   rdata_files <- list.files(path = directoryPath,
@@ -46,8 +60,29 @@ aggregateRDataVars <- function(directoryPath) {
   # return(invisible(NULL))
 }
 
-
-
+meetingMonths <- c(
+  "2023-02",
+  "2023-03",
+  "2023-05",
+  "2023-06",
+  "2023-07",
+  "2023-09",
+  "2023-11",
+  "2023-12",
+  "2024-01",
+  "2024-03",
+  "2024-05",
+  "2024-06",
+  "2024-07",
+  "2024-09",
+  "2024-11",
+  "2024-12",
+  "2025-01",
+  "2025-03",
+  "2025-05",
+  "2025-06",
+  "2025-07"
+)
 
 tokens_data <- read_csv(
   file.path(ROOT_DIR, "data/processed/tokens/FOMC Tokens.csv"),
@@ -55,6 +90,7 @@ tokens_data <- read_csv(
     Yes = col_character(),
     No = col_character()
   ))
+
 
 tokens_outcomes <- tokens_data |>
   select(
@@ -79,72 +115,276 @@ aggregateRDataVars(
   file.path(ROOT_DIR, "data/processed/EventDatas/") 
 ) 
 
-# unique(timeSeriesData$asset)
-# 
-# yesTokens <- c("88244443360063235221444316604590968694314258311386447899087521723508440858841",
-#                "106191328358576540351439267765925450329859429577455659884974413809922495874408",
-#                "89262722133387845193166560202808972424089924545438804960915341631492994906283",
-#                "95823178650727331613915203831778682038645976746731326695569990405131199144192")
-# 
-# 
-# asd <- timeSeriesData |> 
-#   filter(asset %in% yesTokens)
-# 
-# 
-# library(ggplot2)
-# library(patchwork)
-# 
-# # price panel
-# p_price <- ggplot(asd, aes(timestamp, price, colour = asset)) +
-#   geom_line(size = 1) +
-#   theme_minimal() +
-#   theme(legend.position = "bottom") +
-#   labs(title = "Price over Time", y = "Price", x = NULL)
-# 
-# # volume panel
-# p_vol <- ggplot(asd, aes(timestamp, tokenVolume, fill = asset)) +
-#   geom_col(position = position_dodge()) + 
-#   scale_x_datetime(date_labels = "%Y-%m-%d\n%H:%M") +
-#   theme_minimal() +
-#   theme(legend.position = "none") +
-#   labs(title = "Token Volume", y = "Volume", x = "Timestamp")
-# 
-# # stack them
-# (p_price / p_vol) + plot_layout(heights = c(2, 1))
-# 
-# 
-# png(
-#   filename = file.path(ROOT_DIR, "/outputs/fomc/plots", event_name, "returnHist.png"),
-#   width = 800,
-#   heigh = 600,
-#   res = 100
+names(scaled_eventsList) <- meetingMonths
+names(realUsersList) <- meetingMonths
+names(userReturnsList) <- meetingMonths
+names(userMarketCountList) <- meetingMonths
+
+
+# summary(userReturnsList[[1]]$eventReturn)
+# summary(userReturnsList[[2]]$eventReturn)
+# summary(userReturnsList[[3]]$eventReturn)
+# summary(userReturnsList[[4]]$eventReturn)
+# summary(userReturnsList[[5]]$eventReturn)
+# summary(userReturnsList[[6]]$eventReturn)
+# summary(userReturnsList[[7]]$eventReturn)
+# summary(userReturnsList[[8]]$eventReturn)
+# summary(userReturnsList[[9]]$eventReturn)
+# summary(userReturnsList[[10]]$eventReturn)
+# summary(userReturnsList[[11]]$eventReturn)
+# summary(userReturnsList[[12]]$eventReturn)
+# summary(userReturnsList[[13]]$eventReturn)
+# summary(userReturnsList[[14]]$eventReturn)
+# summary(userReturnsList[[15]]$eventReturn)
+# summary(userReturnsList[[16]]$eventReturn)
+# summary(userReturnsList[[17]]$eventReturn)
+# summary(userReturnsList[[18]]$eventReturn)
+# summary(userReturnsList[[19]]$eventReturn)
+# summary(userReturnsList[[20]]$eventReturn)
+# summary(userReturnsList[[21]]$eventReturn)
+
+# How do some make a loss of more than 7x?
+# TODO: Fix UserReturns calculation
+# by investigating this user:
+# 0x4d4517f51bc23420bcad5fa56f82226bb13997f4
+
+# which.min(userReturnsList[[20]]$eventReturn)
+#
+# userReturnsList[[20]][6841, ]
+#
+# unique(tokens_data$event_slug)
+
+# tokens_data |>
+#   filter(event_slug == "fed-decision-in-june") |>
+#   pull(Yes)
+
+# test_df <- scaled_eventsList[["2024-09"]]
+
+# NOTE: This is also weird
+# which.max(scaled_df$fee)
+# system2(
+#   command = "wl-copy",
+#   input = unlist(scaled_df[1267, "maker"])
 # )
+
+# rm(test_df)
+
+
+corrected_eventsList <- list()
+
+# ------ Correcting events ------
+for (meetingMonth in meetingMonths) {
+  scaled_df <- scaled_eventsList[[meetingMonth]]
+  isNegRisk <- any(scaled_df$taker == SMART_CONTRACTS["NR_CTF_EXCHANGE"])
+  if (isNegRisk) {
+    ctfContract <- SMART_CONTRACTS["NR_CTF_EXCHANGE"]
+  } else {
+    ctfContract <- SMART_CONTRACTS["CTF_EXCHANGE"]
+  }
+
+
+  # actions of the true taker, the one interacting with Exchange contract
+  takerActions <- scaled_df |>
+    filter(taker == ctfContract) |>
+    mutate(
+      # is the taker buying or selling
+      trueTakerBuys = (type == "makerBuy"),
+      trueTakerAsset = asset
+    ) |>
+    select(
+      transactionHash,
+      trueTakerBuys,
+      trueTakerAsset
+    )
+
+  noExchange_df <- scaled_df |>
+    filter(taker != ctfContract) |>
+    mutate(
+      takerBuys = !(type == "makerBuy")
+    ) |>
+    select(
+      transactionHash,
+      timestamp,
+      maker,
+      taker,
+      asset,
+      price,
+      usdcVolume,
+      tokenVolume,
+      takerBuys,
+      fee
+    ) |> 
+    inner_join(
+      takerActions,
+      by = "transactionHash"
+    )
+
+  # Types of transactions:
+  # transfers:
+  # takerBuys == trueTakerBuys
+  # one side selling, other side buying
+  # cash is simply transferred
+  # buyer receives `tokenVolume` of `asset`,
+  # seller gets the usdcVolume in return
+
+  # splits (minting new token):
+  # takerBuys != trueTakerBuys
+  # both sides are buying (complementary assets)
+  # maker receives the asset
+  # taker DOES NOT receive the cash
+  # in reality
+  # 1. maker interacts with Exchange
+  # gives `usdcVolume`
+  # gets `tokenVolume` of `asset`
+  # 2. taker interacts with Exchange
+  # gives `tokenVolume - usdcVolume`
+  # gets `tokenVolume` of `trueTakerAsset` (which is the complementary asset of `asset`)
+
+  # merges (a token is burned):
+  # takerBuys != trueTakerBuys
+  # both sides are selling (complementary assets)
+  # maker receives the cash
+  # taker DOES NOT receive the asset
+  # in reality
+  # 1. maker interacts with Exchange,
+  # gives `tokenVolume` of `asset`
+  # gets `usdcVolume`
+  # 2. taker interacts with Exchange,
+  # gives `tokenVolume` of `trueTakerAsset` (which is the complementary asset of `asset`)
+  # gets `tokenVolume - usdcVolume`
+
+
+  isTransfer <- (noExchange_df$takerBuys == noExchange_df$trueTakerBuys)
+  isSplit <- noExchange_df$trueTakerBuys & (noExchange_df$takerBuys != noExchange_df$trueTakerBuys)
+  isMerge <- !(noExchange_df$trueTakerBuys) & (noExchange_df$takerBuys != noExchange_df$trueTakerBuys)
+
+  # NOTE: transfers are not corrected but maybe they should be
+  transfers_df <- noExchange_df[isTransfer, ]
+  splits_df <- noExchange_df[isSplit, ]
+  merges_df <- noExchange_df[isMerge, ]
+
+  # -------- correcting splits --------
+  # duplicate all rows
+  corrected_splits <- splits_df |>
+    mutate(count = 2) |>
+    uncount(count)
+
+
+  # legs of transactions: first for maker, second for taker
+  maker_leg <- seq(1, nrow(corrected_splits), by = 2)
+  taker_leg <- seq(2, nrow(corrected_splits), by = 2)
+
+  # maker leg of split
+  corrected_splits[maker_leg, ] <- corrected_splits[maker_leg, ] |>
+    mutate(
+      taker = "exchange"
+    )
+
+  # taker leg of split
+  corrected_splits[taker_leg, ] <- corrected_splits[taker_leg, ] |>
+    mutate(
+      maker = "exchange",
+      takerBuys = TRUE,
+      usdcVolume = tokenVolume - usdcVolume,
+      asset = trueTakerAsset
+    )
+
+  # -------- correcting merges --------
+  # duplicate all rows
+  corrected_merges <- merges_df |>
+    mutate(count = 2) |>
+    uncount(count)
+
+  # legs of transactions: first for maker, second for taker
+  maker_leg <- seq(1, nrow(corrected_merges), by = 2)
+  taker_leg <- seq(2, nrow(corrected_merges), by = 2)
+
+  # maker leg of merge
+  corrected_merges[maker_leg, ] <- corrected_merges[maker_leg, ] |>
+    mutate(
+      taker = "exchange"
+    )
+
+  # taker leg of merge
+  corrected_merges[taker_leg, ] <- corrected_merges[taker_leg, ] |>
+    mutate(
+      maker = "exchange",
+      takerBuys = FALSE,
+      usdcVolume = tokenVolume - usdcVolume,
+      asset = trueTakerAsset
+    )
+
+
+  corrected_df <- bind_rows(
+    transfers_df,
+    corrected_splits,
+    corrected_merges
+  ) |> arrange(
+      timestamp,
+      asset
+    ) |>
+    select(
+      transactionHash,
+      timestamp, 
+      maker, 
+      taker, 
+      asset, 
+      price, 
+      usdcVolume, 
+      tokenVolume, 
+      takerBuys, 
+      fee
+    )
+
+  corrected_eventsList[[meetingMonth]] <- corrected_df
+
+  rm(
+    corrected_df,
+    corrected_merges,
+    corrected_splits,
+    ctfContract,
+    isMerge,
+    isNegRisk,
+    isSplit,
+    isTransfer,
+    maker_leg,
+    merges_df,
+    noExchange_df,
+    scaled_df,
+    splits_df,
+    takerActions,
+    taker_leg,
+    transfers_df
+  )
+}
+
 
 
 # Contains per-user
 # maker order count, token volume, usdcvolume
 # taker order count, token volume, usdcvolume
 # total returns
-user_statsList = list()
+user_statsList <- list()
 
 # Calculate order counts, volume for maker & taker side
 # Save it to user_statsList
-for (i in seq_along(event_nameList)) {
+for (meetingMonth in meetingMonths) {
   # Grab event-specific variables
-  scaled_events <- scaled_eventsList[[i]]
-  realUsers <- realUsersList[[i]]
-  userReturns <- userReturnsList[[i]]
-  userMarketCount <- userMarketCountList[[i]]
+  corrected_events <- corrected_eventsList[[meetingMonth]]
+  realUsers <- realUsersList[[meetingMonth]]
+  userReturns <- userReturnsList[[meetingMonth]]
+  userMarketCount <- userMarketCountList[[meetingMonth]]
+
 
   ###### Order counts ######
-  maker_order_counts <- scaled_events |>
+  maker_order_counts <- corrected_events |>
     filter(maker %in% realUsers) |> # only rows where maker is in realUsers
     distinct(maker, transactionHash) |> # one row per unique maker+orderHash
     count(user = maker, # group by maker
       name = "makerCount")
 
   # Count unique orders per taker for realUsers
-  taker_order_counts <- scaled_events |> 
+  taker_order_counts <- corrected_events |> 
     filter(taker %in% realUsers) |> # only rows where taker is in realUsers
     distinct(taker, transactionHash) |>  # one row per unique taker+orderHash
     count(user = taker, name = "takerCount") # group by taker
@@ -158,7 +398,7 @@ for (i in seq_along(event_nameList)) {
     mutate(totalTradeCount = makerCount + takerCount)
 
   ###### Order volume ######
-  maker_order_volume <- scaled_events |>
+  maker_order_volume <- corrected_events |>
     filter(maker %in% realUsers) |> # only rows where maker is in realUsers
     group_by(maker) |>
     summarise(
@@ -173,7 +413,7 @@ for (i in seq_along(event_nameList)) {
     )
 
   # Count unique orders per taker for realUsers
-  taker_order_volume <- scaled_events |> 
+  taker_order_volume <- corrected_events |> 
     filter(taker %in% realUsers) |> # only rows where taker is in realUsers
     group_by(taker) |>
     summarise(
@@ -218,20 +458,23 @@ for (i in seq_along(event_nameList)) {
     left_join(user_event_stats,
       by = "user")
 
-  user_statsList[[i]] <- user_stats
-  rm(scaled_events)
-  rm(realUsers)
-  rm(userReturns)
-  rm(maker_order_counts)
-  rm(maker_order_volume)
-  rm(taker_order_counts)
-  rm(taker_order_volume)
-  rm(order_counts)
-  rm(order_volume)
-  rm(user_stats)
-  rm(order_stats)
-  rm(userMarketCount)
-  rm(i)
+  user_statsList[[meetingMonth]] <- user_stats
+
+  rm(
+    corrected_events,
+    maker_order_counts,
+    maker_order_volume,
+    meetingMonth,
+    order_counts,
+    order_stats,
+    order_volume,
+    realUsers,
+    taker_order_counts,
+    taker_order_volume,
+    userMarketCount,
+    userReturns,
+    user_stats
+  )
 }
 
 
@@ -258,9 +501,9 @@ meeting_dates <- c(
 )
 
 # 3 times checking thing
-# for (i in seq_along(event_nameList)) {
-#   print(event_nameList[[i]])
-#   print(sum(user_statsList[[i]]$totalTokenVolume) / 3)
+# for (meetingMonth in meetingMonths) {
+#   print(event_nameList[[meetingMonth]])
+#   print(sum(user_statsList[[meetingMonth]]$totalTokenVolume) / 3)
 #   # NOTE: Why is this 3 times what it should be and not twice?
 # }
 # intermediaries <- user_statsList[[15]]$makerUsdcVolume == user_statsList[[15]]$takerUsdcVolume
@@ -268,7 +511,7 @@ meeting_dates <- c(
 # summary(user_statsList[[15]]$totalUsdcVolume[intermediaries])
 # summary(user_statsList[[15]]$totalTradeCount[intermediaries])
 # user_statsList[[1]]
-# rm(i)
+# rm(meetingMonth)
 
 master_table <- bind_rows(user_statsList, .id = "market_id")
 
