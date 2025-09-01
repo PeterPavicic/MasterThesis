@@ -116,6 +116,7 @@ aggregateRDataVars(
 ) 
 
 names(scaled_eventsList) <- meetingMonths
+names(event_nameList) <- meetingMonths
 names(realUsersList) <- meetingMonths
 names(userReturnsList) <- meetingMonths
 names(userMarketCountList) <- meetingMonths
@@ -170,9 +171,9 @@ names(userMarketCountList) <- meetingMonths
 # rm(test_df)
 
 
-corrected_eventsList <- list()
 
 # ------ Correcting events ------
+corrected_eventsList <- list()
 for (meetingMonth in meetingMonths) {
   scaled_df <- scaled_eventsList[[meetingMonth]]
   isNegRisk <- any(scaled_df$taker == SMART_CONTRACTS["NR_CTF_EXCHANGE"])
@@ -253,7 +254,6 @@ for (meetingMonth in meetingMonths) {
   # gives `tokenVolume` of `trueTakerAsset` (which is the complementary asset of `asset`)
   # gets `tokenVolume - usdcVolume`
 
-
   isTransfer <- (noExchange_df$takerBuys == noExchange_df$trueTakerBuys)
   isSplit <- noExchange_df$trueTakerBuys & (noExchange_df$takerBuys != noExchange_df$trueTakerBuys)
   isMerge <- !(noExchange_df$trueTakerBuys) & (noExchange_df$takerBuys != noExchange_df$trueTakerBuys)
@@ -262,6 +262,29 @@ for (meetingMonth in meetingMonths) {
   transfers_df <- noExchange_df[isTransfer, ]
   splits_df <- noExchange_df[isSplit, ]
   merges_df <- noExchange_df[isMerge, ]
+
+
+  # -------- correcting transfers --------
+  # duplicate all rows
+  corrected_transfers <- transfers_df |>
+    mutate(count = 2) |>
+    uncount(count)
+
+  # legs of transactions: first for maker, second for taker
+  maker_leg <- seq(1, nrow(corrected_transfers), by = 2)
+  taker_leg <- seq(2, nrow(corrected_transfers), by = 2)
+
+  # maker leg of transfer
+  corrected_transfers[maker_leg, ] <- corrected_transfers[maker_leg, ] |>
+    mutate(
+      taker = "exchange"
+    )
+
+  # taker leg of transfer
+  corrected_transfers[taker_leg, ] <- corrected_transfers[taker_leg, ] |>
+    mutate(
+      maker = "exchange",
+    )
 
   # -------- correcting splits --------
   # duplicate all rows
@@ -314,9 +337,9 @@ for (meetingMonth in meetingMonths) {
       asset = trueTakerAsset
     )
 
-
   corrected_df <- bind_rows(
-    transfers_df,
+    corrected_transfers,
+    # transfers_df,
     corrected_splits,
     corrected_merges
   ) |> arrange(
@@ -342,6 +365,7 @@ for (meetingMonth in meetingMonths) {
     corrected_df,
     corrected_merges,
     corrected_splits,
+    corrected_transfers,
     ctfContract,
     isMerge,
     isNegRisk,
@@ -359,10 +383,9 @@ for (meetingMonth in meetingMonths) {
 }
 
 
-
 # Contains per-user
-# maker order count, token volume, usdcvolume
-# taker order count, token volume, usdcvolume
+# maker order token volume, usdcvolume
+# taker order token volume, usdcvolume
 # total returns
 user_statsList <- list()
 
@@ -371,35 +394,36 @@ user_statsList <- list()
 for (meetingMonth in meetingMonths) {
   # Grab event-specific variables
   corrected_events <- corrected_eventsList[[meetingMonth]]
-  realUsers <- realUsersList[[meetingMonth]]
+  # realUsers <- realUsersList[[meetingMonth]]
   userReturns <- userReturnsList[[meetingMonth]]
   userMarketCount <- userMarketCountList[[meetingMonth]]
 
+  corrected_events
 
   ###### Order counts ######
-  maker_order_counts <- corrected_events |>
-    filter(maker %in% realUsers) |> # only rows where maker is in realUsers
-    distinct(maker, transactionHash) |> # one row per unique maker+orderHash
-    count(user = maker, # group by maker
-      name = "makerCount")
-
-  # Count unique orders per taker for realUsers
-  taker_order_counts <- corrected_events |> 
-    filter(taker %in% realUsers) |> # only rows where taker is in realUsers
-    distinct(taker, transactionHash) |>  # one row per unique taker+orderHash
-    count(user = taker, name = "takerCount") # group by taker
-
+  # maker_order_counts <- corrected_events |>
+  #   filter(maker != "exchange") |> # only rows where maker is real
+  #   distinct(maker, transactionHash) |> # one row per unique maker+orderHash
+  #   count(user = maker, # group by maker
+  #     name = "makerCount")
+  #
+  # # Count unique orders per taker for realUsers
+  # taker_order_counts <- corrected_events |> 
+  #   filter(taker != "exchange") |> # only rows where taker is real
+  #   distinct(taker, transactionHash) |>  # one row per unique taker+orderHash
+  #   count(user = taker, name = "takerCount") # group by taker
+  #
   # Merge maker and taker counts, filling missing with 0
-  order_counts <- full_join(maker_order_counts,
-    taker_order_counts,
-    by = "user") |>
-    replace_na(list(makerCount = 0,
-      takerCount = 0)) |>
-    mutate(totalTradeCount = makerCount + takerCount)
+  # order_counts <- full_join(maker_order_counts,
+  #   taker_order_counts,
+  #   by = "user") |>
+  #   replace_na(list(makerCount = 0,
+  #     takerCount = 0)) |>
+  #   mutate(totalTradeCount = makerCount + takerCount)
 
   ###### Order volume ######
   maker_order_volume <- corrected_events |>
-    filter(maker %in% realUsers) |> # only rows where maker is in realUsers
+    filter(maker != "exchange") |>
     group_by(maker) |>
     summarise(
       makerTokenVolume = sum(tokenVolume),
@@ -414,7 +438,7 @@ for (meetingMonth in meetingMonths) {
 
   # Count unique orders per taker for realUsers
   taker_order_volume <- corrected_events |> 
-    filter(taker %in% realUsers) |> # only rows where taker is in realUsers
+    filter(taker != "exchange") |> # only rows where taker is in realUsers
     group_by(taker) |>
     summarise(
       takerTokenVolume = sum(tokenVolume),
@@ -444,17 +468,17 @@ for (meetingMonth in meetingMonths) {
       totalUsdcVolume = makerUsdcVolume + takerUsdcVolume
     )
 
-  # Merge order counts & volume
-  order_stats <- order_counts |> 
-    left_join(order_volume,
-      by = "user")
+  # # Merge order counts & volume
+  # order_stats <- order_counts |> 
+  #   left_join(order_volume,
+  #     by = "user")
 
   user_event_stats <- userReturns |> left_join(
     userMarketCount, by = "user")
 
   # Merge with user returns
   # TODO: Also add other metrics described above
-  user_stats <- order_stats |> 
+  user_stats <- order_volume |> 
     left_join(user_event_stats,
       by = "user")
 
@@ -462,14 +486,14 @@ for (meetingMonth in meetingMonths) {
 
   rm(
     corrected_events,
-    maker_order_counts,
+    # maker_order_counts,
     maker_order_volume,
     meetingMonth,
-    order_counts,
-    order_stats,
+    # order_counts,
+    # order_stats,
     order_volume,
-    realUsers,
-    taker_order_counts,
+    # realUsers,
+    # taker_order_counts,
     taker_order_volume,
     userMarketCount,
     userReturns,
@@ -478,27 +502,64 @@ for (meetingMonth in meetingMonths) {
 }
 
 
-meeting_dates <- c(
-  as.POSIXct("2023-02-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_02_February"
-  as.POSIXct("2023-03-22 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_03_March"
-  as.POSIXct("2023-05-03 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_05_May"
-  as.POSIXct("2023-06-14 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_06_June"
-  as.POSIXct("2023-07-26 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_07_July"
-  as.POSIXct("2023-09-20 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_09_September"
-  as.POSIXct("2023-11-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_11_November"
-  as.POSIXct("2023-12-13 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2023_12_December"
-  as.POSIXct("2024-01-31 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_01_January"
-  as.POSIXct("2024-03-20 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_03_March"
-  as.POSIXct("2024-05-01 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_06_June"
-  as.POSIXct("2024-06-12 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_06_June"
-  as.POSIXct("2024-07-31 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_07_July"
-  as.POSIXct("2024-09-18 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_09_September"
-  as.POSIXct("2024-11-07 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_11_November"
-  as.POSIXct("2024-12-18 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2024_12_December"
-  as.POSIXct("2025-01-29 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2025_01_January"
-  as.POSIXct("2025-03-19 14:00:00", tz = "America/New_York"), # "Fed_Interest_Rates_2025_03_March"
-  as.POSIXct("2025-05-07 14:00:00", tz = "America/New_York") # "Fed_Interest_Rates_2025_05_May"
-)
+for (meetingMonth in meetingMonths) {
+  scaled_df <- scaled_eventsList[[meetingMonth]]
+  print(meetingMonth)
+  print(
+    (sum(scaled_df[scaled_df$taker == SMART_CONTRACTS["NR_CTF_EXCHANGE"], "tokenVolume"]) == 
+      sum(scaled_df[scaled_df$taker != SMART_CONTRACTS["NR_CTF_EXCHANGE"], "tokenVolume"])) | 
+    (sum(scaled_df[scaled_df$taker == SMART_CONTRACTS["CTF_EXCHANGE"], "tokenVolume"]) == 
+      sum(scaled_df[scaled_df$taker != SMART_CONTRACTS["CTF_EXCHANGE"], "tokenVolume"]))
+  )
+}
+
+
+user_statsList
+
+# still not the exact numbers I am looking for
+# TODO: Figure out what else is off, perhaps when dealing with transfers?
+# or implementation faulty for many transactions
+for (meetingMonth in meetingMonths) {
+  print(event_nameList[[meetingMonth]])
+  # print(sum(scaled_eventsList[[meetingMonth]]$usdcVolume))
+  print(sum(corrected_eventsList[[meetingMonth]]$usdcVolume))
+  # print(sum(scaled_eventsList[[meetingMonth]]$tokenVolume))
+  print(sum(corrected_eventsList[[meetingMonth]]$tokenVolume) / 2)
+}
+
+
+for (meetingMonth in meetingMonths) {
+  print(event_nameList[[meetingMonth]])
+  # print(length(unique(corrected_eventsList[[meetingMonth]]$maker)))
+  # print(length(unique(corrected_eventsList[[meetingMonth]]$taker)))
+  # print(length(unique(scaled_eventsList[[meetingMonth]]$maker)))
+  # print(length(unique(scaled_eventsList[[meetingMonth]]$taker)))
+
+  print(length(unique(corrected_eventsList[[meetingMonth]]$transactionHash)))
+  print(length(unique(corrected_eventsList[[meetingMonth]]$transactionHash)))
+  print(length(unique(scaled_eventsList[[meetingMonth]]$transactionHash)))
+  print(length(unique(scaled_eventsList[[meetingMonth]]$transactionHash)))
+}
+
+View(corrected_eventsList[[meetingMonth]])
+
+
+# july 2024
+2791944.06709
+2791944
+
+# november 2024
+189537155.167586
+189548857
+
+# december 2024
+58771668.63480185
+58771704
+
+
+
+sum(corrected_eventsList[["2024-12"]]$tokenVolume)
+
 
 # 3 times checking thing
 # for (meetingMonth in meetingMonths) {
