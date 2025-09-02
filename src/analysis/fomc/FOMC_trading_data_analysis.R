@@ -213,7 +213,9 @@ for (i in seq_along(event_nameList)) {
     userMarketCount, by = "user")
 
   # Merge with user returns
-  # TODO: Also add other metrics described above
+
+  # WARNING: Unfinished
+  # Also add other metrics described above
   user_stats <- order_stats |> 
     left_join(user_event_stats,
       by = "user")
@@ -261,7 +263,9 @@ meeting_dates <- c(
 # for (i in seq_along(event_nameList)) {
 #   print(event_nameList[[i]])
 #   print(sum(user_statsList[[i]]$totalTokenVolume) / 3)
-#   # NOTE: Why is this 3 times what it should be and not twice?
+
+    # WARNING: Unfinished
+#   # Why is this 3 times what it should be and not twice?
 # }
 # intermediaries <- user_statsList[[15]]$makerUsdcVolume == user_statsList[[15]]$takerUsdcVolume
 # hist(user_statsList[[15]]$eventReturn[intermediaries])

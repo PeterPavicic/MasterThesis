@@ -7,7 +7,9 @@ library(readr)
 
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
-# TODO: Rewrite for processing election data
+
+# WARNING: Unfinished
+# Rewrite for processing election data
 
 
 tokens_data <- read_csv(

@@ -1065,12 +1065,6 @@ for (meetingName in meetingMonths) {
 rm(meetingName, assetName, t_test_res, p_val_res)
 
 
-# TODO: Check if cases of errors/0 cointegration being handled correctly:
-# 1. Are errors in running below section handled correctly
-# 2. Are errors in Johansen procedure being handled correctly
-# (should be NULL ca.jo objects, 0 cointegration)
-# 3. Cases where cointegration rank is 0
-
 print("Performing Granger causality test")
 # ------ Actual granger causality test ------
 PM_cause_ZQ_bivariate <- list()

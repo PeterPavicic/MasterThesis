@@ -6,7 +6,9 @@ library(readr)
 # Set wd to the dir containing this file before running
 ROOT_DIR <- dirname(dirname(dirname(getwd()))) 
 
-# TODO: Rewrite for election markets processing
+
+# WARNING: Unfinished
+# Rewrite for election markets processing
 
 perform_analysis <- function(event_tibble, event_name) {
   event_tibble |>
@@ -78,7 +80,8 @@ perform_analysis <- function(event_tibble, event_name) {
 }
 
 
-# TODO: Write root dir stuff
+# WARNING: Unfinished
+# Write root dir stuff
 dirs <- list.dirs(
   path = file.path(
     ROOT_DIR,
