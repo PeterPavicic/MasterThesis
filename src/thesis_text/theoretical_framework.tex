@@ -39,6 +39,9 @@ However, little research has been done examining the world's largest prediction 
 This is thesis aims to provide empirical research into the market efficiency of winner-take-all prediction markets 
 in the context of markets focusing on the interest rate decisions of the US Federal Open Market Committee's (FOMC) following their scheduled meeting.
 
+% TODO: Remove this when previous section written
+\newpage
+
 \subsection{Polymarket}
 
 
@@ -48,10 +51,18 @@ hosted on the website www.polymarket.com.
 % Figure % todo: Create and reference figure
 % depicts the front page as taken on September 3rd, 2025.
 
+% Figure out how to put this image where I want it to be
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.95\textwidth]{figures/Polymarket_front_page.png}
+  \end{center}
+  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
+  % \label{fig:front_page}
+\end{figure}
 
 
-On Polymarket, prediction markets are grouped into "events", which contain "markets" related to a single topic/occasion. 
-Each "market" is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}. For each listed market, the platform issues two complementary outcome claims, labeled Yes and No, that pay 1 unit of collateral if the corresponding state of the world obtains and 0 otherwise. In Arrow–Debreu terms, these instruments are state-contingent securities that span the event’s outcome space; the pair’s payoffs are mutually exclusive and exhaustive so that exactly one unit will be worth 1 at resolution while its complement expires worthless. In a cash-collateralized setting with a stable numeraire, absence of arbitrage implies that the prices of complementary claims add to one, and under risk-neutral valuation the Yes price equals the market-implied probability of the event. Polymarket presents prices on a 0–1 scale and explicitly interprets them as probabilities, which in practice are quoted as the mid-point of the current bid–ask unless the spread is wide, in which case the last trade is displayed. In equilibrium, the identification $P_{\text{Yes}} \approx \mathbb{Q}(\text{event})$ and $P_{\text{Yes}} + P_{\text{No}} = 1$ provides a direct mapping from observed prices to risk-neutral beliefs about the event. ([Polymarket Documentation][1])
+On Polymarket, prediction markets are grouped into "events", which contain "markets" related to a single topic/occasion.
+Each "market" is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}. For each listed market, there are two complementary outcomes, labeled Yes and No with prices between \$0 and \$1.
 
 
 % Figure % todo: Insert figure and reference it
@@ -60,14 +71,35 @@ Each "market" is a winner-take-all market as outlined in Section \ref{sec:predic
 % Caption: Each market related to a possible decision (50 bps increase, 25 bps decrease, no change, etc.) related to a single FOMC meeting is grouped into 
 
 
-%%%%%%%%%%% PASTED TEXT STARTS HERE %%%%%%%%%%%
+% Figure out how to put this image where I want it to be
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.95\textwidth]{figures/FOMC_event_September.png}
+  \end{center}
+  \caption{September FOMC event on Polymarket as of September 3rd, 2025}
+  % FIX: this
+  \caption*{kjansdkjnakjdnasjkdnakjdnaskjdasndjkn}
+  % \label{fig:front_page}
+\end{figure}
 
 
 \subsubsection{design: Yes/No assets, central limit order book, and full collateralization}
 
+%%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
+
 Trading occurs on a centralized limit order book operated off-chain with on-chain settlement. Participants submit limit orders to buy or sell Yes or No claims at chosen prices; an operator matches orders and submits matched trades to an exchange smart contract that atomically swaps collateral for outcome tokens. Because the order book is continuous and open throughout the market’s life, traders can enter, exit, and revise positions at any time, and prices update in real time as new orders arrive. With two-sided liquidity, standard market microstructure logic applies: supply and demand determine the sequence of matches, and under informational efficiency, the trading process aggregates dispersed signals into prices that serve as real-time forecasts. ([Polymarket Documentation][2])
 
 Contracts are fully collateralized at issuance and throughout trading by design. Operationally, one unit of collateral can be “split” into a full set consisting of one Yes and one No token for the same condition, ensuring that the sum of outcome shares is always backed by 1 unit of collateral that will be released to the eventual winner. Symmetrically, a holder of a full set can “merge” the tokens to reclaim collateral. At resolution, holders of the winning outcome burn their tokens to redeem the embedded collateral. This split/merge/redeem triad enforces the accounting identity behind the no-arbitrage relation $P_{\text{Yes}} + P_{\text{No}} = 1$ and guarantees performance of payoffs at resolution. ([Polymarket Documentation][3])
+
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.95\textwidth]{figures/polymarket_continuous_double_auction.png}
+  \end{center}
+  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
+  % \label{fig:front_page}
+\end{figure}
 
 \subsubsection{discovery and informational interpretation}
 
@@ -119,7 +151,7 @@ Crucially, the split/merge operations are not restricted to matching engine inte
 When the designated oracle finalizes the event’s outcome, the winning side is set to a payout of 1 while the losing side’s payout is 0. Holders of the winning token redeem by burning their positions for collateral via the contract’s redeem function. Because the system remained fully collateralized ex ante, there is no gap risk at resolution; the accounting identity closes as collateral is released to the winner and all losing tokens expire. This completes the contingent-claim lifecycle from issuance, through trading and inventory transformations, to settlement and redemption. ([Polymarket Documentation][8])
 
 
-%%%%%%%%%%% PASTED TEXT ENDS HERE %%%%%%%%%%%
+%%%%%%%%%%% UNREVIEWED TEXT ENDS HERE %%%%%%%%%%%
 
 
 
