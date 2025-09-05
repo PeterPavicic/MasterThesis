@@ -44,31 +44,21 @@ in the context of markets focusing on the interest rate decisions of the US Fede
 
 \subsection{Polymarket}
 
-
-\subsubsection{Concepts and terminology}
-Polymarket is the world's largest prediction market-hosting platform, % todo: Source?
-hosted on the website www.polymarket.com.
-% Figure % todo: Create and reference figure
-% depicts the front page as taken on September 3rd, 2025.
-
 % Figure out how to put this image where I want it to be
 \begin{figure}[H]
   \begin{center}
     \includegraphics[width=0.95\textwidth]{figures/Polymarket_front_page.png}
   \end{center}
-  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
-  % \label{fig:front_page}
+  \caption{The Polymarket front page as of September 3rd, 2025. While sports and politics events drive the highest volume, there are various events related to popular culture (\# of views of next MrBeast video, Top Spotify artist of 2025)}
+  \label{fig:front_page}
 \end{figure}
 
+% \subsubsection{Concepts and terminology}
 
+Polymarket is the world's largest prediction market-hosting platform, % todo: Source?
+hosted on the website www.polymarket.com, and depicted in Figure \ref{fig:front_page}.
 On Polymarket, prediction markets are grouped into "events", which contain "markets" related to a single topic/occasion.
 Each "market" is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}. For each listed market, there are two complementary outcomes, labeled Yes and No with prices between \$0 and \$1.
-
-
-% Figure % todo: Insert figure and reference it
-% depicts the Polymarket event for the interest rate decision of the FOMC following their scheduled September meeting.
-
-% Caption: Each market related to a possible decision (50 bps increase, 25 bps decrease, no change, etc.) related to a single FOMC meeting is grouped into 
 
 
 % Figure out how to put this image where I want it to be
@@ -78,12 +68,12 @@ Each "market" is a winner-take-all market as outlined in Section \ref{sec:predic
   \end{center}
   \caption{September FOMC event on Polymarket as of September 3rd, 2025}
   % FIX: this
-  \caption*{kjansdkjnakjdnasjkdnakjdnaskjdasndjkn}
+  \caption*{Each market related to a possible decision (50+ bps increase, 25 bps decrease, No change, 25+ bps decrease) to a single FOMC meeting is grouped into}
   % \label{fig:front_page}
 \end{figure}
 
 
-\subsubsection{design: Yes/No assets, central limit order book, and full collateralization}
+% \subsubsection{design: Yes/No assets, central limit order book, and full collateralization}
 
 %%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
 
@@ -101,11 +91,11 @@ Contracts are fully collateralized at issuance and throughout trading by design.
   % \label{fig:front_page}
 \end{figure}
 
-\subsubsection{discovery and informational interpretation}
+% \subsubsection{discovery and informational interpretation}
 
 In this structure, each order expresses a view about mispricing of a contingent payoff. When public or private information arrives, informed traders buy underpriced outcomes or sell overpriced ones; their orders move the best quotes and, when matched, move the last trade. Under the efficient markets hypothesis, the price sequence forms a martingale with respect to the market’s information filtration, and the level of the Yes price is an efficient forecast of the event’s risk-neutral probability. The hybrid design does not change the economic logic: the off-chain order book determines matching and the on-chain settlement guarantees delivery, but the informational content is determined by competition among heterogeneous beliefs. The platform’s own presentation of prices as probabilities is consistent with this theoretical interpretation and with empirical evidence that prediction markets aggregate information effectively. ([Polymarket Documentation][4])
 
-\subsubsection{matching mechanics and the linkage between Yes and No}
+% \subsubsection{matching mechanics and the linkage between Yes and No}
 
 Beyond standard maker–taker matches in a single line of the book, Polymarket’s exchange contract implements order-level logic that ties the two complementary tokens together so the full-set accounting holds at execution. As documented by Saguillo, Ghafouri, Kiffer and Suarez-Tangil (2025), there are three economically distinct pathways by which orders get matched and settled:
 
@@ -117,11 +107,11 @@ Burn via OrdersMerged. The reverse operation retires a full set and releases col
 
 These three execution paths are complementary: the direct trade path matches inventory held by other users; the PositionSplit path manufactures fresh inventory when demand is balanced across the complementary books; and the OrdersMerged path retires inventory when supply is balanced. Each path preserves the invariant that a Yes and a No for the same condition are worth, in combination, exactly one unit of collateral at issuance and prior to resolution. The platform’s order-book and API documentation reflect the maker–taker structure and the unified handling of complementary tokens, while independent data sources expose these mechanics through emitted events such as OrdersMatched at the taker level and OrderFilled/OrdersMerged at settlement. ([Polymarket Documentation][2], [Goldsky][7])
 
-\subsubsection{inventory transformations and their implications}
+% \subsubsection{inventory transformations and their implications}
 
 Crucially, the split/merge operations are not restricted to matching engine internals; users may proactively split collateral into a full set or merge a full set back into collateral at any time after a condition is prepared. This enables inventory management and hedging strategies familiar from contingent-claim markets. A trader who wants to make a market can mint full sets to provision inventory on both sides; a trader who has accumulated offsetting Yes and No across executions can merge to crystallize collateral and compress balance-sheet usage. At the microstructure level, these user-driven transformations add elasticity to supply on both sides of the book, which, in turn, tightens complementary pricing and facilitates efficient price discovery. In combination with the three settlement pathways, they make explicit the tight coupling between the books for Yes and No and operationalize the economic identity that one unit of collateral underlies the pair. ([Polymarket Documentation][3])
 
-\subsubsection{and redemption}
+% \subsubsection{and redemption}
 
 % Put this where redemption is explained
 
