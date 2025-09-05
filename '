@@ -1,8 +1,3 @@
-\def\Yes{\text{Yes}}
-\def\No{\text{No}}
-\def\YesPrice{P(\Yes)}
-\def\NoPrice{P(\No)}
-
 \section{Theoretical Framework}
 
 % TODO: Humanise
@@ -49,12 +44,6 @@ in the context of markets focusing on the interest rate decisions of the US Fede
 
 \subsection{Polymarket}
 
-% \subsubsection{Concepts and terminology}
-
-
-\subsubsection{Terminology}
-
-
 % Figure out how to put this image where I want it to be
 \begin{figure}[H]
   \begin{center}
@@ -63,6 +52,19 @@ in the context of markets focusing on the interest rate decisions of the US Fede
   \caption{The Polymarket front page as of September 3rd, 2025. While sports and politics events drive the highest volume, there are various events related to popular culture (\# of views of next MrBeast video, Top Spotify artist of 2025)}
   \label{fig:front_page}
 \end{figure}
+
+% \subsubsection{Concepts and terminology}
+
+Polymarket is the world's largest prediction market-hosting platform, % todo: Source?
+hosted on the website www.polymarket.com, and depicted in Figure \ref{fig:front_page}.
+On Polymarket, prediction markets are grouped into "events", which contain different "markets" related to a single topic/occasion.
+Each "market" is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}, and concens itself with exactly one question regarding the outcome of the event. Market participants can trade on these questions by buying shares in `Yes` and/or `No` claims, with prices for each between \$0 and \$1. A trade is only possible if two individual market participants agree on a price, where $P_{\text{Yes}} =$
+Optimally, the markets for a given event are exhaustive - meaning the set of all questions account for all possible outcomes, meaning that
+% $\sum_{i \in I}^N P_{\text{Yes}} + P_{\text{No}} $
+
+
+While Polymarket is operated on a website, the contacts
+
 
 
 % Figure out how to put this image where I want it to be
@@ -73,31 +75,63 @@ in the context of markets focusing on the interest rate decisions of the US Fede
   \caption{September FOMC event on Polymarket as of September 3rd, 2025}
   % FIX: this
   \caption*{Each market related to possible interest rate decisions (50+ bps increase, 25 bps decrease, No change, 25+ bps decrease) for the September FOMC meeting is grouped into its own event, making it easier for traders to compare prices. While buying both Yes and No shares is possible, shorting is not an option on Polymarket, which is why the cost of all the `Yes` claims exceeds \$1, and the cost of all `No` claims exceeds \$3.}
-  \label{fig:FOMC_event_september}
+  % \label{fig:front_page}
 \end{figure}
 
 
-% FIX: Notation
+% \subsubsection{design: Yes/No assets, central limit order book, and full collateralization}
 
-Polymarket is the world's largest prediction market-hosting platform, % TODO: Source?
-hosted on the website www.polymarket.com, and depicted in Figure \ref{fig:front_page}.
-On Polymarket, prediction markets are grouped into `events`, which contain different `markets` related to a single topic/occasion.
-While anyone can propose an event through social media channels such as Discord and Twitter/X, Polymarket retains the right to create events themselves.
-Each `market` is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}, and concerns itself with exactly one `question` regarding the outcome of the event it is a part of. Market participants can trade on these questions by buying or selling existing shares in binary `Yes` and `No` claims i.e. $C \in {\Yes, \No}$ (called `outcomes` or `outcome shares`), with prices for each of these shares, $P(C) \in \$[0, 1]$. % NOTE: delete duplicate
-When an event concludes, its markets are 'resolved', meaning the claims of the outcome which realised in the world $C^*$ in each market can be converted to \$1 per claim, with claims in the opposite outcome, $C'$, realising a \$0 payoff.
-This resolution happens according to `rules` stipulated for every event, which are designed to provide clarification on the markets' questions, in order to avoid situations where no market could resolve to a `Yes` outcome, despite being designed in such way.
-\citep{PMDocs}
+%%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
 
-Figure \ref{fig:FOMC_event_september} depicts the FOMC interest rate decision event for September, 2025, which features 4 markets regarding the potential interest rate decisions. These markets are non-overlapping and exhaustive, meaning one and only one of the markets will resolve to `Yes`, while the other markets resolve to `No`. This is ensured by the rules, which for this market are:
+Trading occurs on a centralized limit order book operated off-chain with on-chain settlement. Participants submit limit orders to buy or sell Yes or No claims at chosen prices; an operator matches orders and submits matched trades to an exchange smart contract that atomically swaps collateral for outcome tokens. Because the order book is continuous and open throughout the market’s life, traders can enter, exit, and revise positions at any time, and prices update in real time as new orders arrive. With two-sided liquidity, standard market microstructure logic applies: supply and demand determine the sequence of matches, and under informational efficiency, the trading process aggregates dispersed signals into prices that serve as real-time forecasts. ([Polymarket Documentation][2])
+
+Contracts are fully collateralized at issuance and throughout trading by design. Operationally, one unit of collateral can be “split” into a full set consisting of one Yes and one No token for the same condition, ensuring that the sum of outcome shares is always backed by 1 unit of collateral that will be released to the eventual winner. Symmetrically, a holder of a full set can “merge” the tokens to reclaim collateral. At resolution, holders of the winning outcome burn their tokens to redeem the embedded collateral. This split/merge/redeem triad enforces the accounting identity behind the no-arbitrage relation $P_{\text{Yes}} + P_{\text{No}} = 1$ and guarantees performance of payoffs at resolution. ([Polymarket Documentation][3])
+
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.95\textwidth]{figures/polymarket_continuous_double_auction.png}
+  \end{center}
+  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
+  % \label{fig:front_page}
+\end{figure}
+
+% \subsubsection{discovery and informational interpretation}
+
+In this structure, each order expresses a view about mispricing of a contingent payoff. When public or private information arrives, informed traders buy underpriced outcomes or sell overpriced ones; their orders move the best quotes and, when matched, move the last trade. Under the efficient markets hypothesis, the price sequence forms a martingale with respect to the market’s information filtration, and the level of the Yes price is an efficient forecast of the event’s risk-neutral probability. The hybrid design does not change the economic logic: the off-chain order book determines matching and the on-chain settlement guarantees delivery, but the informational content is determined by competition among heterogeneous beliefs. The platform’s own presentation of prices as probabilities is consistent with this theoretical interpretation and with empirical evidence that prediction markets aggregate information effectively. ([Polymarket Documentation][4])
+
+% \subsubsection{matching mechanics and the linkage between Yes and No}
+
+Beyond standard maker–taker matches in a single line of the book, Polymarket’s exchange contract implements order-level logic that ties the two complementary tokens together so the full-set accounting holds at execution. As documented by Saguillo, Ghafouri, Kiffer and Suarez-Tangil (2025), there are three economically distinct pathways by which orders get matched and settled:
+
+Direct trade. A taker’s marketable limit order in a given outcome token matches resting maker orders on the same side of the market. Settlement is a straightforward token-for-collateral swap at the matched price(s). On-chain, these fills are recorded as OrderFilled events. This is the pure order-book mechanism familiar from equities, and it governs most routine executions. ([arXiv][5])
+
+Mint via PositionSplit. Because complementary outcomes must sum to one dollar of collateral, the exchange can also satisfy opposite-side demand across the two books by minting a new full set. When a buy order for Yes at price $p$ meets a buy order for No at price $1-p$, the contract locks 1 unit of collateral and mints one Yes and one No token, delivering each to the respective buyer. Economically, this is equivalent to sourcing inventory from the collateral pool rather than from an external holder. On-chain, the mint is captured by a PositionSplit event alongside OrderFilled events for the two sides. This pathway helps keep the two order books coupled and supports tight complementary pricing even when inventory on one side is scarce. ([arXiv][5], [Polymarket Documentation][3])
+
+Burn via OrdersMerged. The reverse operation retires a full set and releases collateral when aggregate sell orders across the two books sum to one dollar. For example, simultaneous sells of Yes at $p$ and No at $1-p$ allow the contract to burn the pair of tokens and return 1 unit of collateral to the sellers’ counterparties, recording an OrdersMerged event together with the corresponding OrderFilled events. Economically, this drains inventory back into the collateral pool and enforces the accounting constraint in the face of two-sided liquidation pressure. ([arXiv][5], [Polymarket Documentation][6])
+
+These three execution paths are complementary: the direct trade path matches inventory held by other users; the PositionSplit path manufactures fresh inventory when demand is balanced across the complementary books; and the OrdersMerged path retires inventory when supply is balanced. Each path preserves the invariant that a Yes and a No for the same condition are worth, in combination, exactly one unit of collateral at issuance and prior to resolution. The platform’s order-book and API documentation reflect the maker–taker structure and the unified handling of complementary tokens, while independent data sources expose these mechanics through emitted events such as OrdersMatched at the taker level and OrderFilled/OrdersMerged at settlement. ([Polymarket Documentation][2], [Goldsky][7])
+
+% \subsubsection{inventory transformations and their implications}
+
+Crucially, the split/merge operations are not restricted to matching engine internals; users may proactively split collateral into a full set or merge a full set back into collateral at any time after a condition is prepared. This enables inventory management and hedging strategies familiar from contingent-claim markets. A trader who wants to make a market can mint full sets to provision inventory on both sides; a trader who has accumulated offsetting Yes and No across executions can merge to crystallize collateral and compress balance-sheet usage. At the microstructure level, these user-driven transformations add elasticity to supply on both sides of the book, which, in turn, tightens complementary pricing and facilitates efficient price discovery. In combination with the three settlement pathways, they make explicit the tight coupling between the books for Yes and No and operationalize the economic identity that one unit of collateral underlies the pair. ([Polymarket Documentation][3])
+
+% \subsubsection{and redemption}
+
+% Put this where redemption is explained
+
 
 % September market rules
 \begin{quote}
   {
-    \smaller[1]
     \raggedright
     The FED interest rates are defined in this market by the upper bound of the target federal funds range. The decisions on the target federal fund range are made by the Federal Open Market Committee (FOMC) meetings.
+
     This market will resolve to the amount of basis points the upper bound of the target federal funds rate is changed by versus the level it was prior to the Federal Reserve's September 2025 meeting.
+
     If the target federal funds rate is changed to a level not expressed in the displayed options, the change will be rounded up to the nearest 25 and will resolve to the relevant bracket. (e.g. if there's a cut/increase of 12.5 bps it will be considered to be 25 bps)
+
     The resolution source for this market is the FOMC’s statement after its meeting scheduled for September 16 - 17, 2025 according to the official calendar:
     % \linebreak
     https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.
@@ -109,77 +143,6 @@ Figure \ref{fig:FOMC_event_september} depicts the FOMC interest rate decision ev
     This market may resolve as soon as the FOMC’s statement for their September meeting with relevant data is issued. If no statement is released by the end date of the next scheduled meeting, this market will resolve to the "No change" bracket. 
   }
 \end{quote}
-
-
-
-\subsubsection{Order Matching}
-
-As Figure \ref{fig:FOMC_event_september} shows, market participants can submit limit or market orders to buy or sell Yes or No claims.
-While buying is allowed at any quantity, short selling is not permitted on Polymarket, and only owned shares can be sold.
-This results in some price-inefficiencies, such as in \ref{fig:FOMC_event_september}, where despite the exhaustive set of markets, for each market $i$ in the set of markets in that event, $I$, the bid prices exhibit $\sum_{i \in I} \YesPrice_{i} \ne \$1$, $\sum_{i \in I} \NoPrice_{, i} \ne \$3$, as well as $\sum_{i \in I} (\YesPrice_{, i} + \NoPrice) \ne \$4$. This, however, is not exploitable due to lack of short-selling.
-As explained in Section \ref{sec:prediction_markets}, a trade is only possible if two individual market participants agree on a price, which is why on Polymarket, it is mechanically ensured that $\P(C) + P(C') = \$1$ for any two complementary claims (opposite outcomes).
-This guarantees that every pair of claims $(C, C') \in {\Yes, \No}$ is necessarily fully collateralised by \$1, put up by the holders of the `Yes` and `No` shares, ensuring the successful resolution of the market. \citep{PMDocs}
-
-Trading on Polymarket takes form in a continuous double auction, with no halts in trading between a market's opening and its resolution.
-This is shown in Figure \ref{fig:continuous_double_auction}, with resting bid and ask limit orders being displayed for `Yes` outcome claims in the market for the FOMC meeting in September to conclude with a 25 bps decrease in the upper bound of the target federal funds range.
-
-Mechanically, this is realised on Polymarket's centralised limit order book (CLOB) which has a `hybrid` organisation of off-chain order matching, and on-chain settlement.
-This entails that market participants' orders are submitted to the CLOB, hosted on Polymarket servers, where they are matched into trades. Once a trade has been recorded on the servers, the actual settlement, execution, and recording of transactions takes place on the Polygon blockchain.
-While an in-depth description of the blockchain mechanism is beyond the scope of this thesis, the key implication is that all trades on Polymarket are publicly available, with identifiable users.
-Internally, pairs of opposing outcome shares $(C, C')$ are represented by pairs of `binary outcome tokens`, which are pairs of $\Yes$ and $\No$ claims in the same market, created upon being exchanged for and collateralised by the same nominal amount of `USDC`, the underlying currency for all exchange taking place on Polymarket.
-USDC is a cryptocurrency (a stablecoin), which is pegged to the United States dollar, and has been since 2021 accepted in transaction settlement by payment services provider Visa. \citep{hussain_visa_2021}.
-For the purposes of this thesis, `USDC` will be referred to in terms of US dollars (1 USDC = 1 USD), while the term `outcome token` may be used to refer to digital assets representing a single share in a claim. 
-The effects of Polymarket's internal mechanisms on data acquisition is elaborated on in Section \ref{sec:polymarket_data}.
-
-There are three distinct possibilities by which market participants' orders are matched:
-
-\paragraph{Direct trade} A marketable order (by a liquidity taker) in a given claim $C$ matches resting liquidity providing (maker) orders in the same claim $C$. Here, one side is selling the claim $C$, while their counterparty in the trade is buying that same claim.
-Internally, settlement is a straightforward token-for-USDC swap at the matched price.
-% On-chain, these transactions are recorded as `OrderFilled` events.
-This order-matching mechanism is essentially identical to the one familiar from traditional equities markets.
-
-
-%%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
-\paragraph{Minting new tokens} Because a pair of opposite outcome tokens $(C, C')$ are always backed by \$1 of collateral,
-two buy orders from opposite-token orderbooks can also be matched if they agree on the price.
-In this case, new sets of binary outcome tokens are created, a process referred to as 'minting', where each pair of outcome tokens $(C, C')$ is backed by \$1 put up cumulatively by the counterparties of the trade. It can also be said that each dollar of collateral is 'split' into a pair of outcome tokens.
-This happens when there exists a resting limit buy order (a bid) for the claim $C$ with price $P(C) =: p$, which is then matched with an incoming marketable buy order (another bid) for the opposite claim $C'$ with price $P(C') = 1 - p$.
-This order-matching mechanism is essential to the functioning of winner-take-all prediction markets.
-
-\paragraph{Burning tokens} The reverse operation of minting, this operation eliminates a set of outcome tokens $(C, C')$ from the market and releases the collateral which was used to back it.
-This happens when two sell orders in opposite tokens' orderbooks sum to one dollar. Here, 
-aggregate sell orders across the two books . For example, simultaneous sells of Yes at $p$ and No at $1-p$ allow the contract to burn the pair of tokens and return 1 unit of collateral to the sellers’ counterparties, recording an OrdersMerged event together with the corresponding OrderFilled events. Economically, this drains inventory back into the collateral pool and enforces the accounting constraint in the face of two-sided liquidation pressure. ([arXiv][5], [Polymarket Documentation][6])
-
-These three execution paths are complementary: the direct trade path matches inventory held by other users; the PositionSplit path manufactures fresh inventory when demand is balanced across the complementary books; and the OrdersMerged path retires inventory when supply is balanced. Each path preserves the invariant that a Yes and a No for the same condition are worth, in combination, exactly one unit of collateral at issuance and prior to resolution. The platform’s order-book and API documentation reflect the maker–taker structure and the unified handling of complementary tokens, while independent data sources expose these mechanics through emitted events such as OrdersMatched at the taker level and OrderFilled/OrdersMerged at settlement. ([Polymarket Documentation][2], [Goldsky][7])
-
-% \subsubsection{inventory transformations and their implications}
-
-Crucially, the split/merge operations are not restricted to matching engine internals; users may proactively split collateral into a full set or merge a full set back into collateral at any time after a condition is prepared. This enables inventory management and hedging strategies familiar from contingent-claim markets. A trader who wants to make a market can mint full sets to provision inventory on both sides; a trader who has accumulated offsetting Yes and No across executions can merge to crystallize collateral and compress balance-sheet usage. At the microstructure level, these user-driven transformations add elasticity to supply on both sides of the book, which, in turn, tightens complementary pricing and facilitates efficient price discovery. In combination with the three settlement pathways, they make explicit the tight coupling between the books for Yes and No and operationalize the economic identity that one unit of collateral underlies the pair. ([Polymarket Documentation][3])
-
-
-
-% SPLITS AND MERGES
-Operationally, one unit of collateral can be “split” into a full set consisting of one Yes and one No token for the same condition, ensuring that the sum of outcome shares is always backed by 1 unit of collateral that will be released to the eventual winner. Symmetrically, a holder of a full set can “merge” the tokens to reclaim collateral. At resolution, holders of the winning outcome burn their tokens to redeem the embedded collateral. This split/merge/redeem triad enforces the accounting identity behind the no-arbitrage relation $P_{\text{Yes}} + P_{\text{No}} = 1$ and guarantees performance of payoffs at resolution. ([Polymarket Documentation][3])
-
-
-% Figure out how to put this image where I want it to be
-\begin{figure}[H]
-  \begin{center}
-    \includegraphics[width=0.95\textwidth]{figures/polymarket_continuous_double_auction.png}
-  \end{center}
-  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
-  \label{fig:continuous_double_auction}
-\end{figure}
-
-% \subsubsection{discovery and informational interpretation}
-
-% \subsubsection{matching mechanics and the linkage between Yes and No}
-
-% \subsubsection{and redemption}
-
-% Put this where redemption is explained
-
-
 
 When the designated oracle finalizes the event’s outcome, the winning side is set to a payout of 1 while the losing side’s payout is 0. Holders of the winning token redeem by burning their positions for collateral via the contract’s redeem function. Because the system remained fully collateralized ex ante, there is no gap risk at resolution; the accounting identity closes as collateral is released to the winner and all losing tokens expire. This completes the contingent-claim lifecycle from issuance, through trading and inventory transformations, to settlement and redemption. ([Polymarket Documentation][8])
 
