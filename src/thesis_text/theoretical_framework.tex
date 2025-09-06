@@ -9,8 +9,8 @@
 \subsection{Prediction Markets} \label{sec:prediction_markets}
 
 Prediction markets are financial markets designed to forecast future events. Participants of prediction markets trade state-contingent claims whose payoff depends on how those future events unfold.
-While different types of prediction markets have been designed, the scope of this thesis is limited to winner-take-all prediction markets. These markets are typically structured in the following way: a claim costs $\$p$ today and pays $\$1$ if and only if the stated event occurs, and $\$0$ otherwise. This structure implies two participants agreeing on the price $\$p$ which one of the participants pays, the other putting up $\$(1 - p)$, with the winner receiving "all" of the dollar put up in collateral as their payoff. \citep{wolfers_prediction_2004}. 
-% Arrow-Debreu securities? 
+While different types of prediction markets have been designed, the scope of this thesis is limited to winner-take-all prediction markets. These markets are typically structured in the following way: a claim costs $\$p$ today and pays $\$1$ if and only if the stated event occurs, and $\$0$ otherwise. This structure implies two participants agreeing on the price $\$p$ which one of the participants pays, the other putting up $\$(1 - p)$, with the winner receiving "all" of the dollar put up in collateral as their payoff. \citep{wolfers_prediction_2004}.
+% Arrow-Debreu securities?
 % The price $p$ can be read as the market-implied (risk-neutral) probability that the event happens, because the contract’s expected payoff equals p. Put differently, the price is a state price; under standard assumptions it coincides with the event’s probability. The same logic underlies families of related contracts (for example, across thresholds or outcomes), whose internal consistency and co-movement reflect how new information is incorporated through trading.
 
 Through price discovery, traditional financial markets aggregate information about the value of assets. Prediction markets’ primary purpose is leveraging this role of markets for forecasting. Under the Efficient Markets Hypothesis, the market price on prediction markets should reflect the risk-neutral probabilities of the event in question, encompassing all available information.
@@ -48,8 +48,6 @@ in the context of markets focusing on the interest rate decisions of the US Fede
 \newpage
 
 \subsection{Polymarket}
-
-% \subsubsection{Concepts and terminology}
 
 
 \subsubsection{Terminology}
@@ -106,17 +104,36 @@ Figure \ref{fig:FOMC_event_september} depicts the FOMC interest rate decision ev
     % \linebreak
     https://www.federalreserve.gov/monetarypolicy/openmarket.htm.
 
-    This market may resolve as soon as the FOMC’s statement for their September meeting with relevant data is issued. If no statement is released by the end date of the next scheduled meeting, this market will resolve to the "No change" bracket. 
+    This market may resolve as soon as the FOMC’s statement for their September meeting with relevant data is issued. If no statement is released by the end date of the next scheduled meeting, this market will resolve to the "No change" bracket.
   }
 \end{quote}
 
 
-
 \subsubsection{Order Matching}
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.95\textwidth]{figures/polymarket_continuous_double_auction_Yes.png}
+  \end{center}
+  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
+  \label{fig:continuous_double_auction}
+\end{figure}
+
+% Figure out how to put this image where I want it to be
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.95\textwidth]{figures/polymarket_orderbook.png}
+  \end{center}
+  % \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
+  % TODO: Add caption
+% the 'total' displayed is cumulative, making this equivalence more difficult to spot for limit orders which are not the best bid or best ask.
+  \label{fig:polymarket_orderbook}
+\end{figure}
 
 As Figure \ref{fig:FOMC_event_september} shows, market participants can submit limit or market orders to buy or sell Yes or No claims.
 While buying is allowed at any quantity, short selling is not permitted on Polymarket, and only owned shares can be sold.
-This results in some price-inefficiencies, such as in \ref{fig:FOMC_event_september}, where despite the exhaustive set of markets, for each market $i$ in the set of markets in that event, $I$, the bid prices exhibit $\sum_{i \in I} \YesPrice_{i} \ne \$1$, $\sum_{i \in I} \NoPrice_{, i} \ne \$3$, as well as $\sum_{i \in I} (\YesPrice_{, i} + \NoPrice) \ne \$4$. This, however, is not exploitable due to lack of short-selling.
+This results in some price-inefficiencies, such as in \ref{fig:FOMC_event_september}, where despite the exhaustive set of markets, for each market $i$ in the set of markets in that event, $I$, the bid prices exhibit $\sum_{i \in I} \YesPrice_{i} \ne \$1$, $\sum_{i \in I} \NoPrice_{i} \ne \$3$, as well as $\sum_{i \in I} (\YesPrice_{i} + \NoPrice_{i}) \ne \$4$. This, however, is not exploitable due to lack of short-selling.
 As explained in Section \ref{sec:prediction_markets}, a trade is only possible if two individual market participants agree on a price, which is why on Polymarket, it is mechanically ensured that $\P(C) + P(C') = \$1$ for any two complementary claims (opposite outcomes).
 This guarantees that every pair of claims $(C, C') \in {\Yes, \No}$ is necessarily fully collateralised by \$1, put up by the holders of the `Yes` and `No` shares, ensuring the successful resolution of the market. \citep{PMDocs}
 
@@ -128,7 +145,7 @@ This entails that market participants' orders are submitted to the CLOB, hosted 
 While an in-depth description of the blockchain mechanism is beyond the scope of this thesis, the key implication is that all trades on Polymarket are publicly available, with identifiable users.
 Internally, pairs of opposing outcome shares $(C, C')$ are represented by pairs of `binary outcome tokens`, which are pairs of $\Yes$ and $\No$ claims in the same market, created upon being exchanged for and collateralised by the same nominal amount of `USDC`, the underlying currency for all exchange taking place on Polymarket.
 USDC is a cryptocurrency (a stablecoin), which is pegged to the United States dollar, and has been since 2021 accepted in transaction settlement by payment services provider Visa. \citep{hussain_visa_2021}.
-For the purposes of this thesis, `USDC` will be referred to in terms of US dollars (1 USDC = 1 USD), while the term `outcome token` may be used to refer to digital assets representing a single share in a claim. 
+For the purposes of this thesis, `USDC` will be referred to in terms of US dollars (1 USDC = 1 USD), while the term `outcome token` may be used to refer to digital assets representing a single share in a claim.
 The effects of Polymarket's internal mechanisms on data acquisition is elaborated on in Section \ref{sec:polymarket_data}.
 
 There are three distinct possibilities by which market participants' orders are matched:
@@ -139,77 +156,33 @@ Internally, settlement is a straightforward token-for-USDC swap at the matched p
 This order-matching mechanism is essentially identical to the one familiar from traditional equities markets.
 
 
-%%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
 \paragraph{Minting new tokens} Because a pair of opposite outcome tokens $(C, C')$ are always backed by \$1 of collateral,
 two buy orders from opposite-token orderbooks can also be matched if they agree on the price.
-In this case, new sets of binary outcome tokens are created, a process referred to as 'minting', where each pair of outcome tokens $(C, C')$ is backed by \$1 put up cumulatively by the counterparties of the trade. It can also be said that each dollar of collateral is 'split' into a pair of outcome tokens.
-This happens when there exists a resting limit buy order (a bid) for the claim $C$ with price $P(C) =: p$, which is then matched with an incoming marketable buy order (another bid) for the opposite claim $C'$ with price $P(C') = 1 - p$.
-This order-matching mechanism is essential to the functioning of winner-take-all prediction markets.
+In this case, new sets of binary outcome tokens are created, a process referred to as 'minting', where each pair of outcome tokens $(C, C')$ is backed by \$1 put up cumulatively by the counterparties of the trade.
+Terminologically it can also be said that each dollar of collateral is 'split' into a pair of outcome tokens.
+This happens when there exists a resting limit buy order (a bid) for the claim $C$ with price $P(C) =: p$, which is then matched with an incoming marketable buy (another bid) of the same size for the opposite claim $C'$ with price $P(C') = 1 - p$.
 
 \paragraph{Burning tokens} The reverse operation of minting, this operation eliminates a set of outcome tokens $(C, C')$ from the market and releases the collateral which was used to back it.
-This happens when two sell orders in opposite tokens' orderbooks sum to one dollar. Here, 
-aggregate sell orders across the two books . For example, simultaneous sells of Yes at $p$ and No at $1-p$ allow the contract to burn the pair of tokens and return 1 unit of collateral to the sellers’ counterparties, recording an OrdersMerged event together with the corresponding OrderFilled events. Economically, this drains inventory back into the collateral pool and enforces the accounting constraint in the face of two-sided liquidation pressure. ([arXiv][5], [Polymarket Documentation][6])
+This happens when two sell orders in opposite tokens' orderbooks sum such that the number of pairs of outcome tokens matches the amount of USDC cumulatively demanded, for them, i.e. when a resting sell order (an ask) for $C$ wishes to sell at price $P(C) =: p$, which is matched by an incoming marketable sell order of $C'$ of the same size at price $P(C') =: 1 - p$.
+The set of tokens $(C, C')$ are burned (or 'merged'), and each side receives the collateral that had been initially put up when the tokens were minted.
 
-These three execution paths are complementary: the direct trade path matches inventory held by other users; the PositionSplit path manufactures fresh inventory when demand is balanced across the complementary books; and the OrdersMerged path retires inventory when supply is balanced. Each path preserves the invariant that a Yes and a No for the same condition are worth, in combination, exactly one unit of collateral at issuance and prior to resolution. The platform’s order-book and API documentation reflect the maker–taker structure and the unified handling of complementary tokens, while independent data sources expose these mechanics through emitted events such as OrdersMatched at the taker level and OrderFilled/OrdersMerged at settlement. ([Polymarket Documentation][2], [Goldsky][7])
+Visually, as shown in Figure \ref{fig:polymarket_orderbook}, limit orders in orderbooks of a pair of outcome tokens $(C, C')$ are represented symmetrically, i.e. bids (resp. asks) in $C$ will be shown as asks (resp. bids) in $C'$, and vice versa. This follows the logic described above, since any of the three options for order matching appear the same to market participants.
+Each of these order-matching mechanisms work based on the necessary condition that $P(C) + P(C') = \$1$, which underlies winner-take-all markets.
+It is important to note that this is the only arbitrage-eliminating mechanism implemented internally, and that this only works on the level of markets, not events.
+Since events are just collections of markets, there is no internal mechanism to prevent arbitrage across markets, such as
+$\sum_{i \in I} \YesPrice_{i} \le \$1$, $\sum_{i \in I} \NoPrice_{i} \le \$N - 1$, as well as $\sum_{i \in I} (\YesPrice_{i} + \NoPrice_{i}) \le \$N$,
+where $i$ is a market in the set of markets for a given event $I$ which contains $N$ number of markets.
+\citep{PMDocs, saguillo_unravelling_2025}
 
-% \subsubsection{inventory transformations and their implications}
+Additionally, the split/merge operations (minting and burning tokens) are not restricted to order matching.
+Users may themselves at any time during the market's lifetime split units of USDC into pairs of binary outcome tokens $(C, C')$, 'buying' each for \$0.50, or merge a pair of tokens to receive the underlying collateral.
+The former can be useful to market participants who wish to act as market makers, while the latter can be used to liquidate large positions over time without moving markets too heavily.
 
-Crucially, the split/merge operations are not restricted to matching engine internals; users may proactively split collateral into a full set or merge a full set back into collateral at any time after a condition is prepared. This enables inventory management and hedging strategies familiar from contingent-claim markets. A trader who wants to make a market can mint full sets to provision inventory on both sides; a trader who has accumulated offsetting Yes and No across executions can merge to crystallize collateral and compress balance-sheet usage. At the microstructure level, these user-driven transformations add elasticity to supply on both sides of the book, which, in turn, tightens complementary pricing and facilitates efficient price discovery. In combination with the three settlement pathways, they make explicit the tight coupling between the books for Yes and No and operationalize the economic identity that one unit of collateral underlies the pair. ([Polymarket Documentation][3])
+% However, split/merge operations need to be traded at some point to make a difference to the participant performing them. This means analysing transactions is sufficient.
 
-
-
-% SPLITS AND MERGES
-Operationally, one unit of collateral can be “split” into a full set consisting of one Yes and one No token for the same condition, ensuring that the sum of outcome shares is always backed by 1 unit of collateral that will be released to the eventual winner. Symmetrically, a holder of a full set can “merge” the tokens to reclaim collateral. At resolution, holders of the winning outcome burn their tokens to redeem the embedded collateral. This split/merge/redeem triad enforces the accounting identity behind the no-arbitrage relation $P_{\text{Yes}} + P_{\text{No}} = 1$ and guarantees performance of payoffs at resolution. ([Polymarket Documentation][3])
-
-
-% Figure out how to put this image where I want it to be
-\begin{figure}[H]
-  \begin{center}
-    \includegraphics[width=0.95\textwidth]{figures/polymarket_continuous_double_auction.png}
-  \end{center}
-  \caption{The Polymarket front page as of September 3rd, 2025. While there is a variety of events, sports and politics markets are among the most popular}
-  \label{fig:continuous_double_auction}
-\end{figure}
-
-% \subsubsection{discovery and informational interpretation}
-
-% \subsubsection{matching mechanics and the linkage between Yes and No}
-
-% \subsubsection{and redemption}
 
 % Put this where redemption is explained
-
-
-
-When the designated oracle finalizes the event’s outcome, the winning side is set to a payout of 1 while the losing side’s payout is 0. Holders of the winning token redeem by burning their positions for collateral via the contract’s redeem function. Because the system remained fully collateralized ex ante, there is no gap risk at resolution; the accounting identity closes as collateral is released to the winner and all losing tokens expire. This completes the contingent-claim lifecycle from issuance, through trading and inventory transformations, to settlement and redemption. ([Polymarket Documentation][8])
-
-
-%%%%%%%%%%% UNREVIEWED TEXT ENDS HERE %%%%%%%%%%%
-
-
-
-
-
-% TODO: Humanise
-\subsection{Polymarket}
-
-
-
-% \subsubsection{claims and probabilistic pricing}
-%
-%
-% ## Summary
-%
-% Polymarket can be read entirely through the lens of contingent-claim pricing and order-driven microstructure. Yes and No outcome claims are fully collateralized complements whose prices add to one and whose Yes price is the market’s risk-neutral probability of the event. A hybrid CLOB matches orders continuously, with three settlement pathways-direct trade, mint via PositionSplit, and burn via OrdersMerged—tying the complementary books together. Users themselves can split and merge full sets, adding supply elasticity and aiding price alignment. Under standard efficiency assumptions, this design delivers real-time price discovery in the form of probability-like prices that aggregate dispersed information about future events. ([Polymarket Documentation][2], [arXiv][5])
-%
-% [1]: https://docs.polymarket.com/polymarket-learn/FAQ/what-are-prediction-markets?utm_source=chatgpt.com "What is a Prediction Market?"
-% [2]: https://docs.polymarket.com/developers/CLOB/introduction?utm_source=chatgpt.com "CLOB Introduction"
-% [3]: https://docs.polymarket.com/developers/CTF/split?utm_source=chatgpt.com "Splitting USDC"
-% [4]: https://docs.polymarket.com/polymarket-learn/trading/how-are-prices-calculated?utm_source=chatgpt.com "How Are Prices Calculated?"
-% [5]: https://arxiv.org/html/2508.03474v1 "Unravelling the Probabilistic Forest: Arbitrage in Prediction Markets"
-% [6]: https://docs.polymarket.com/developers/CTF/merge?utm_source=chatgpt.com "Merging Tokens"
-% [7]: https://goldsky.com/blog/polymarket-dataset?utm_source=chatgpt.com "Announcing: Polymarket Datasets Available Now - Goldsky"
-% [8]: https://docs.polymarket.com/developers/CTF/redeem?utm_source=chatgpt.com "Reedeeming Tokens"
+% When the designated oracle finalizes the event’s outcome, the winning side is set to a payout of 1 while the losing side’s payout is 0. Holders of the winning token redeem by burning their positions for collateral via the contract’s redeem function. Because the system remained fully collateralized ex ante, there is no gap risk at resolution; the accounting identity closes as collateral is released to the winner and all losing tokens expire. This completes the contingent-claim lifecycle from issuance, through trading and inventory transformations, to settlement and redemption. ([Polymarket Documentation][8])
 
 
 % TODO: Humanise
@@ -217,17 +190,17 @@ When the designated oracle finalizes the event’s outcome, the winning side is 
 
 \subsubsection{Effective Federal Funds Rate (EFFR)}
 
-The effective federal funds rate is the transaction-volume-weighted median interest rate on unsecured overnight loans of reserve balances between depository institutions in the United States. The Federal Reserve Bank of New York computes the EFFR from FR 2420 transactional reports and publishes it for the prior business day at approximately 9:00 a.m. New York time. This benchmark rate is the underlying reference for CME’s 30-Day Federal Funds futures.
-% TODO: Add citation for fed article describing EFFR
-% \cite{FED OF New York}
+The effective federal funds rate is the volume-weighted median interest rate on uncollateralised overnight loans of US dollar reserve balances between depository institutions in the United States. The Federal Reserve Bank of New York computes the EFFR and publishes it for the previous business day at approximately 9:00 a.m. New York time every day. This benchmark rate is the underlying asset of the Chicago Mercantile Exchange’s (CME's) 30-Day Federal Funds futures. \citep{FED_EFFR_NY}
 
+
+%%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
 \subsubsection{Price quoting and the implied monthly average}
 
 CME 30-Day Federal Funds (ZQ) futures are quoted in IMM index terms, with price equal to 100 minus the market-implied arithmetic average of daily EFFR over the contract’s calendar month. If the futures price for month T is $P_t^T$ (percent), the implied expected monthly average is
 
 $$\mathbb{E}_t[\overline{r}_T] = 100 - P_t^T$$
 
-where $\overline{r}_T$ denotes the arithmetic average of daily EFFR realizations during month $T$. This mapping follows directly from the contract’s price quotation and settlement definition. 
+where $\overline{r}_T$ denotes the arithmetic average of daily EFFR realizations during month $T$. This mapping follows directly from the contract’s price quotation and settlement definition.
 % TODO: add citation for CME group's FedWatch methodology tool
 
 
@@ -255,30 +228,27 @@ Operationally, one identifies the nearest full non-meeting month, reads $\text{E
 
 Consider a meeting month $T$ with $m_T$ calendar days and $k_T$ days before the policy change becomes effective. Let $r_T^{-}$ denote the pre-meeting EFFR level and $r_T^{+}$ the post-meeting level. Because the futures price reflects the arithmetic monthly average, the implied average satisfies the time-weighting identity
 
-$$\mathbb{E}_t[\overline{r}_T] = \omega_T\, r_T^{-} + (1-\omega_T)\,\mathbb{E}_t[r_T^{+}], \qquad \omega_T \equiv \frac{k_T}{m_T}
-$$
+$$\mathbb{E}_t[\overline{r}_T] = \omega_T\, r_T^{-} + (1-\omega_T)\,\mathbb{E}_t[r_T^{+}], \qquad \omega_T \equiv \frac{k_T}{m_T}$$
 
 Solving for the expected post-meeting level gives
 
 $$\mathbb{E}_t[r_T^{+}] = \frac{m_T\,\mathbb{E}_t[\overline{r}_T] - k_T\, r_T^{-}}{m_T-k_T}$$
 
-When the following month $T{+}1$ is an anchor, $\mathbb{E}_t[r_T^{+}]$ is identified directly from $\text{EFFR(Avg)}_{T+1}$. On the other hand, if the prior month is an anchor, $\,r_T^{-}$ is identified from $\text{EFFR(Avg)}_{T-1}$. In either case, the time-weighting identity links the observable ZQ-implied monthly average to the unobservable post-meeting level and enables sequential solution across the term structure. 
+When the following month $T{+}1$ is an anchor, $\mathbb{E}_t[r_T^{+}]$ is identified directly from $\text{EFFR(Avg)}_{T+1}$. On the other hand, if the prior month is an anchor, $\,r_T^{-}$ is identified from $\text{EFFR(Avg)}_{T-1}$. In either case, the time-weighting identity links the observable ZQ-implied monthly average to the unobservable post-meeting level and enables sequential solution across the term structure.
 % TODO: add citation for CME group's FedWatch methodology tool
 
 \subsubsection{Probability calculations via the characteristic–mantissa method}
 
 Define the expected change in EFFR over the meeting month as $\Delta_T^{*} \equiv \mathbb{E}_t[r_T^{+}] - r_T^{-}$. Express this in units of 25 bps, $\,n_T^{*} \equiv \Delta_T^{*}/0.25\%$. Decompose $n_T^{*}$ into its characteristic (integer) and mantissa (fractional) parts:
 
-$$
-n_T^{*} = n_T + y_T,\qquad n_T \in \mathbb{Z}_{\ge 0}, 0 \le y_T < 1.
-$$
+$$n_T^{*} = n_T + y_T,\qquad n_T \in \mathbb{Z}_{\ge 0}, 0 \le y_T < 1.$$
 
 FedWatch interprets this as two mutually exclusive outcomes at the meeting: a change of $n_T \times 25$ bps with probability $1-y_T$, and a change of $(n_T{+}1)\times 25$ bps with probability $y_T$. When the expected change is less than one increment ($n_T=0$), this reduces to the familiar binomial case of no change versus a single 25-bp move with probabilities $1-y_T$ and $y_T$, respectively. In the special case where the next month is an anchor and one wishes to ask only “hike or hold by 25 bps,” the implied probability collapses to
 
-$$
-\mathbb{P}(\text{25 bp hike}) 
+$$\mathbb{P}(\text{25 bp hike})
 = \frac{\text{EFFR(End)}_{T}-\text{EFFR(Start)}_{T}}{0.25\%},
-\qquad 
-\mathbb{P}(\text{hold})=1-\mathbb{P}(\text{hike}),
-$$
+\qquad
+\mathbb{P}(\text{hold})=1-\mathbb{P}(\text{hike}),$$
 
+
+%%%%%%%%%%% UNREVIEWED TEXT ENDS HERE %%%%%%%%%%%
