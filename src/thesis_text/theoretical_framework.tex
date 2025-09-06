@@ -9,12 +9,12 @@
 \subsection{Prediction Markets} \label{sec:prediction_markets}
 
 Prediction markets are financial markets designed to forecast future events. Participants of prediction markets trade state-contingent claims whose payoff depends on how those future events unfold.
-While different types of prediction markets have been designed, the scope of this thesis is limited to winner-take-all prediction markets. These markets are typically structured in the following way: a claim costs $\$p$ today and pays $\$1$ if and only if the stated event occurs, and $\$0$ otherwise. This structure implies two participants agreeing on the price $\$p$ which one of the participants pays, the other putting up $\$(1 - p)$, with the winner receiving "all" of the dollar put up in collateral as their payoff. \citep{wolfers_prediction_2004}.
+While different types of prediction markets have been designed, the scope of this thesis is limited to winner-take-all prediction markets. These markets are typically structured in the following way: a claim costs $\$p$ today and pays $\$1$ if and only if the stated event occurs, and $\$0$ otherwise. This structure implies two participants agreeing on the price $\$p$ which one of the participants pays, the other putting up $\$(1 - p)$, with the winner receiving "all" of the dollar put up in collateral as their payoff. \parencite{wolfers_prediction_2004}.
 % Arrow-Debreu securities?
 % The price $p$ can be read as the market-implied (risk-neutral) probability that the event happens, because the contract’s expected payoff equals p. Put differently, the price is a state price; under standard assumptions it coincides with the event’s probability. The same logic underlies families of related contracts (for example, across thresholds or outcomes), whose internal consistency and co-movement reflect how new information is incorporated through trading.
 
 Through price discovery, traditional financial markets aggregate information about the value of assets. Prediction markets’ primary purpose is leveraging this role of markets for forecasting. Under the Efficient Markets Hypothesis, the market price on prediction markets should reflect the risk-neutral probabilities of the event in question, encompassing all available information.
-\citep{berg_prediction_2008}
+\parencite{berg_prediction_2008}
 
 
 % A winner-take-all example makes this concrete. Suppose there is a market on an election between two candidates, A and B. The contract “A wins” pays \$1 if A is elected, \$0 otherwise; likewise for “B wins.” In equilibrium, the “YES” price on A (say 0.62) is the market’s risk-neutral probability that A will win (62\%), and the “YES” price on B will be close to 1 - 0.62 = 0.38. If the two “YES” prices do not sum to one, arbitrageurs can buy the underpriced side(s) or sell the overpriced side(s) until prices realign, restoring probabilistic coherence and reinforcing information aggregation.
@@ -32,10 +32,10 @@ Through price discovery, traditional financial markets aggregate information abo
 % TODO: Elaborate
 This efficiency and predictive power of prediction markets has been the topic
 of vast existing literature, especially in the context of forecasting elections, such as in
-\cite{berg_prediction_2008} \cite{erikson_are_2008}, who have found that .... 
+\textcite{berg_prediction_2008} \textcite{erikson_are_2008}, who have found that .... 
 % Empirical Berg (2008)
 % Analytical Wolfers (2006)
-This has also been tackled analytically, where \cite{wolfers_interpreting_2006} derived two economic models which
+This has also been tackled analytically, where \textcite{wolfers_interpreting_2006} derived two economic models which
 describe sufficient conditions under which prediction markets prices correspond with participants' mean beliefs.
 % Prediction markets were originally started by the Iowa State University for the 1988
 
@@ -84,7 +84,7 @@ While anyone can propose an event through social media channels such as Discord 
 Each `market` is a winner-take-all market as outlined in Section \ref{sec:prediction_markets}, and concerns itself with exactly one `question` regarding the outcome of the event it is a part of. Market participants can trade on these questions by buying or selling existing shares in binary `Yes` and `No` claims i.e. $C \in {\Yes, \No}$ (called `outcomes` or `outcome shares`), with prices for each of these shares, $P(C) \in \$[0, 1]$. % NOTE: delete duplicate
 When an event concludes, its markets are 'resolved', meaning the claims of the outcome which realised in the world $C^*$ in each market can be converted to \$1 per claim, with claims in the opposite outcome, $C'$, realising a \$0 payoff.
 This resolution happens according to `rules` stipulated for every event, which are designed to provide clarification on the markets' questions, in order to avoid situations where no market could resolve to a `Yes` outcome, despite being designed in such way.
-\citep{PMDocs}
+\parencite{PMDocs}
 
 Figure \ref{fig:FOMC_event_september} depicts the FOMC interest rate decision event for September, 2025, which features 4 markets regarding the potential interest rate decisions. These markets are non-overlapping and exhaustive, meaning one and only one of the markets will resolve to `Yes`, while the other markets resolve to `No`. This is ensured by the rules, which for this market are:
 
@@ -135,7 +135,7 @@ As Figure \ref{fig:FOMC_event_september} shows, market participants can submit l
 While buying is allowed at any quantity, short selling is not permitted on Polymarket, and only owned shares can be sold.
 This results in some price-inefficiencies, such as in \ref{fig:FOMC_event_september}, where despite the exhaustive set of markets, for each market $i$ in the set of markets in that event, $I$, the bid prices exhibit $\sum_{i \in I} \YesPrice_{i} \ne \$1$, $\sum_{i \in I} \NoPrice_{i} \ne \$3$, as well as $\sum_{i \in I} (\YesPrice_{i} + \NoPrice_{i}) \ne \$4$. This, however, is not exploitable due to lack of short-selling.
 As explained in Section \ref{sec:prediction_markets}, a trade is only possible if two individual market participants agree on a price, which is why on Polymarket, it is mechanically ensured that $\P(C) + P(C') = \$1$ for any two complementary claims (opposite outcomes).
-This guarantees that every pair of claims $(C, C') \in {\Yes, \No}$ is necessarily fully collateralised by \$1, put up by the holders of the `Yes` and `No` shares, ensuring the successful resolution of the market. \citep{PMDocs}
+This guarantees that every pair of claims $(C, C') \in {\Yes, \No}$ is necessarily fully collateralised by \$1, put up by the holders of the `Yes` and `No` shares, ensuring the successful resolution of the market. \parencite{PMDocs}
 
 Trading on Polymarket takes form in a continuous double auction, with no halts in trading between a market's opening and its resolution.
 This is shown in Figure \ref{fig:continuous_double_auction}, with resting bid and ask limit orders being displayed for `Yes` outcome claims in the market for the FOMC meeting in September to conclude with a 25 bps decrease in the upper bound of the target federal funds range.
@@ -144,7 +144,7 @@ Mechanically, this is realised on Polymarket's centralised limit order book (CLO
 This entails that market participants' orders are submitted to the CLOB, hosted on Polymarket servers, where they are matched into trades. Once a trade has been recorded on the servers, the actual settlement, execution, and recording of transactions takes place on the Polygon blockchain.
 While an in-depth description of the blockchain mechanism is beyond the scope of this thesis, the key implication is that all trades on Polymarket are publicly available, with identifiable users.
 Internally, pairs of opposing outcome shares $(C, C')$ are represented by pairs of `binary outcome tokens`, which are pairs of $\Yes$ and $\No$ claims in the same market, created upon being exchanged for and collateralised by the same nominal amount of `USDC`, the underlying currency for all exchange taking place on Polymarket.
-USDC is a cryptocurrency (a stablecoin), which is pegged to the United States dollar, and has been since 2021 accepted in transaction settlement by payment services provider Visa. \citep{hussain_visa_2021}.
+USDC is a cryptocurrency (a stablecoin), which is pegged to the United States dollar, and has been since 2021 accepted in transaction settlement by payment services provider Visa. \parencite{hussain_visa_2021}.
 For the purposes of this thesis, `USDC` will be referred to in terms of US dollars (1 USDC = 1 USD), while the term `outcome token` may be used to refer to digital assets representing a single share in a claim.
 The effects of Polymarket's internal mechanisms on data acquisition is elaborated on in Section \ref{sec:polymarket_data}.
 
@@ -172,7 +172,7 @@ It is important to note that this is the only arbitrage-eliminating mechanism im
 Since events are just collections of markets, there is no internal mechanism to prevent arbitrage across markets, such as
 $\sum_{i \in I} \YesPrice_{i} \le \$1$, $\sum_{i \in I} \NoPrice_{i} \le \$N - 1$, as well as $\sum_{i \in I} (\YesPrice_{i} + \NoPrice_{i}) \le \$N$,
 where $i$ is a market in the set of markets for a given event $I$ which contains $N$ number of markets.
-\citep{PMDocs, saguillo_unravelling_2025}
+\parencite{PMDocs, saguillo_unravelling_2025}
 
 Additionally, the split/merge operations (minting and burning tokens) are not restricted to order matching.
 Users may themselves at any time during the market's lifetime split units of USDC into pairs of binary outcome tokens $(C, C')$, 'buying' each for \$0.50, or merge a pair of tokens to receive the underlying collateral.
@@ -190,7 +190,7 @@ The former can be useful to market participants who wish to act as market makers
 
 \subsubsection{Effective Federal Funds Rate (EFFR)}
 
-The effective federal funds rate is the volume-weighted median interest rate on uncollateralised overnight loans of US dollar reserve balances between depository institutions in the United States. The Federal Reserve Bank of New York computes the EFFR and publishes it for the previous business day at approximately 9:00 a.m. New York time every day. This benchmark rate is the underlying asset of the Chicago Mercantile Exchange’s (CME's) 30-Day Federal Funds futures. \citep{FED_EFFR_NY}
+The effective federal funds rate is the volume-weighted median interest rate on uncollateralised overnight loans of US dollar reserve balances between depository institutions in the United States. The Federal Reserve Bank of New York computes the EFFR and publishes it for the previous business day at approximately 9:00 a.m. New York time every day. This benchmark rate is the underlying asset of the Chicago Mercantile Exchange’s (CME's) 30-Day Federal Funds futures. \parencite{FED_EFFR_NY}
 
 
 %%%%%%%%%%% UNREVIEWED TEXT STARTS HERE %%%%%%%%%%%
